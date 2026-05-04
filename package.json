@@ -1,0 +1,59 @@
+{
+  "name": "sync-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "NO_SANDBOX=1 electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "NO_SANDBOX=1 electron-vite preview",
+    "package": "npm run build && electron-builder",
+    "dev:win": "set NO_SANDBOX=1&& electron-vite dev"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "typescript": "~5.6.3",
+    "vite": "^5.4.11"
+  },
+  "build": {
+    "appId": "net.syncthing.sync-web",
+    "productName": "Syncthing Sync Web",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
