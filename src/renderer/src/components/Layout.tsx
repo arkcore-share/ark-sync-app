@@ -1,5 +1,6 @@
 import React from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
+import PendingClusterNotifications from './PendingClusterNotifications'
 import { useConnection } from '../context/ConnectionContext'
 
 const linkClass = ({ isActive }: { isActive: boolean }) => (isActive ? 'active' : '')
@@ -36,6 +37,7 @@ export default function Layout(): React.ReactElement {
         </div>
       </aside>
       <main className="main">
+        <PendingClusterNotifications />
         <Outlet />
       </main>
     </div>

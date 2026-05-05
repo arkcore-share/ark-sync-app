@@ -382,6 +382,76 @@ th {
   font-size: 0.875rem;
 }
 
+/* 与官方 Syncthing GUI 类似的「新设备 / 新文件夹」待处理通知 */
+.pending-cluster-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.pending-cluster-card {
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid rgba(234, 179, 8, 0.45);
+}
+
+.pending-cluster-head {
+  background: #eab308;
+  color: #1c1917;
+  padding: 0.5rem 0.85rem;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  gap: 0.75rem;
+}
+
+.pending-cluster-time {
+  font-weight: 500;
+  font-size: 0.8rem;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.pending-cluster-body {
+  background: var(--surface);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.pending-cluster-msg {
+  margin: 0;
+}
+
+.pending-cluster-countdown {
+  color: #c4b5fd;
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+}
+
+.pending-cluster-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.82rem;
+}
+
+.pending-cluster-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.12);
+  border-top: 1px solid var(--border);
+}
+
+.pending-cluster-actions button {
+  font-size: 0.82rem;
+  padding: 0.35rem 0.65rem;
+}
+
 /* 概览 — 此设备 */
 .device-panel-title {
   margin: 0 0 0.75rem;

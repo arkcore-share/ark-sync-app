@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LocalStateTotalStat } from '../components/ConnectionSignal'
 import AddFolderModal from '../components/folder/AddFolderModal'
@@ -20,6 +20,7 @@ import {
   formatIntervalSeconds,
   formatLastChange,
   formatLastScan,
+  LAST_CHANGE_EMPTY_HINT,
   pullOrderLabel,
   versioningTypeLabel
 } from '../util/syncthingUi'
@@ -183,6 +184,18 @@ function FolderKvRow({
       <span className={['kv-value', valueClass || ''].filter(Boolean).join(' ')}>{children}</span>
     </div>
   )
+}
+
+function LastChangeValue({ stats }: { stats: FolderStatisticsEntry | undefined }): React.ReactElement {
+  const text = formatLastChange(stats)
+  if (text === '—') {
+    return (
+      <span className="muted last-change-dash" title={LAST_CHANGE_EMPTY_HINT}>
+        —
+      </span>
+    )
+  }
+  return <span>{text}</span>
 }
 
 function RescanWatcherValue({ folder }: { folder: FolderConfiguration }): React.ReactElement {
@@ -384,7 +397,7 @@ function FolderCard({
               {formatLastScan(stats)}
             </FolderKvRow>
             <FolderKvRow icon={<IcoSwap />} label="最后更改" valueClass="kv-value-tr">
-              {formatLastChange(stats)}
+              <LastChangeValue stats={stats} />
             </FolderKvRow>
           </div>
           <div className="folder-card-actions row">
@@ -429,6 +442,8 @@ export default function FoldersPage(): React.ReactElement {
   const [editFolder, setEditFolder] = useState<FolderConfiguration | null>(null)
   const [versionsFolder, setVersionsFolder] = useState<string | null>(null)
   const [cardOpen, setCardOpen] = useState<Record<string, boolean>>({})
+  const [statsWarn, setStatsWarn] = useState<string | null>(null)
+  const folderStatsRef = useRef<Record<string, FolderStatisticsEntry>>({})
 
   const toggleCard = (folderId: string) => {
     setCardOpen((prev) => ({
@@ -443,11 +458,20 @@ export default function FoldersPage(): React.ReactElement {
     }
     setErr(null)
     try {
-      const [config, st, folderStats] = await Promise.all([
-        client.getConfig(),
-        client.systemStatus(),
-        client.getFolderStatisticsMap().catch(() => ({} as Record<string, FolderStatisticsEntry>))
-      ])
+      const [config, st] = await Promise.all([client.getConfig(), client.systemStatus()])
+      let folderStats = folderStatsRef.current
+      try {
+        folderStats = await client.getFolderStatisticsMap()
+        folderStatsRef.current = folderStats
+        setStatsWarn(null)
+      } catch (e) {
+        folderStats = folderStatsRef.current
+        setStatsWarn(
+          e instanceof Error
+            ? `无法刷新文件夹统计（${e.message}）；「最后更改」等可能仍为「—」或沿用上次数据。`
+            : '无法刷新文件夹统计；「最后更改」等可能仍为「—」或沿用上次数据。'
+        )
+      }
       setCfg(config)
       setMyId(st.myID.trim())
       const list = config.folders || []
@@ -540,6 +564,11 @@ export default function FoldersPage(): React.ReactElement {
         </div>
       </div>
       {err && <div className="error-banner">{err}</div>}
+      {statsWarn && (
+        <div className="error-banner" style={{ borderColor: 'rgba(234, 179, 8, 0.45)', color: 'var(--warning)' }}>
+          {statsWarn}
+        </div>
+      )}
 
       <div className="folder-card-list">
         {rows.map((row) => (

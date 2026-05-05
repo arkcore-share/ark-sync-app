@@ -1,8 +1,9 @@
 # Syncthing Sync Web
+##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这是git的密钥
 
 基于 **Electron**、**React**、**TypeScript** 与 **Vite**（[electron-vite](https://electron-vite.org/)）的 Syncthing 管理客户端，通过 Syncthing **REST API** 管理本机或远程实例。
 
-## 项目作用 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这是git的密钥
+## 项目作用 
 
 - 连接 Syncthing（默认示例：`http://127.0.0.1:8384`）
 - 认证方式：

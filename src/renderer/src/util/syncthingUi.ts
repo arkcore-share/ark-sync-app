@@ -170,9 +170,32 @@ export function formatLastScan(stats: FolderStatisticsEntry | undefined): string
   return formatDateTimeYmdHms(stats.lastScan)
 }
 
+/** 「最后更改」为「—」时悬停说明：尚无记录常见于路径无效、暂停、或未与对端完成索引交换 */
+export const LAST_CHANGE_EMPTY_HINT =
+  '尚无已完成同步的文件记录。需文件夹路径有效、未暂停，并与对端建立同步并完成索引交换；.stfolder 由本机在文件夹目录下创建，并非从中转设备接收。'
+
+/** 兼容不同 Syncthing / 构建的 lastFile 字段命名 */
+function coerceLastFile(
+  raw: FolderStatisticsEntry['lastFile'] | undefined
+): { filename: string; deleted: boolean } | undefined {
+  if (!raw || typeof raw !== 'object') {
+    return undefined
+  }
+  const o = raw as Record<string, unknown>
+  const filename =
+    (typeof o.filename === 'string' && o.filename) ||
+    (typeof o.Filename === 'string' && o.Filename) ||
+    (typeof o.fileName === 'string' && o.fileName)
+  if (!filename) {
+    return undefined
+  }
+  const deleted = o.deleted === true || o.Deleted === true
+  return { filename, deleted }
+}
+
 export function formatLastChange(stats: FolderStatisticsEntry | undefined): string {
-  const lf = stats?.lastFile
-  if (!lf?.filename) {
+  const lf = coerceLastFile(stats?.lastFile)
+  if (!lf) {
     return '—'
   }
   const act = lf.deleted ? '已删除' : '已更新'

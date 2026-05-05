@@ -102,6 +102,24 @@ export type ObservedRemoteDevice = {
   address?: string
 }
 
+/** GET /rest/cluster/pending/devices — 键为设备 ID */
+export type PendingClusterDeviceEntry = {
+  time?: string
+  name?: string
+  address?: string
+}
+
+/** GET /rest/cluster/pending/folders — offeredBy 的键为设备 ID */
+export type PendingClusterFolderOffer = {
+  time?: string
+  label?: string
+  receiveEncrypted?: boolean
+}
+
+export type PendingClusterFolderEntry = {
+  offeredBy: Record<string, PendingClusterFolderOffer>
+}
+
 export type DeviceConfiguration = {
   deviceID: string
   name: string

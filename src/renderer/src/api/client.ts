@@ -10,6 +10,8 @@ import type {
   FolderSummary,
   FolderVersionsMap,
   LdapConfiguration,
+  PendingClusterDeviceEntry,
+  PendingClusterFolderEntry,
   SyncthingDiskEvent,
   SystemConfig,
   SystemStatus
@@ -29,6 +31,13 @@ export type ClientOptions = {
 function normalizeBase(url: string): string {
   const u = url.trim().replace(/\/$/, '')
   return u.endsWith('/rest') ? u.slice(0, -5) : u
+}
+
+function normalizePendingMap(raw: unknown): Record<string, unknown> {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    return raw as Record<string, unknown>
+  }
+  return {}
 }
 
 export class SyncthingClient {
@@ -370,12 +379,38 @@ export class SyncthingClient {
     await this.request('DELETE', `/config/devices/${encodeURIComponent(id)}`)
   }
 
-  async pendingDevices(): Promise<{ devices: unknown[] }> {
-    return this.request('GET', '/cluster/pending/devices')
+  /** 待处理的新设备连接请求（含中转/中继场景），键为设备 ID */
+  async pendingDevices(): Promise<Record<string, PendingClusterDeviceEntry>> {
+    const raw = await this.request<unknown>('GET', '/cluster/pending/devices')
+    return normalizePendingMap(raw) as Record<string, PendingClusterDeviceEntry>
   }
 
-  async pendingFolders(): Promise<{ folders: unknown[] }> {
-    return this.request('GET', '/cluster/pending/folders')
+  /** 待处理的共享文件夹提议 */
+  async pendingFolders(): Promise<Record<string, PendingClusterFolderEntry>> {
+    const raw = await this.request<unknown>('GET', '/cluster/pending/folders')
+    return normalizePendingMap(raw) as Record<string, PendingClusterFolderEntry>
+  }
+
+  /** POST /rest/config/defaults/device — 新建设备默认值（与官方「添加设备」一致） */
+  async getDeviceDefaults(): Promise<DeviceConfiguration> {
+    return this.request('GET', '/config/defaults/device')
+  }
+
+  /** GET /rest/config/defaults/folder — 新建文件夹默认值（与官方 pending 自动接受一致） */
+  async getFolderDefaults(): Promise<FolderConfiguration> {
+    return this.request('GET', '/config/defaults/folder')
+  }
+
+  /** 从待处理列表移除设备（不加入忽略列表，通知可能再次出现） */
+  async dismissPendingDevice(deviceId: string): Promise<void> {
+    await this.request('DELETE', '/cluster/pending/devices', undefined, { device: deviceId })
+  }
+
+  async dismissPendingFolder(folderId: string, deviceId: string): Promise<void> {
+    await this.request('DELETE', '/cluster/pending/folders', undefined, {
+      folder: folderId,
+      device: deviceId
+    })
   }
 
   async browseFolder(current?: string): Promise<string[]> {
