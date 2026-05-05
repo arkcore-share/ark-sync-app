@@ -2,7 +2,7 @@
 
 基于 **Electron**、**React**、**TypeScript** 与 **Vite**（[electron-vite](https://electron-vite.org/)）的 Syncthing 管理客户端，通过 Syncthing **REST API** 管理本机或远程实例。
 
-## 项目作用
+## 项目作用 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这是git的密钥
 
 - 连接 Syncthing（默认示例：`http://127.0.0.1:8384`）
 - 认证方式：
@@ -40,11 +40,13 @@ npm install
 
 | 命令 | 说明 |
 |------|------|
-| `npm run dev` | 开发模式（脚本含 `NO_SANDBOX=1`，缓解 Linux 下沙箱问题） |
+| `npm run dev` | 开发模式（通过 `cross-env` 设置 `NO_SANDBOX=1`，Windows / Linux / macOS 通用；缓解 Linux 下沙箱问题） |
 | `npm run preview` | 预览已构建产物 |
-| `npm run dev:win` | Windows 下的开发入口（`set NO_SANDBOX=1`） |
+| `npm run dev:win` | 与 `npm run dev` 相同（保留兼容旧文档与习惯） |
 
 日常开发使用 `npm run dev` 即可在 Electron 窗口中使用完整能力。
+
+若启动时出现 **Electron uninstall** 或缺少 `node_modules/electron/path.txt`，说明 Electron 二进制未下载完成：在项目根目录执行 `npm run electron:install`（或删除 `node_modules/electron` 后重新 `npm install`）。仓库内 `.npmrc` 已配置国内镜像以加速下载。
 
 ## 可选环境变量与说明
 

@@ -5,11 +5,12 @@
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
-    "dev": "NO_SANDBOX=1 node ./node_modules/electron-vite/bin/electron-vite.js dev",
+    "dev": "cross-env NO_SANDBOX=1 node ./node_modules/electron-vite/bin/electron-vite.js dev",
     "build": "node ./node_modules/electron-vite/bin/electron-vite.js build",
-    "preview": "NO_SANDBOX=1 node ./node_modules/electron-vite/bin/electron-vite.js preview",
+    "preview": "cross-env NO_SANDBOX=1 node ./node_modules/electron-vite/bin/electron-vite.js preview",
     "package": "npm run build && electron-builder",
-    "dev:win": "set NO_SANDBOX=1&& node ./node_modules/electron-vite/bin/electron-vite.js dev"
+    "dev:win": "npm run dev",
+    "electron:install": "node ./node_modules/electron/install.js"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -20,6 +21,7 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",
+    "cross-env": "^7.0.3",
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8",
     "electron-vite": "^2.3.0",
