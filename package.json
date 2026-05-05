@@ -5,11 +5,11 @@
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
-    "dev": "NO_SANDBOX=1 electron-vite dev",
-    "build": "electron-vite build",
-    "preview": "NO_SANDBOX=1 electron-vite preview",
+    "dev": "NO_SANDBOX=1 node ./node_modules/electron-vite/bin/electron-vite.js dev",
+    "build": "node ./node_modules/electron-vite/bin/electron-vite.js build",
+    "preview": "NO_SANDBOX=1 node ./node_modules/electron-vite/bin/electron-vite.js preview",
     "package": "npm run build && electron-builder",
-    "dev:win": "set NO_SANDBOX=1&& electron-vite dev"
+    "dev:win": "set NO_SANDBOX=1&& node ./node_modules/electron-vite/bin/electron-vite.js dev"
   },
   "dependencies": {
     "react": "^18.3.1",
