@@ -15,6 +15,7 @@ import EditDeviceModal from '../components/device/EditDeviceModal'
 import RecentChangesModal from '../components/device/RecentChangesModal'
 import {
   formatBytes,
+  formatDisplaySyncthingVersion,
   getConnectionEntryForDevice,
   getValueByDeviceId,
   sameDeviceId,
@@ -351,7 +352,7 @@ export default function DevicesPage(): React.ReactElement {
                     {c?.connected && c.clientVersion && (
                       <div className="kv-row">
                         <span className="kv-label">版本</span>
-                        <span className="kv-value">{c.clientVersion}</span>
+                        <span className="kv-value">{formatDisplaySyncthingVersion(c.clientVersion)}</span>
                       </div>
                     )}
                     {foldersText ? (

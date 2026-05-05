@@ -125,13 +125,18 @@ function prettyPlatformToken(token: string): string {
 }
 
 /**
- * 展示用版本行：去掉构建用户/时间、(go x.y …) 等，只保留版本名与可读平台。
+ * 展示用版本行：去掉构建用户/时间、(go x.y …)、驱动标签与 Windows 构建机等，只保留版本名与可读平台。
  */
 export function formatDisplaySyncthingVersion(raw: string): string {
   let s = raw.replace(/^syncthing\s+/i, '').trim()
   if (!s) {
     return ''
   }
+
+  /* 可选标签，如 [modernc-sqlite] */
+  s = s.replace(/\s*\[[^\]]+\]/g, '')
+  /* Windows 构建机串：COMPUTER\user@host */
+  s = s.replace(/\s+[A-Za-z0-9_.-]+\\[A-Za-z0-9_.-]+@[A-Za-z0-9_.:-]+/g, '')
 
   let platformFromGo = ''
   const goParen = s.match(/\(\s*go[\d.]+\s+([^)]+)\s*\)/i)
