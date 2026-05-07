@@ -1,5 +1,7 @@
 /// <reference types="vite/client" />
 
+declare const __APP_VERSION__: string
+
 export type SyncthingRestIpc = {
   baseUrl: string
   apiKey: string
@@ -37,6 +39,9 @@ export type SyncthingRestResult = {
   statusCode: number
   json?: unknown
   text?: string
+  /** 非 JSON 二进制响应（如 support bundle zip） */
+  base64?: string
+  contentType?: string
   error?: string
 }
 
@@ -55,11 +60,18 @@ declare global {
   interface Window {
     /** Present only when running inside Electron (preload). */
     syncWeb?: {
+      electronPlatform?: NodeJS.Platform
+      windowMinimize?: () => Promise<void>
+      windowMaximizeToggle?: () => Promise<boolean>
+      windowClose?: () => Promise<void>
+      windowIsMaximized?: () => Promise<boolean>
+      onWindowMaximized?: (listener: (maximized: boolean) => void) => () => void
       getConnection: () => Promise<ConnectionPayload | null>
       setConnection: (c: ConnectionPayload) => Promise<boolean>
       clearConnection: () => Promise<boolean>
       openPath: (p: string) => Promise<string>
       showItemInFolder: (p: string) => Promise<boolean>
+      openExternal: (url: string) => Promise<boolean>
       syncthingRest: (p: SyncthingRestIpc) => Promise<SyncthingRestResult>
       syncthingGetAsset: (p: SyncthingAssetIpc) => Promise<SyncthingAssetResult>
     }

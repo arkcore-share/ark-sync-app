@@ -1,44 +1,44 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet } from 'react-router-dom'
+import logoUrl from '../assets/ark-logo.png'
 import PendingClusterNotifications from './PendingClusterNotifications'
-import { useConnection } from '../context/ConnectionContext'
+import PersonalCenter from './PersonalCenter'
 
 const linkClass = ({ isActive }: { isActive: boolean }) => (isActive ? 'active' : '')
 
 export default function Layout(): React.ReactElement {
-  const { disconnect } = useConnection()
-
+  const { t } = useTranslation()
   return (
     <div className="layout">
       <aside className="sidebar">
-        <div className="brand">Sync Web</div>
+        <div className="sidebar-top">
+          <div className="sidebar-brand">
+            <img src={logoUrl} alt="" className="brand-logo" decoding="async" />
+            <div className="brand-title">Ark Sync</div>
+          </div>
+        </div>
         <NavLink to="/" end className={linkClass}>
-          总览
+          {t('Ark.NavSummary')}
         </NavLink>
         <NavLink to="/local" className={linkClass}>
-          本机设备
+          {t('Ark.NavLocalDevice')}
         </NavLink>
         <NavLink to="/folders" className={linkClass}>
-          文件夹
+          {t('Folders')}
         </NavLink>
         <NavLink to="/devices" className={linkClass}>
-          远程设备
+          {t('Remote Devices')}
         </NavLink>
-        <NavLink to="/settings" className={linkClass}>
-          设置
-        </NavLink>
-        <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
-          <button type="button" className="danger" onClick={() => void disconnect()}>
-            <span className="btn-glyph" aria-hidden>
-              ⧉
-            </span>
-            断开连接
-          </button>
+        <div className="sidebar-footer">
+          <PersonalCenter />
         </div>
       </aside>
       <main className="main">
         <PendingClusterNotifications />
-        <Outlet />
+        <div className="main-outlet">
+          <Outlet />
+        </div>
       </main>
     </div>
   )

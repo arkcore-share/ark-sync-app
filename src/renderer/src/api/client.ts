@@ -14,7 +14,10 @@ import type {
   PendingClusterFolderEntry,
   SyncthingDiskEvent,
   SystemConfig,
-  SystemStatus
+  SystemLogLevelsResponse,
+  SystemLogResponse,
+  SystemStatus,
+  SystemVersionResponse
 } from './types'
 
 export type ClientOptions = {
@@ -166,12 +169,84 @@ export class SyncthingClient {
     return this.request('GET', '/system/status')
   }
 
-  async systemVersion(): Promise<{ version: string; longVersion: string }> {
+  async systemVersion(): Promise<SystemVersionResponse> {
     return this.request('GET', '/system/version')
   }
 
   async systemErrors(): Promise<{ errors: { when: string; message: string }[] }> {
     return this.request('GET', '/system/error')
+  }
+
+  /** 与官方「操作 → 日志」相同：`GET /rest/system/log`，可选 `since` 增量拉取 */
+  async getSystemLog(query?: { since?: string }): Promise<SystemLogResponse> {
+    return this.request(
+      'GET',
+      '/system/log',
+      undefined,
+      query?.since ? { since: query.since } : undefined
+    )
+  }
+
+  /** GET /rest/system/loglevels（Syncthing ≥2.0） */
+  async getSystemLogLevels(): Promise<SystemLogLevelsResponse> {
+    return this.request('GET', '/system/loglevels')
+  }
+
+  /** POST /rest/system/loglevels — body 为 facility → DEBUG|INFO|WARN|ERROR */
+  async setSystemLogLevels(levels: Record<string, string>): Promise<void> {
+    await this.request('POST', '/system/loglevels', levels)
+  }
+
+  /** 下载官方「支持捆绑包」（GET /rest/debug/support）；需实例允许调试/REST 访问 */
+  async downloadSupportBundleFile(): Promise<void> {
+    if (this.useIpc()) {
+      const res = await syncthingRest({
+        ...this.ipcAuth(),
+        method: 'GET',
+        restPath: '/debug/support'
+      })
+      if (res.error) {
+        throw new Error(res.error)
+      }
+      if (!res.ok) {
+        const detail = res.text ?? ''
+        throw new Error(`HTTP ${res.statusCode} ${detail}`.trim())
+      }
+      if (!res.base64) {
+        throw new Error(
+          '无法获取支持捆绑包（Syncthing 可能未启用调试 REST，或返回了非 zip 内容）'
+        )
+      }
+      const bytes = Uint8Array.from(atob(res.base64), (c) => c.charCodeAt(0))
+      const blob = new Blob([bytes], { type: res.contentType || 'application/zip' })
+      SyncthingClient.triggerBlobDownload(blob, `syncthing-support-${Date.now()}.zip`)
+      return
+    }
+    if (!this.apiKey) {
+      throw new Error('需要 API 密钥或使用 Electron 本机会话以下载支持捆绑包')
+    }
+    const url = `${this.base}/rest/debug/support`
+    const fetchRes = await fetch(url, {
+      headers: { 'X-API-Key': this.apiKey }
+    })
+    if (!fetchRes.ok) {
+      const t = await fetchRes.text().catch(() => '')
+      throw new Error(`${fetchRes.status} ${t}`.trim())
+    }
+    const blob = await fetchRes.blob()
+    SyncthingClient.triggerBlobDownload(blob, `syncthing-support-${Date.now()}.zip`)
+  }
+
+  private static triggerBlobDownload(blob: Blob, filename: string): void {
+    const href = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = href
+    a.download = filename
+    a.rel = 'noopener'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(href)
   }
 
   async clearErrors(): Promise<void> {
@@ -196,12 +271,13 @@ export class SyncthingClient {
     return res as SyncthingDiskEvent[]
   }
 
+  /** 与官方 Web GUI 一致：GET/PUT `/rest/config`（Syncthing ≥1.12）；弃用的 `/rest/system/config` 请勿再用 */
   async getConfig(): Promise<SystemConfig> {
-    return this.request('GET', '/system/config')
+    return this.request('GET', '/config')
   }
 
   async setConfig(cfg: SystemConfig): Promise<void> {
-    await this.request('PUT', '/system/config', cfg)
+    await this.request('PUT', '/config', cfg)
   }
 
   async getConfigOptions(): Promise<Record<string, unknown>> {

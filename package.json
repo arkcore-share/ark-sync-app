@@ -9,12 +9,15 @@
     "build": "node ./node_modules/electron-vite/bin/electron-vite.js build",
     "preview": "cross-env NO_SANDBOX=1 node ./node_modules/electron-vite/bin/electron-vite.js preview",
     "package": "npm run build && electron-builder",
+    "package:win": "npm run build && electron-builder --win",
     "dev:win": "npm run dev",
     "electron:install": "node ./node_modules/electron/install.js"
   },
   "dependencies": {
+    "i18next": "^26.0.8",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-i18next": "^17.0.6",
     "react-router-dom": "^6.28.0"
   },
   "devDependencies": {

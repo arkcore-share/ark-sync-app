@@ -1,17 +1,17 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import type { SyncthingClient } from '../api/client'
 import { useConnection } from '../context/ConnectionContext'
 import { usePoll } from '../hooks/usePoll'
 import type {
   DeviceConfiguration,
   FolderConfiguration,
   GuiConfiguration,
-  LdapConfiguration,
   ObservedFolder,
   ObservedRemoteDevice,
   SystemConfig,
-  SystemStatus
+  SystemStatus,
+  SystemVersionResponse
 } from '../api/types'
 import { sameDeviceId, shortDeviceId } from '../util/format'
 
@@ -19,6 +19,22 @@ const DOCS_BASE = 'https://docs.syncthing.net/'
 const GUI_THEMES = ['default', 'dark', 'black', 'light']
 
 type SettingsTab = 'general' | 'gui' | 'connections' | 'ignoredDevices' | 'ignoredFolders'
+
+/** 与官方 GUI 相同：差异视图由两次 `/svc/report?version=` 对比；仅输出新版中新增或内容变化的字段（值取当前版本） */
+function diffUsageReports(
+  current: Record<string, unknown>,
+  previous: Record<string, unknown>
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const k of Object.keys(current)) {
+    const a = current[k]
+    const b = previous[k]
+    if (b === undefined || JSON.stringify(a) !== JSON.stringify(b)) {
+      out[k] = a
+    }
+  }
+  return out
+}
 
 function randomApiKey(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-'
@@ -108,13 +124,22 @@ function folderLabelForId(folders: FolderConfiguration[], folderId: string): str
   return f?.label || folderId
 }
 
+/** 与官方 GUI `isUnixAddress` 一致：Unix 套接字监听时需配置权限 */
+function isUnixGuiAddress(address: string): boolean {
+  const a = address.trim()
+  return a.startsWith('/') || a.startsWith('unix://') || a.startsWith('unixs://')
+}
+
 export default function SettingsPage(): React.ReactElement {
+  const { t } = useTranslation()
   const { client, connection } = useConnection()
   const navigate = useNavigate()
   const [tab, setTab] = useState<SettingsTab>('general')
   const [draft, setDraft] = useState<SystemConfig | null>(null)
   const [myId, setMyId] = useState('')
   const [sys, setSys] = useState<SystemStatus | null>(null)
+  /** 与官方 Web GUI 相同：`isCandidate` 来自 GET /rest/system/version，不在 /system/status */
+  const [versionInfo, setVersionInfo] = useState<SystemVersionResponse | null>(null)
   const [ver, setVer] = useState('')
   const [listenStr, setListenStr] = useState('')
   const [globalAnnStr, setGlobalAnnStr] = useState('')
@@ -124,12 +149,15 @@ export default function SettingsPage(): React.ReactElement {
   const [urStr, setUrStr] = useState('0')
   const [upgrades, setUpgrades] = useState<'none' | 'stable' | 'candidate'>('stable')
   const [guiPasswordInput, setGuiPasswordInput] = useState('')
-  const savedGuiPasswordRef = useRef('')
+  /** 配置中是否已有 GUI 密码（GET /config 通常为哈希，仅用于占位提示，不参与保存合并） */
+  const [guiPasswordConfigured, setGuiPasswordConfigured] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [urPreviewOpen, setUrPreviewOpen] = useState(false)
   const [urPreviewJson, setUrPreviewJson] = useState('')
   const [urPreviewBusy, setUrPreviewBusy] = useState(false)
+  const [urPreviewVersion, setUrPreviewVersion] = useState<number | null>(null)
+  const [urPreviewDiff, setUrPreviewDiff] = useState(false)
   const [defaultsModal, setDefaultsModal] = useState<'folder' | 'device' | null>(null)
   const [defaultsJson, setDefaultsJson] = useState('')
 
@@ -142,10 +170,11 @@ export default function SettingsPage(): React.ReactElement {
       const [cfg, st, version] = await Promise.all([
         client.getConfig(),
         client.systemStatus(),
-        client.systemVersion().catch(() => ({ version: '' }))
+        client.systemVersion().catch((): SystemVersionResponse => ({}))
       ])
       setMyId(st.myID.trim())
       setSys(st)
+      setVersionInfo(version)
       setVer(version.version || '')
       setDraft(JSON.parse(JSON.stringify(cfg)) as SystemConfig)
 
@@ -163,11 +192,13 @@ export default function SettingsPage(): React.ReactElement {
       const pre = !!cfg.options?.upgradeToPreReleases
       setUpgrades(pre ? 'candidate' : auh > 0 ? 'stable' : 'none')
 
-      savedGuiPasswordRef.current = (cfg.gui?.password as string | undefined) ?? ''
+      const gp = (cfg.gui?.password as string | undefined) ?? ''
+      setGuiPasswordConfigured(typeof gp === 'string' && gp.length > 0)
       setGuiPasswordInput('')
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e))
       setDraft(null)
+      setVersionInfo(null)
     }
   }, [client])
 
@@ -198,7 +229,7 @@ export default function SettingsPage(): React.ReactElement {
     return rows
   }, [draft])
 
-  const isCandidate = !!sys?.isCandidate
+  const isCandidate = !!versionInfo?.isCandidate
   const urMax = sys?.urVersionMax ?? 3
   const urVersionOptions = useMemo(() => {
     const out: number[] = []
@@ -289,15 +320,12 @@ export default function SettingsPage(): React.ReactElement {
         urStr,
         upgrades,
         urVersionMax: sys?.urVersionMax,
-        isCandidate: !!sys?.isCandidate
+        isCandidate: !!versionInfo?.isCandidate
       })
 
       const gui: GuiConfiguration = { ...(out.gui ?? {}) }
-      if (!guiPasswordInput.trim() && savedGuiPasswordRef.current) {
-        gui.password = savedGuiPasswordRef.current
-      } else {
-        gui.password = guiPasswordInput
-      }
+      // 与官方 Web GUI 一致：密码框内容原样提交，留空即清空 gui.password
+      gui.password = guiPasswordInput
       out.gui = gui
 
       await client.setConfig(out)
@@ -310,32 +338,69 @@ export default function SettingsPage(): React.ReactElement {
     }
   }
 
-  const loadUrPreview = async () => {
-    if (!client) {
+  const refreshUrPreview = useCallback(async () => {
+    if (!client || !urPreviewOpen) {
+      return
+    }
+    if (urPreviewVersion == null) {
+      setUrPreviewJson('')
+      return
+    }
+    if (urVersionOptions.length > 0 && !urVersionOptions.includes(urPreviewVersion)) {
+      setUrPreviewJson('')
       return
     }
     setUrPreviewBusy(true)
     try {
-      const data = await client.getUsageReportPreview()
-      setUrPreviewJson(JSON.stringify(data, null, 2))
-      setUrPreviewOpen(true)
+      const v = urPreviewVersion
+      if (urPreviewDiff && v > 1) {
+        const [cur, prev] = await Promise.all([
+          client.getUsageReportPreview(v),
+          client.getUsageReportPreview(v - 1)
+        ])
+        const d = diffUsageReports(cur, prev)
+        setUrPreviewJson(JSON.stringify(d, null, 2))
+      } else {
+        const data = await client.getUsageReportPreview(v > 0 ? v : undefined)
+        setUrPreviewJson(JSON.stringify(data, null, 2))
+      }
     } catch (e) {
-      alert(e instanceof Error ? e.message : String(e))
+      setUrPreviewJson(e instanceof Error ? e.message : String(e))
     } finally {
       setUrPreviewBusy(false)
     }
-  }
+  }, [client, urPreviewOpen, urPreviewDiff, urPreviewVersion, urVersionOptions])
 
-  const shutdown = async () => {
-    if (!client || !confirm('确定关闭 Syncthing 进程？桌面客户端仍可重新连接。')) {
+  useEffect(() => {
+    if (urPreviewOpen) {
+      void refreshUrPreview()
+    }
+  }, [urPreviewOpen, urPreviewDiff, urPreviewVersion, refreshUrPreview])
+
+  /** 打开预览时选中合法版本；下拉「选择版本」时 urPreviewVersion 为 null，不请求接口 */
+  useEffect(() => {
+    if (!urPreviewOpen || urPreviewVersion === null) {
       return
     }
-    try {
-      await client.shutdown()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : String(e))
+    if (urVersionOptions.length > 0 && !urVersionOptions.includes(urPreviewVersion)) {
+      setUrPreviewVersion(urVersionOptions[0]!)
     }
+  }, [urPreviewOpen, urPreviewVersion, urVersionOptions])
+
+  const loadUrPreview = () => {
+    if (!client) {
+      return
+    }
+    const parsed = parseInt(urStr, 10)
+    const pick =
+      urVersionOptions.includes(parsed) ? parsed : urVersionOptions.length ? urVersionOptions[0] : urMax
+    setUrPreviewVersion(pick)
+    setUrPreviewDiff(false)
+    setUrPreviewOpen(true)
   }
+
+  /** 固定高度的 JSON 区仅在已选具体版本且存在可选列表时使用；选「选择版本」时用紧凑布局避免大块空白 */
+  const urPreviewModalExpanded = urPreviewVersion != null && urVersionOptions.length > 0
 
   const updateGui = (patch: Partial<GuiConfiguration>) => {
     setDraft((d) => (d ? { ...d, gui: { ...d.gui, ...patch } } : d))
@@ -494,16 +559,34 @@ export default function SettingsPage(): React.ReactElement {
               </div>
 
               <div className="settings-two-col">
-                <div className="settings-field">
-                  <label>
-                    匿名使用报告 (
-                    <button type="button" className="link-btn" disabled={urPreviewBusy} onClick={() => void loadUrPreview()}>
+                <div className="settings-field settings-ur-field">
+                  {/* 与官方一致：label 只对应「匿名使用报告」；(预览) 在 label 外，为链接样式 */}
+                  <div className="settings-ur-heading">
+                    {!isCandidate && upgrades !== 'candidate' ? (
+                      <label className="settings-ur-title" htmlFor="settings-ur-version-select">
+                        匿名使用报告
+                      </label>
+                    ) : (
+                      <span className="settings-ur-title">匿名使用报告</span>
+                    )}
+                    {' ('}
+                    <button
+                      type="button"
+                      className="link-btn settings-ur-preview-btn"
+                      disabled={urPreviewBusy}
+                      onClick={() => void loadUrPreview()}
+                    >
                       预览
                     </button>
-                    )
-                  </label>
+                    {')'}
+                  </div>
                   {!isCandidate && upgrades !== 'candidate' ? (
-                    <select value={urStr} onChange={(e) => setUrStr(e.target.value)}>
+                    <select
+                      id="settings-ur-version-select"
+                      className="settings-ur-version-select"
+                      value={urStr}
+                      onChange={(e) => setUrStr(e.target.value)}
+                    >
                       {urVersionOptions.map((n) => (
                         <option key={n} value={String(n)}>
                           版本 {n}
@@ -513,7 +596,9 @@ export default function SettingsPage(): React.ReactElement {
                       <option value="-1">禁用</option>
                     </select>
                   ) : (
-                    <p className="field-help">发布候选版始终启用使用报告。</p>
+                    <p className="field-help settings-ur-candidate-hint">
+                      发布候选版始终启用使用报告。
+                    </p>
                   )}
                 </div>
                 <div className="settings-field">
@@ -588,7 +673,9 @@ export default function SettingsPage(): React.ReactElement {
                     className="settings-input-full"
                     autoComplete="new-password"
                     value={guiPasswordInput}
-                    placeholder={savedGuiPasswordRef.current ? '留空则保留当前密码' : ''}
+                    placeholder={
+                      guiPasswordConfigured ? '留空并保存将清除密码；填写则为新密码' : ''
+                    }
                     onChange={(e) => setGuiPasswordInput(e.target.value)}
                   />
                 </div>
@@ -615,16 +702,50 @@ export default function SettingsPage(): React.ReactElement {
                   </label>
                 </div>
               </div>
-              <div className="settings-field">
-                <label>GUI 主题</label>
-                <select value={draft.gui?.theme ?? 'default'} onChange={(e) => updateGui({ theme: e.target.value })}>
-                  {GUI_THEMES.map((t) => (
-                    <option key={t} value={t}>
-                      {t === 'default' ? '默认' : t}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {isUnixGuiAddress(draft.gui?.address ?? '') ? (
+                <div className="settings-two-col">
+                  <div className="settings-field">
+                    <label htmlFor="settings-gui-theme">GUI 主题</label>
+                    <select
+                      id="settings-gui-theme"
+                      value={draft.gui?.theme ?? 'default'}
+                      onChange={(e) => updateGui({ theme: e.target.value })}
+                    >
+                      {GUI_THEMES.map((t) => (
+                        <option key={t} value={t}>
+                          {t === 'default' ? '默认' : t}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="settings-field">
+                    <label htmlFor="settings-unix-socket-perm">UNIX 套接字权限</label>
+                    <input
+                      id="settings-unix-socket-perm"
+                      className="settings-input-full mono"
+                      value={draft.gui?.unixSocketPermissions ?? ''}
+                      placeholder="0660"
+                      onChange={(e) => updateGui({ unixSocketPermissions: e.target.value })}
+                    />
+                    <p className="field-help">最多三位八进制数字（与官方设置一致）。</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="settings-field">
+                  <label htmlFor="settings-gui-theme-only">GUI 主题</label>
+                  <select
+                    id="settings-gui-theme-only"
+                    value={draft.gui?.theme ?? 'default'}
+                    onChange={(e) => updateGui({ theme: e.target.value })}
+                  >
+                    {GUI_THEMES.map((t) => (
+                      <option key={t} value={t}>
+                        {t === 'default' ? '默认' : t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           )}
 
@@ -668,17 +789,15 @@ export default function SettingsPage(): React.ReactElement {
                   />
                 </div>
               </div>
-              <div className="settings-two-col">
-                <div className="settings-field checkbox">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={!!draft.options?.limitBandwidthInLan}
-                      onChange={(e) => updateOption('limitBandwidthInLan', e.target.checked)}
-                    />
-                    在局域网内限制带宽
-                  </label>
-                </div>
+              <div className="settings-field checkbox">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={!!draft.options?.limitBandwidthInLan}
+                    onChange={(e) => updateOption('limitBandwidthInLan', e.target.checked)}
+                  />
+                  在局域网内限制带宽
+                </label>
               </div>
               <div className="settings-two-col">
                 <div className="settings-field checkbox">
@@ -826,35 +945,89 @@ export default function SettingsPage(): React.ReactElement {
             关闭
           </button>
         </footer>
-
-        <details className="settings-extra">
-          <summary>LDAP、高级选项 JSON、危险操作</summary>
-          <div className="settings-extra-body">
-            <p className="muted small">
-              API 密钥或本应用连接凭据仍保存在 Electron 用户数据中，不会随上述配置自动写入 Syncthing 配置文件以外的逻辑。
-            </p>
-            {client && <LdapSection client={client} />}
-            {client && <AdvancedOptionsSection client={client} />}
-            <div className="settings-field">
-              <button type="button" className="danger" onClick={() => void shutdown()}>
-                <span className="btn-glyph" aria-hidden>
-                  ⏻
-                </span>
-                关闭 Syncthing
-              </button>
-            </div>
-          </div>
-        </details>
       </div>
 
       {urPreviewOpen && (
         <div className="modal-backdrop" role="presentation" onClick={() => setUrPreviewOpen(false)}>
-          <div className="modal settings-ur-modal" role="dialog" onClick={(e) => e.stopPropagation()}>
-            <h3>匿名使用报告（预览）</h3>
-            <pre className="settings-ur-pre">{urPreviewJson || '—'}</pre>
-            <div className="row" style={{ justifyContent: 'flex-end' }}>
+          <div
+            className={`modal settings-ur-modal${urPreviewModalExpanded ? ' settings-ur-modal--expanded' : ' settings-ur-modal--compact'}`}
+            role="dialog"
+            aria-labelledby="settings-ur-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div id="settings-ur-modal-title" className="settings-ur-modal-header">
+              {t('Anonymous Usage Reporting')}
+            </div>
+            <div className="settings-ur-modal-body">
+              <p className="settings-ur-modal-intro muted">
+                {t(
+                  'The encrypted usage report is sent daily. It is used to track common platforms, folder sizes, and app versions. If the reported data set is changed you will be prompted with this dialog again.'
+                )}
+              </p>
+              <p className="settings-ur-modal-intro muted">
+                {t('The aggregated statistics are publicly available at the URL below.')}{' '}
+                <a href="https://data.syncthing.net/" target="_blank" rel="noreferrer">
+                  https://data.syncthing.net/
+                </a>
+              </p>
+              <div className="settings-ur-modal-controls">
+                <label className="settings-ur-modal-field-label" htmlFor="settings-ur-modal-version">
+                  {t('Version')}
+                </label>
+                <select
+                  id="settings-ur-modal-version"
+                  className="settings-ur-modal-version-select"
+                  value={urPreviewVersion === null ? '' : String(urPreviewVersion)}
+                  disabled={urPreviewBusy}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    if (raw === '') {
+                      setUrPreviewVersion(null)
+                      setUrPreviewDiff(false)
+                      return
+                    }
+                    const n = parseInt(raw, 10)
+                    setUrPreviewVersion(Number.isFinite(n) ? n : null)
+                  }}
+                >
+                  <option value="">{t('Select a version')}</option>
+                  {urVersionOptions.map((n) => (
+                    <option key={n} value={n}>
+                      {t('Version')} {n}
+                    </option>
+                  ))}
+                </select>
+                <label className="settings-ur-modal-diff">
+                  <input
+                    type="checkbox"
+                    checked={urPreviewDiff}
+                    disabled={urPreviewBusy || urPreviewVersion == null || urPreviewVersion <= 1}
+                    onChange={(e) => setUrPreviewDiff(e.target.checked)}
+                  />
+                  {t('Show diff with previous version')}
+                </label>
+              </div>
+              <hr className="settings-ur-modal-sep" />
+              {urPreviewVersion == null ? (
+                <p className="settings-ur-modal-pick-hint muted">{t('Select a version')}</p>
+              ) : urVersionOptions.length === 0 ? (
+                <p className="settings-ur-modal-pick-hint muted">
+                  暂无可选的匿名报告格式版本（请确认 Syncthing 已返回 urVersionMax）。
+                </p>
+              ) : (
+                <div className="settings-ur-pre-wrap">
+                  <pre className="settings-ur-pre">
+                    {urPreviewBusy ? t('Loading...') : urPreviewJson || '—'}
+                  </pre>
+                </div>
+              )}
+            </div>
+            <div className="settings-ur-modal-footer">
               <button type="button" onClick={() => setUrPreviewOpen(false)}>
-                关闭
+                <span className="btn-glyph" aria-hidden>
+                  ✕
+                </span>
+                {t('Close')}
               </button>
             </div>
           </div>
@@ -882,162 +1055,6 @@ export default function SettingsPage(): React.ReactElement {
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-function AdvancedOptionsSection({ client }: { client: SyncthingClient }): React.ReactElement {
-  const [jsonText, setJsonText] = useState('')
-  const [err, setErr] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-
-  const load = async () => {
-    setBusy(true)
-    setErr(null)
-    try {
-      const o = await client.getConfigOptions()
-      setJsonText(JSON.stringify(o, null, 2))
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const save = async () => {
-    setBusy(true)
-    setErr(null)
-    try {
-      const partial = JSON.parse(jsonText) as Record<string, unknown>
-      await client.patchConfigOptions(partial)
-      alert('高级选项已保存（部分项需重启 Syncthing 生效）')
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="card" style={{ marginTop: '1rem' }}>
-      <h2>高级选项（/rest/config/options）</h2>
-      <p className="muted">直接 PATCH 选项子集，与完整「保存」独立。</p>
-      {err && <div className="error-banner">{err}</div>}
-      <div className="row" style={{ marginBottom: '0.5rem' }}>
-        <button type="button" disabled={busy} onClick={() => void load()}>
-          加载当前选项
-        </button>
-        <button type="button" disabled={busy || !jsonText} onClick={() => void save()}>
-          PATCH 保存
-        </button>
-      </div>
-      <textarea
-        rows={10}
-        value={jsonText}
-        onChange={(e) => setJsonText(e.target.value)}
-        style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.8rem' }}
-        placeholder="点击「加载当前选项」…"
-      />
-    </div>
-  )
-}
-
-const LDAP_TRANSPORTS = [
-  { n: '明文 (389)', v: 0 },
-  { n: 'LDAPS', v: 2 },
-  { n: 'StartTLS', v: 3 }
-]
-
-function LdapSection({ client }: { client: SyncthingClient }): React.ReactElement {
-  const [ldap, setLdap] = useState<LdapConfiguration>({})
-  const [err, setErr] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-
-  const load = async () => {
-    setBusy(true)
-    setErr(null)
-    try {
-      const c = await client.getLdapConfig()
-      setLdap(c || {})
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const save = async () => {
-    setBusy(true)
-    setErr(null)
-    try {
-      await client.putLdapConfig(ldap)
-      alert('LDAP 配置已保存')
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="card" style={{ marginTop: '1rem' }}>
-      <h2>LDAP</h2>
-      {err && <div className="error-banner">{err}</div>}
-      <div className="row" style={{ marginBottom: '0.75rem' }}>
-        <button type="button" disabled={busy} onClick={() => void load()}>
-          加载
-        </button>
-        <button type="button" disabled={busy} onClick={() => void save()}>
-          保存
-        </button>
-      </div>
-      <div className="field">
-        <label>服务器地址</label>
-        <input
-          value={ldap.address ?? ''}
-          onChange={(e) => setLdap((x) => ({ ...x, address: e.target.value }))}
-          placeholder="ldap://server:389"
-        />
-      </div>
-      <div className="field">
-        <label>传输</label>
-        <select
-          value={ldap.transport ?? 0}
-          onChange={(e) => setLdap((x) => ({ ...x, transport: Number(e.target.value) }))}
-        >
-          {LDAP_TRANSPORTS.map((t) => (
-            <option key={t.v} value={t.v}>
-              {t.n}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="field checkbox">
-        <label>
-          <input
-            type="checkbox"
-            checked={!!ldap.insecureSkipVerify}
-            onChange={(e) => setLdap((x) => ({ ...x, insecureSkipVerify: e.target.checked }))}
-          />
-          跳过 TLS 证书校验（仅测试环境）
-        </label>
-      </div>
-      <div className="field">
-        <label>Bind DN</label>
-        <input value={ldap.bindDN ?? ''} onChange={(e) => setLdap((x) => ({ ...x, bindDN: e.target.value }))} />
-      </div>
-      <div className="field">
-        <label>Search Base DN</label>
-        <input value={ldap.searchBaseDN ?? ''} onChange={(e) => setLdap((x) => ({ ...x, searchBaseDN: e.target.value }))} />
-      </div>
-      <div className="field">
-        <label>Search Filter</label>
-        <input
-          value={ldap.searchFilter ?? ''}
-          onChange={(e) => setLdap((x) => ({ ...x, searchFilter: e.target.value }))}
-          placeholder="(sAMAccountName=%s)"
-        />
-      </div>
     </div>
   )
 }

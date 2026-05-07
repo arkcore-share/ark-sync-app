@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { isElectronApp } from '../electronBridge'
 import { useConnection } from '../context/ConnectionContext'
 import { isLocalSyncthingBase } from '../util/isLocalSyncthing'
 
 export default function ConnectPage(): React.ReactElement {
+  const navigate = useNavigate()
   const { setConnection, error: bootError } = useConnection()
   const [baseUrl, setBaseUrl] = useState('http://127.0.0.1:8384')
   const [apiKey, setApiKey] = useState('')
@@ -37,9 +39,7 @@ export default function ConnectPage(): React.ReactElement {
           rejectUnauthorized,
           localSession: false
         })
-        return
-      }
-      if (guiAuth && isElectronApp()) {
+      } else if (guiAuth && isElectronApp()) {
         await setConnection({
           baseUrl,
           apiKey: '',
@@ -48,14 +48,15 @@ export default function ConnectPage(): React.ReactElement {
           guiUser: guiUser.trim(),
           guiPassword
         })
-        return
+      } else {
+        await setConnection({
+          baseUrl,
+          apiKey: '',
+          rejectUnauthorized,
+          localSession: localSession && isElectronApp() && isLocalSyncthingBase(baseUrl)
+        })
       }
-      await setConnection({
-        baseUrl,
-        apiKey: '',
-        rejectUnauthorized,
-        localSession: localSession && isElectronApp() && isLocalSyncthingBase(baseUrl)
-      })
+      navigate('/', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {

@@ -139,6 +139,16 @@ export type DeviceConfiguration = {
   ignoredFolders?: ObservedFolder[]
 }
 
+/** GET /rest/system/log（与官方日志查看器一致；`level` 由较新 Syncthing 返回） */
+export type SystemLogMessage = { when?: string; message: string; level?: string }
+export type SystemLogResponse = { messages?: SystemLogMessage[] }
+
+/** GET/POST /rest/system/loglevels（Syncthing ≥2.0） */
+export type SystemLogLevelsResponse = {
+  levels: Record<string, string>
+  packages: Record<string, string>
+}
+
 export type SystemStatus = {
   myID: string
   /** 主目录展开路径，用于路径说明（与官方 GUI 一致） */
@@ -150,11 +160,20 @@ export type SystemStatus = {
   connectionServiceStatus?: Record<string, ListenerStatusEntry>
   discoveryStatus?: Record<string, DiscoveryStatusEntry>
   uptime?: number
-  /** 官方设置页：用量报告版本上限、候选版标识、GUI 地址是否被环境变量覆盖 */
+  /** 官方设置页：用量报告版本上限；GUI 地址是否被环境变量覆盖（`/rest/system/status` 不含候选版标识） */
   urVersionMax?: number
-  isCandidate?: boolean
   guiAddressOverridden?: boolean
   guiAddressUsed?: string
+}
+
+/** GET /rest/system/version — 官方 GUI 用其中的 `isCandidate` 控制匿名使用报告等（与 status 分离） */
+export type SystemVersionResponse = {
+  version?: string
+  longVersion?: string
+  codename?: string
+  isCandidate?: boolean
+  isBeta?: boolean
+  isRelease?: boolean
 }
 
 export type ConnectionEntry = {

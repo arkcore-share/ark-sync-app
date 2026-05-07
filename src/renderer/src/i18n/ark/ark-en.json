@@ -1,0 +1,18 @@
+{
+  "Ark.AppTitle": "Ark Sync",
+  "Ark.NavSummary": "Summary",
+  "Ark.NavLocalDevice": "This Device",
+  "Ark.PersonalCenter": "Personal center",
+  "Ark.RestartAndShutdown": "Restart & Shut Down",
+  "Ark.RestartSync": "Restart Syncthing",
+  "Ark.ShutdownSync": "Shut down Syncthing",
+  "Ark.ExitApp": "Quit application",
+  "Ark.ShowQR": "Show ID",
+  "Ark.Language": "Language settings",
+  "Ark.Help": "Help",
+  "Ark.Loading": "Loading…",
+  "Ark.ConfirmRestart": "Restart Syncthing? This app will disconnect until the service is back.",
+  "Ark.ConfirmShutdown": "Shut down Syncthing? You will need to start it again on this machine before reconnecting.",
+  "Ark.DeviceIdError": "Could not read this device's ID.",
+  "Incorrect configuration may damage your folder contents and render Syncthing inoperable.": "Incorrect configuration may damage your folder contents and render Ark Sync inoperable."
+}

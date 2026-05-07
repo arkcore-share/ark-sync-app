@@ -80,3 +80,29 @@ export async function showItemInFolder(p: string): Promise<boolean> {
   }
   return false
 }
+
+/** 使用系统浏览器打开 http(s) 链接；纯浏览器环境下使用 window.open。 */
+export async function openExternalUrl(url: string): Promise<boolean> {
+  const u = url.trim()
+  if (!/^https?:\/\//i.test(u)) {
+    return false
+  }
+  if (isElectronApp() && window.syncWeb?.openExternal) {
+    try {
+      const ok = await window.syncWeb.openExternal(u)
+      if (ok) {
+        return true
+      }
+    } catch {
+      /* 继续尝试 window.open */
+    }
+    const popped = window.open(u, '_blank', 'noopener,noreferrer')
+    if (popped != null) {
+      return true
+    }
+    window.alert(`无法在系统中打开链接，请手动复制到浏览器：\n\n${u}`)
+    return false
+  }
+  window.open(u, '_blank', 'noopener,noreferrer')
+  return true
+}

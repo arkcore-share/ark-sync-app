@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain, session, shell } from 'electron'
+import { spawnSync } from 'node:child_process'
+import { app, BrowserWindow, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
 import { join } from 'node:path'
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from 'node:fs'
 import {
@@ -20,6 +21,88 @@ function runningInWsl(): boolean {
   try {
     return readFileSync('/proc/version', 'utf8').toLowerCase().includes('microsoft')
   } catch {
+    return false
+  }
+}
+
+function trySpawn(file: string, args: string[]): boolean {
+  try {
+    const r = spawnSync(file, args, {
+      stdio: 'ignore',
+      encoding: 'utf8',
+      shell: false,
+      windowsHide: true
+    })
+    return r.status === 0
+  } catch {
+    return false
+  }
+}
+
+/** 无桌面/无 xdg-open 的 Linux 或最小 WSL 环境 */
+function openHttpUrlLinuxFallback(url: string): boolean {
+  for (const [cmd, args] of [
+    ['xdg-open', [url]],
+    ['gio', ['open', url]]
+  ] as const) {
+    if (trySpawn(cmd, [...args])) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * WSL 下 Electron 的 openExternal 常走 xdg-open，但发行版里往往未安装，导致 execvp 失败且无浏览器弹出。
+ * 优先用 Windows 宿主的默认浏览器打开。
+ */
+function openHttpUrlFromWsl(url: string): boolean {
+  if (trySpawn('wslview', [url])) {
+    return true
+  }
+  if (trySpawn('wslview.exe', [url])) {
+    return true
+  }
+  const cmd = '/mnt/c/Windows/System32/cmd.exe'
+  if (existsSync(cmd) && trySpawn(cmd, ['/c', 'start', '', url])) {
+    return true
+  }
+  const explorer = '/mnt/c/Windows/explorer.exe'
+  if (existsSync(explorer) && trySpawn(explorer, [url])) {
+    return true
+  }
+  return false
+}
+
+async function openExternalUrlMain(url: string): Promise<boolean> {
+  const trimmed = url.trim()
+  try {
+    const u = new URL(trimmed)
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+      return false
+    }
+  } catch {
+    return false
+  }
+
+  if (process.platform === 'linux' && runningInWsl()) {
+    if (openHttpUrlFromWsl(trimmed)) {
+      return true
+    }
+    if (openHttpUrlLinuxFallback(trimmed)) {
+      return true
+    }
+    /* 不再调用 shell.openExternal：在 WSL 里它几乎总走 xdg-open，易 execvp 失败且仍 resolve，刷屏日志 */
+    return false
+  }
+
+  try {
+    await shell.openExternal(trimmed)
+    return true
+  } catch {
+    if (process.platform === 'linux') {
+      return openHttpUrlLinuxFallback(trimmed)
+    }
     return false
   }
 }
@@ -90,13 +173,57 @@ function writeConnection(c: Connection): void {
   writeFileSync(connectionPath(), JSON.stringify(c, null, 2), 'utf8')
 }
 
+/** 与 renderer 深色界面一致 */
+const WINDOW_BG_DARK = '#0f1419'
+const WINDOW_BG_LIGHT = '#ececec'
+
+function applyWindowsWindowChrome(win: BrowserWindow): void {
+  try {
+    win.setBackgroundMaterial('auto')
+  } catch {
+    try {
+      win.setBackgroundMaterial('mica')
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 function createWindow(): void {
+  const isMac = process.platform === 'darwin'
+  const isWin = process.platform === 'win32'
+
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 900,
     minHeight: 560,
     show: false,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? WINDOW_BG_DARK : WINDOW_BG_LIGHT,
+    ...(isMac
+      ? {
+          titleBarStyle: 'hiddenInset' as const,
+          trafficLightPosition: { x: 14, y: 14 }
+        }
+      : isWin
+        ? {
+            frame: false,
+            /**
+             * 默认 thickFrame=true 会给无边框窗加上 WS_THICKFRAME「标准外框」，易出现浅色一圈；
+             * 关掉后贴近 Discord / VS Code 一类无边框体验（阴影会变弱，属系统行为）。
+             */
+            thickFrame: false,
+            autoHideMenuBar: true,
+            /**
+             * Win11：随系统主题选择 Mica/云母等；Win10 会忽略。
+             * 标题栏按钮由渲染层自绘（见 WinTitleBar），避免部分环境下 titleBarOverlay 表现为整条浅色「系统栏」。
+             */
+            backgroundMaterial: 'auto'
+          }
+        : {
+            /** Linux：部分 GTK 主题下尽量请求深色标题栏 */
+            darkTheme: true
+          }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
       contextIsolation: true,
@@ -104,7 +231,33 @@ function createWindow(): void {
     }
   })
 
-  win.on('ready-to-show', () => win.show())
+  if (isWin) {
+    win.setTitle('Ark Sync')
+    win.removeMenu()
+    win.webContents.once('did-finish-load', () => {
+      if (!win.isDestroyed()) {
+        applyWindowsWindowChrome(win)
+      }
+    })
+  }
+
+  win.once('ready-to-show', () => {
+    if (isWin) {
+      applyWindowsWindowChrome(win)
+    }
+    win.show()
+  })
+
+  if (isWin) {
+    const emitMax = (): void => {
+      if (win.isDestroyed()) {
+        return
+      }
+      win.webContents.send('window:maximized', win.isMaximized())
+    }
+    win.on('maximize', emitMax)
+    win.on('unmaximize', emitMax)
+  }
 
   if (isDev && process.env['ELECTRON_RENDERER_URL']) {
     win.loadURL(process.env['ELECTRON_RENDERER_URL'])
@@ -115,6 +268,14 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  /** 必须为 system，否则无法随 Windows 设置 → 个性化 → 颜色 / 明暗 切换 */
+  nativeTheme.themeSource = 'system'
+
+  // Windows / Linux：去掉窗口顶部默认菜单栏（File / Edit / View …）
+  if (process.platform !== 'darwin') {
+    Menu.setApplicationMenu(null)
+  }
+
   const conn = readConnection()
   if (conn?.rejectUnauthorized === false) {
     session.defaultSession.setCertificateVerifyProc((_request, callback) => {
@@ -143,6 +304,28 @@ app.whenReady().then(() => {
     shell.showItemInFolder(p)
     return true
   })
+  ipcMain.handle('shell:openExternal', async (_e, url: string) => openExternalUrlMain(url))
+
+  ipcMain.handle('window:minimize', () => {
+    const w = BrowserWindow.getFocusedWindow()
+    w?.minimize()
+  })
+  ipcMain.handle('window:maximizeToggle', () => {
+    const w = BrowserWindow.getFocusedWindow()
+    if (!w || w.isDestroyed()) {
+      return false
+    }
+    if (w.isMaximized()) {
+      w.unmaximize()
+    } else {
+      w.maximize()
+    }
+    return w.isMaximized()
+  })
+  ipcMain.handle('window:close', () => {
+    BrowserWindow.getFocusedWindow()?.close()
+  })
+  ipcMain.handle('window:isMaximized', () => BrowserWindow.getFocusedWindow()?.isMaximized() ?? false)
 
   ipcMain.handle('syncthing:rest', async (_e, p: RestIpcPayload) => {
     const tls = { rejectUnauthorized: p.rejectUnauthorized !== false }
@@ -174,17 +357,31 @@ app.whenReady().then(() => {
       } else {
         return { ok: false, statusCode: 0, error: '缺少认证信息（API 密钥、本机会话或 GUI 账户）' }
       }
-      const text = r.body.toString('utf8')
       if (r.statusCode === 204) {
         return { ok: true, statusCode: 204 }
       }
-      if (r.contentType.includes('application/json')) {
+      const ct = (r.contentType || '').toLowerCase()
+      if (ct.includes('application/json')) {
+        const text = r.body.toString('utf8')
         return {
           ok: r.statusCode >= 200 && r.statusCode < 300,
           statusCode: r.statusCode,
           json: JSON.parse(text) as unknown
         }
       }
+      if (
+        ct.includes('application/zip') ||
+        ct.includes('application/octet-stream') ||
+        ct.includes('gzip')
+      ) {
+        return {
+          ok: r.statusCode >= 200 && r.statusCode < 300,
+          statusCode: r.statusCode,
+          base64: r.body.toString('base64'),
+          contentType: r.contentType || 'application/octet-stream'
+        }
+      }
+      const text = r.body.toString('utf8')
       return {
         ok: r.statusCode >= 200 && r.statusCode < 300,
         statusCode: r.statusCode,
@@ -236,6 +433,17 @@ app.whenReady().then(() => {
       return { ok: false, error: err instanceof Error ? err.message : String(err) }
     }
   })
+
+  if (process.platform === 'win32') {
+    nativeTheme.on('updated', () => {
+      for (const w of BrowserWindow.getAllWindows()) {
+        if (w.isDestroyed()) {
+          continue
+        }
+        applyWindowsWindowChrome(w)
+      }
+    })
+  }
 
   createWindow()
 

@@ -1,0 +1,18 @@
+{
+  "Ark.AppTitle": "Ark Sync",
+  "Ark.NavSummary": "总览",
+  "Ark.NavLocalDevice": "本机设备",
+  "Ark.PersonalCenter": "个人中心",
+  "Ark.RestartAndShutdown": "重启 & 关闭",
+  "Ark.RestartSync": "重启Sync",
+  "Ark.ShutdownSync": "关闭Sync",
+  "Ark.ExitApp": "退出Sync",
+  "Ark.ShowQR": "显示二维码",
+  "Ark.Language": "语言设置",
+  "Ark.Help": "帮助",
+  "Ark.Loading": "正在加载…",
+  "Ark.ConfirmRestart": "确定要重启 Syncthing 吗？本应用将暂时无法连接，直至服务恢复。",
+  "Ark.ConfirmShutdown": "确定要关闭 Syncthing 吗？关闭后需在本机重新启动后再连接。",
+  "Ark.DeviceIdError": "无法读取本机设备 ID",
+  "Incorrect configuration may damage your folder contents and render Syncthing inoperable.": "不正确的配置可能会损坏您的文件夹内容，并导致 Ark Sync 无法运行。"
+}

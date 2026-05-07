@@ -83,7 +83,7 @@ export function resolveDeviceNameFromConfig(
   return id.split('-')[0] || id.slice(0, 7)
 }
 
-/** 容错解析 `/rest/system/config` 的 devices 数组（兼容异常键名） */
+/** 容错解析 `/rest/config` 的 devices 数组（兼容异常键名） */
 export function coerceConfigDevicesFromResponse(devices: unknown): DeviceConfiguration[] {
   if (!Array.isArray(devices)) {
     return []
