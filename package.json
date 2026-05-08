@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "main": "out/main/index.js",
+  "author": {
+    "name": "Arkcore Share",
+    "email": "arkcore-share@users.noreply.github.com"
+  },
   "scripts": {
     "dev": "cross-env NO_SANDBOX=1 node ./node_modules/electron-vite/bin/electron-vite.js dev",
     "build": "node ./node_modules/electron-vite/bin/electron-vite.js build",
@@ -54,7 +58,8 @@
         "AppImage",
         "deb"
       ],
-      "category": "Utility"
+      "category": "Utility",
+      "maintainer": "Arkcore Share <arkcore-share@users.noreply.github.com>"
     },
     "nsis": {
       "oneClick": false,
