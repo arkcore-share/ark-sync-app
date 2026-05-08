@@ -12,8 +12,10 @@
     "dev": "cross-env NO_SANDBOX=1 node ./node_modules/electron-vite/bin/electron-vite.js dev",
     "build": "node ./node_modules/electron-vite/bin/electron-vite.js build",
     "preview": "cross-env NO_SANDBOX=1 node ./node_modules/electron-vite/bin/electron-vite.js preview",
-    "package": "npm run build && electron-builder",
-    "package:win": "npm run build && electron-builder --win",
+    "package": "npm run build && cross-env ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ electron-builder",
+    "package:win": "npm run build && cross-env ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ electron-builder --win",
+    "package:win:portable": "npm run build && cross-env ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ electron-builder --win portable",
+    "package:win:dir": "npm run build && cross-env ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ electron-builder --win dir",
     "dev:win": "npm run dev",
     "electron:install": "node ./node_modules/electron/install.js"
   },
@@ -44,6 +46,7 @@
     "files": [
       "out/**/*"
     ],
+    "icon": "src/renderer/public/logo.png",
     "mac": {
       "category": "public.app-category.utilities"
     },
@@ -51,7 +54,8 @@
       "target": [
         "nsis",
         "portable"
-      ]
+      ],
+      "signAndEditExecutable": false
     },
     "linux": {
       "target": [

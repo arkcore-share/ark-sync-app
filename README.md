@@ -1,5 +1,4 @@
 # Syncthing Sync Web
-##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这是git的密钥
 
 基于 **Electron**、**React**、**TypeScript** 与 **Vite**（[electron-vite](https://electron-vite.org/)）的 Syncthing 管理客户端，通过 Syncthing **REST API** 管理本机或远程实例。
 
@@ -29,13 +28,29 @@ npm install
 | 命令 | 说明 |
 |------|------|
 | `npm run build` | 使用 electron-vite 编译主进程、preload 与渲染进程，输出至 `out/` |
-| `npm run package` | 先执行 `build`，再使用 electron-builder 生成安装包/便携包，输出至 `release/` |
+| `npm run package` | 先执行 `build`，再使用 electron-builder 打包（脚本已带国内 `ELECTRON_BUILDER_BINARIES_MIRROR`） |
+| `npm run package:win` | 同上，仅 Windows（NSIS 安装包 + portable） |
+| `npm run package:win:portable` | 仅生成 **portable** 单文件，不跑 NSIS（镜像仍不可用时可先试） |
+| `npm run package:win:dir` | 仅生成 **`win-unpacked` 目录**，无安装包、无需 NSIS |
 
 `package.json` 中 electron-builder 大致目标：
 
 - **Windows**：NSIS、portable
 - **Linux**：AppImage、deb
 - **macOS**：需在 macOS 上打包
+
+### Windows 打包与 `winCodeSign` / GitHub 下载失败
+
+electron-builder 在写入 **ASAR 完整性**等资源时会调用 `rcedit`，并尝试从 GitHub 下载 **`winCodeSign`** 工具。若网络无法访问 `github.com`（超时、`wsarecv` 等），打包会失败。
+
+本仓库在 **`build.win`** 中设置了 **`signAndEditExecutable: false`**，**跳过对 `.exe` 的资源修补**，从而**不再下载** `winCodeSign`，便于在国内或受限网络下完成打包。
+
+代价：安装包内的可执行文件可能仍显示 **Electron 默认图标**，且**不写入**可执行文件内的 ASAR 完整性资源（一般不影响桌面客户端日常使用）。若你需要正式签名、自定义图标或完整性资源，请在可访问 GitHub 的环境打包，或自行将 `winCodeSign-2.6.0.7z` 放入 electron-builder 缓存目录后重试。
+
+**NSIS（`Syncthing Sync Web Setup *.exe`）** 会从 `electron-builder-binaries` 下载 **`nsis-*.7z`**。若仍出现连接 `github.com` 超时：
+
+- 项目已在 **`package` / `package:win*`** 脚本中设置 **`ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/`**，并在 **`.npmrc`** 中配置了 **`electron_builder_binaries_mirror`**（供 npm 子进程读取）。
+- 若镜像也失败，可先 **`npm run package:win:dir`** 得到 `release/win-unpacked/`，直接运行其中 exe；或使用 **`npm run package:win:portable`** 只要便携版。
 
 ## 运行
 
