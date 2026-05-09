@@ -10,6 +10,7 @@ import {
   restWithBasicCsrf,
   restWithCsrf
 } from './syncthing-session'
+import { startBundledSyncthingIfPresent, stopBundledSyncthing } from './bundledSyncthing'
 
 function runningInWsl(): boolean {
   if (process.platform !== 'linux') {
@@ -267,9 +268,11 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   /** 必须为 system，否则无法随 Windows 设置 → 个性化 → 颜色 / 明暗 切换 */
   nativeTheme.themeSource = 'system'
+
+  await startBundledSyncthingIfPresent()
 
   // Windows / Linux：去掉窗口顶部默认菜单栏（File / Edit / View …）
   if (process.platform !== 'darwin') {
@@ -452,6 +455,10 @@ app.whenReady().then(() => {
       createWindow()
     }
   })
+})
+
+app.on('before-quit', () => {
+  stopBundledSyncthing()
 })
 
 app.on('window-all-closed', () => {

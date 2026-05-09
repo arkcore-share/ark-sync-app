@@ -46,6 +46,15 @@
     "files": [
       "out/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "resources/backend",
+        "to": "backend",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "icon": "src/renderer/public/logo.png",
     "mac": {
       "category": "public.app-category.utilities"
