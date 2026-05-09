@@ -3,4 +3,5 @@ out/
 release/
 dist/
 *.log
+*.exe
 .DS_Store
