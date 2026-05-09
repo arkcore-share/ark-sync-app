@@ -14,8 +14,13 @@ import SettingsPage from './pages/SettingsPage'
 import SummaryPage from './pages/SummaryPage'
 import WinTitleBar from './components/WinTitleBar'
 
+function isFramelessTitlebarPlatform(): boolean {
+  const p = typeof window !== 'undefined' ? window.syncWeb?.electronPlatform : undefined
+  return p === 'win32' || p === 'linux'
+}
+
 function ElectronChromeShell({ children }: { children: React.ReactNode }): React.ReactElement {
-  if (typeof window !== 'undefined' && window.syncWeb?.electronPlatform === 'win32') {
+  if (isFramelessTitlebarPlatform()) {
     return (
       <div className="electron-chrome">
         <WinTitleBar />

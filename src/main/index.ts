@@ -193,6 +193,9 @@ function applyWindowsWindowChrome(win: BrowserWindow): void {
 function createWindow(): void {
   const isMac = process.platform === 'darwin'
   const isWin = process.platform === 'win32'
+  const isLinux = process.platform === 'linux'
+  /** Windows / Linux：无边框 + 渲染层自绘标题栏（WSLg 默认系统标题栏观感差） */
+  const customTitlebar = isWin || isLinux
 
   const win = new BrowserWindow({
     width: 1280,
@@ -221,10 +224,16 @@ function createWindow(): void {
              */
             backgroundMaterial: 'auto'
           }
-        : {
-            /** Linux：部分 GTK 主题下尽量请求深色标题栏 */
-            darkTheme: true
-          }),
+        : isLinux
+          ? {
+              frame: false,
+              autoHideMenuBar: true,
+              /** 部分 GTK 主题下尽量请求深色；与界面主题一致 */
+              darkTheme: true
+            }
+          : {
+              darkTheme: true
+            }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
       contextIsolation: true,
@@ -232,9 +241,12 @@ function createWindow(): void {
     }
   })
 
-  if (isWin) {
+  if (customTitlebar) {
     win.setTitle('Ark Sync')
     win.removeMenu()
+  }
+
+  if (isWin) {
     win.webContents.once('did-finish-load', () => {
       if (!win.isDestroyed()) {
         applyWindowsWindowChrome(win)
@@ -249,7 +261,7 @@ function createWindow(): void {
     win.show()
   })
 
-  if (isWin) {
+  if (customTitlebar) {
     const emitMax = (): void => {
       if (win.isDestroyed()) {
         return

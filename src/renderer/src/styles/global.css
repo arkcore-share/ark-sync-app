@@ -115,14 +115,18 @@ body {
   overflow: hidden;
 }
 
-/* Electron：无边框窗口时在侧栏空白处拖拽移动（Windows） */
-html[data-electron-platform='win32'] .sidebar {
+/* Electron：无边框窗口时在侧栏空白处拖拽移动（Windows / Linux·WSLg） */
+html[data-electron-platform='win32'] .sidebar,
+html[data-electron-platform='linux'] .sidebar {
   -webkit-app-region: drag;
 }
 
 html[data-electron-platform='win32'] .sidebar a,
 html[data-electron-platform='win32'] .sidebar-footer,
-html[data-electron-platform='win32'] .sidebar-footer button {
+html[data-electron-platform='win32'] .sidebar-footer button,
+html[data-electron-platform='linux'] .sidebar a,
+html[data-electron-platform='linux'] .sidebar-footer,
+html[data-electron-platform='linux'] .sidebar-footer button {
   -webkit-app-region: no-drag;
 }
 
