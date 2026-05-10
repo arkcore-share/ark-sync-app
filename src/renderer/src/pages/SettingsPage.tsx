@@ -132,7 +132,7 @@ function isUnixGuiAddress(address: string): boolean {
 
 export default function SettingsPage(): React.ReactElement {
   const { t } = useTranslation()
-  const { client, connection } = useConnection()
+  const { client } = useConnection()
   const navigate = useNavigate()
   const [tab, setTab] = useState<SettingsTab>('general')
   const [draft, setDraft] = useState<SystemConfig | null>(null)
@@ -140,7 +140,6 @@ export default function SettingsPage(): React.ReactElement {
   const [sys, setSys] = useState<SystemStatus | null>(null)
   /** 与官方 Web GUI 相同：`isCandidate` 来自 GET /rest/system/version，不在 /system/status */
   const [versionInfo, setVersionInfo] = useState<SystemVersionResponse | null>(null)
-  const [ver, setVer] = useState('')
   const [listenStr, setListenStr] = useState('')
   const [globalAnnStr, setGlobalAnnStr] = useState('')
   const [deviceName, setDeviceName] = useState('')
@@ -175,7 +174,6 @@ export default function SettingsPage(): React.ReactElement {
       setMyId(st.myID.trim())
       setSys(st)
       setVersionInfo(version)
-      setVer(version.version || '')
       setDraft(JSON.parse(JSON.stringify(cfg)) as SystemConfig)
 
       const me = cfg.devices.find((d) => sameDeviceId(d.deviceID, st.myID.trim()))
@@ -330,7 +328,7 @@ export default function SettingsPage(): React.ReactElement {
 
       await client.setConfig(out)
       await load()
-      alert('设置已保存。部分项需重启 Syncthing 后生效。')
+      alert('设置已保存。部分项需重启 Ark Sync 后生效。')
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e))
     } finally {
@@ -428,16 +426,6 @@ export default function SettingsPage(): React.ReactElement {
           </span>
           <h1 className="settings-shell-title">设置</h1>
         </header>
-
-        <p className="settings-shell-sub muted">
-          实例 <code>{connection?.baseUrl}</code>
-          {ver ? (
-            <>
-              {' '}
-              · Syncthing <code>{ver}</code>
-            </>
-          ) : null}
-        </p>
 
         {err && <div className="error-banner">{err}</div>}
 
@@ -1012,7 +1000,7 @@ export default function SettingsPage(): React.ReactElement {
                 <p className="settings-ur-modal-pick-hint muted">{t('Select a version')}</p>
               ) : urVersionOptions.length === 0 ? (
                 <p className="settings-ur-modal-pick-hint muted">
-                  暂无可选的匿名报告格式版本（请确认 Syncthing 已返回 urVersionMax）。
+                  暂无可选的匿名报告格式版本（请确认 Ark Sync 已返回 urVersionMax）。
                 </p>
               ) : (
                 <div className="settings-ur-pre-wrap">

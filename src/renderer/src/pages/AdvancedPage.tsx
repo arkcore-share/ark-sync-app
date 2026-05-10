@@ -173,7 +173,7 @@ export default function AdvancedPage(): React.ReactElement {
     setSaveErr(null)
     try {
       await client.setConfig(advanced)
-      alert('高级配置已保存。部分项需重启 Syncthing 后生效。')
+      alert('高级配置已保存。部分项需重启 Ark Sync 后生效。')
       await load()
     } catch (e) {
       setSaveErr(e instanceof Error ? e.message : String(e))

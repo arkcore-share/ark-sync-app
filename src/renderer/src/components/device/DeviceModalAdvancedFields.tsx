@@ -94,8 +94,8 @@ export default function DeviceModalAdvancedFields({
               />
             </div>
             <p className="field-help">
-              当两台设备上的连接数均被设为大于 1 时，Syncthing 会尝试建立多个并行连接。如果两台设备上的设置的连接数不同，则会使用最大的连接数。设为
-              0 表示让 Syncthing 自行决定。
+              当两台设备上的连接数均被设为大于 1 时，Ark Sync 会尝试建立多个并行连接。如果两台设备上的设置的连接数不同，则会使用最大的连接数。设为
+              0 表示让 Ark Sync 自行决定。
             </p>
           </section>
         </div>

@@ -18,7 +18,7 @@ async function loadSyncthing(lng: string): Promise<Record<string, string>> {
   const path = `./syncthing/lang-${lng}.json`
   const load = synLoaders[path]
   if (!load) {
-    throw new Error(`Missing Syncthing bundle: ${path}`)
+    throw new Error(`Missing GUI locale bundle: ${path}`)
   }
   const mod = await load()
   return mod.default

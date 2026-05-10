@@ -24,7 +24,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-i18next": "^17.0.6",
-    "react-router-dom": "^6.28.0"
+    "react-router-dom": "^6.28.0",
+    "toml": "^4.1.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
@@ -39,7 +40,8 @@
   },
   "build": {
     "appId": "net.syncthing.sync-web",
-    "productName": "Syncthing Sync Web",
+    "productName": "Ark Sync",
+    "executableName": "arksync_client",
     "directories": {
       "output": "release"
     },
@@ -48,8 +50,19 @@
     ],
     "extraResources": [
       {
+        "from": "resources/agent-artifact-scan-rules.json",
+        "to": "."
+      },
+      {
         "from": "resources/backend",
         "to": "backend",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "scripts",
+        "to": "scripts",
         "filter": [
           "**/*"
         ]

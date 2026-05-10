@@ -174,7 +174,7 @@ export function formatLastScan(stats: FolderStatisticsEntry | undefined): string
 export const LAST_CHANGE_EMPTY_HINT =
   '尚无已完成同步的文件记录。需文件夹路径有效、未暂停，并与对端建立同步并完成索引交换；.stfolder 由本机在文件夹目录下创建，并非从中转设备接收。'
 
-/** 兼容不同 Syncthing / 构建的 lastFile 字段命名 */
+/** 兼容不同 Ark Sync 引擎 / 构建的 lastFile 字段命名 */
 function coerceLastFile(
   raw: FolderStatisticsEntry['lastFile'] | undefined
 ): { filename: string; deleted: boolean } | undefined {

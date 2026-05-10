@@ -32,7 +32,7 @@ export const MIN_DISK_UNITS = ['%', 'KiB', 'MiB', 'GiB', 'TiB', 'B'] as const
 export type MinDiskUnit = (typeof MIN_DISK_UNITS)[number]
 
 export const STAGGERED_HELP_P1 =
-  '当 Syncthing 替换或删除文件时，文件将移动到 .stversions 目录中，文件名带有日期戳版本。'
+  '当 Ark Sync 替换或删除文件时，文件将移动到 .stversions 目录中，文件名带有日期戳版本。'
 
 /** 接在 P1 之后、间隔规则之前 */
 export const STAGGERED_HELP_P1B =

@@ -74,6 +74,20 @@ declare global {
       openExternal: (url: string) => Promise<boolean>
       syncthingRest: (p: SyncthingRestIpc) => Promise<SyncthingRestResult>
       syncthingGetAsset: (p: SyncthingAssetIpc) => Promise<SyncthingAssetResult>
+      restartApp?: () => Promise<void>
+      quitApp?: () => Promise<void>
+      onTrayCommand?: (listener: (cmd: import('../shared/trayCommand.js').TrayCommand) => void) => () => void
+      scanThirdParty?: () => Promise<import('../shared/thirdPartyScanTypes.js').ThirdPartyScanResult>
+      listAgentArtifacts?: () => Promise<import('../shared/agentArtifactsTypes.js').AgentArtifactsDetail[]>
+      scanSkillsSecurity?: () => Promise<import('../shared/skillsSecurityTypes.js').SkillsSecurityResult>
+      getSecurityRulesSyncStatus?: () => Promise<import('../shared/securityRulesSyncTypes.js').SecurityRulesSyncStatus>
+      getSecurityRulesPaths?: () => Promise<import('../shared/securityRulesSyncTypes.js').SecurityRulesPaths>
+      onSecurityRulesSyncStatus?: (
+        listener: (s: import('../shared/securityRulesSyncTypes.js').SecurityRulesSyncStatus) => void
+      ) => () => void
+      runThirdPartyInstall?: (
+        productId: string
+      ) => Promise<import('../shared/thirdPartyInstallTypes.js').ThirdPartyInstallResult>
     }
   }
 }

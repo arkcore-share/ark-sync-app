@@ -4,10 +4,10 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import QrModal from './QrModal'
 import { useConnection } from '../context/ConnectionContext'
-import { openExternalUrl } from '../electronBridge'
+import { openExternalUrl, quitElectronApp, restartElectronApp } from '../electronBridge'
 import { applySyncthingLocale, LOCALE_PICKER_OPTIONS } from '../i18n'
 
-/** 与 Syncthing 官方 Web GUI「帮助」菜单一致：分组、顺序、图标风格 */
+/** 与 Ark Sync Web GUI「帮助」菜单一致：分组、顺序、图标风格 */
 type HelpMenuExternal = { kind: 'external'; tkey: string; url: string; glyph: string }
 type HelpMenuAbout = { kind: 'about'; tkey: string; glyph: string }
 type HelpMenuItem = HelpMenuExternal | HelpMenuAbout
@@ -353,36 +353,22 @@ export default function PersonalCenter(): React.ReactElement {
     }
   }
 
-  const onRestart = async () => {
-    if (!client) {
-      return
-    }
+  const onRestart = () => {
     if (!window.confirm(t('Ark.ConfirmRestart'))) {
       return
     }
-    try {
-      await client.restart()
-      closeServiceOnly()
-      close()
-    } catch (e) {
-      window.alert(e instanceof Error ? e.message : String(e))
-    }
+    closeServiceOnly()
+    close()
+    void restartElectronApp()
   }
 
-  const onShutdown = async () => {
-    if (!client) {
-      return
-    }
+  const onShutdown = () => {
     if (!window.confirm(t('Ark.ConfirmShutdown'))) {
       return
     }
-    try {
-      await client.shutdown()
-      closeServiceOnly()
-      close()
-    } catch (e) {
-      window.alert(e instanceof Error ? e.message : String(e))
-    }
+    closeServiceOnly()
+    close()
+    void quitElectronApp()
   }
 
   const onDisconnect = () => {
@@ -536,18 +522,13 @@ export default function PersonalCenter(): React.ReactElement {
                   role="menu"
                   onMouseDown={(e) => e.stopPropagation()}
                 >
-                  <button type="button" className="popover-flyout-row" disabled={!client} onClick={() => void onRestart()}>
+                  <button type="button" className="popover-flyout-row" onClick={() => void onRestart()}>
                     <span className="popover-flyout-glyph" aria-hidden>
                       ⟳
                     </span>
                     <span>{t('Ark.RestartSync')}</span>
                   </button>
-                  <button
-                    type="button"
-                    className="popover-flyout-row danger"
-                    disabled={!client}
-                    onClick={() => void onShutdown()}
-                  >
+                  <button type="button" className="popover-flyout-row danger" onClick={() => void onShutdown()}>
                     <span className="popover-flyout-glyph" aria-hidden>
                       ⏻
                     </span>

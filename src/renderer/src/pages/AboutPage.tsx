@@ -36,12 +36,11 @@ export default function AboutPage(): React.ReactElement {
         <div className="settings-body">
           <p style={{ margin: '0 0 0.75rem', fontWeight: 600 }}>{APP_LINE}</p>
           <p className="muted" style={{ margin: '0 0 1rem', lineHeight: 1.5 }}>
-            用于连接与管理 Syncthing 的桌面与 Web 客户端界面。同步引擎由 Syncthing 提供；本应用为独立界面，不隶属于
-            Syncthing 官方项目。
+            Ark Sync 是用于连接与管理文件同步实例的桌面与 Web 客户端。底层同步能力由兼容引擎提供；本应用为独立发布的客户端界面。
           </p>
           <p className="muted" style={{ margin: 0, fontSize: '0.82rem' }}>
             <button type="button" style={extLinkStyle} onClick={() => void openExternalUrl('https://syncthing.net/')}>
-              Syncthing 官网
+              同步引擎开源项目
             </button>
             {' · '}
             <button type="button" style={extLinkStyle} onClick={() => void openExternalUrl('https://docs.syncthing.net/')}>

@@ -1,4 +1,4 @@
-/** 与 Syncthing 官方 GUI `syncthing/core/syncthingController.js` 中 `inputTypeFor` 一致 */
+/** 与 Ark Sync 兼容 GUI `syncthing/core/syncthingController.js` 中 `inputTypeFor` 一致 */
 
 export type InputFieldType = 'skip' | 'null' | 'number' | 'checkbox' | 'list' | 'text'
 

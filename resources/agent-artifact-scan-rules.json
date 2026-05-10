@@ -1,0 +1,372 @@
+{
+  "_description": "智能体页扫描规则：修改后保存，在客户端内刷新智能体列表即可重新加载（无需重新编译）。打包后文件位于安装目录 resources 下，亦可直接编辑。",
+  "claude-code": {
+    "id": "claude-code",
+    "dataRootCandidates": [
+      { "kind": "home", "segments": [".claude"] },
+      { "kind": "env", "envVar": "APPDATA", "segments": ["Claude"] }
+    ],
+    "dataPresentIfAny": [
+      { "kind": "home", "segments": [".claude"] },
+      { "kind": "env", "envVar": "APPDATA", "segments": ["Claude"] }
+    ],
+    "skills": [
+      {
+        "base": "home",
+        "segments": [".claude", "commands"],
+        "enumerate": true,
+        "maxEntries": 100,
+        "enumerateLabelPrefix": "commands"
+      },
+      {
+        "base": "home",
+        "segments": [".claude", "tools"],
+        "enumerate": true,
+        "maxEntries": 100,
+        "enumerateLabelPrefix": "tools"
+      }
+    ],
+    "memory": [
+      {
+        "base": "home",
+        "segments": [".claude", "history"],
+        "enumerate": true,
+        "maxEntries": 48,
+        "enumerateLabelPrefix": "history"
+      },
+      {
+        "base": "home",
+        "segments": [".claude", "index"],
+        "enumerate": true,
+        "maxEntries": 48,
+        "enumerateLabelPrefix": "index"
+      }
+    ],
+    "files": [
+      { "base": "home", "segments": [".claude", "config.json"] },
+      { "base": "home", "segments": [".clauderc"] }
+    ]
+  },
+  "cursor": {
+    "id": "cursor",
+    "dataRootCandidates": [
+      { "kind": "env", "envVar": "APPDATA", "segments": ["Cursor"] },
+      { "kind": "home", "segments": [".config", "Cursor"] },
+      { "kind": "home", "segments": ["Library", "Application Support", "Cursor"] },
+      { "kind": "home", "segments": [".cursor"] }
+    ],
+    "dataPresentIfAny": [
+      { "kind": "env", "envVar": "APPDATA", "segments": ["Cursor"] },
+      { "kind": "home", "segments": [".config", "Cursor"] },
+      { "kind": "home", "segments": ["Library", "Application Support", "Cursor"] },
+      { "kind": "home", "segments": [".cursor"] }
+    ],
+    "skills": [
+      {
+        "base": "home",
+        "segments": [".cursor", "skills-cursor"],
+        "enumerate": true,
+        "maxEntries": 100,
+        "enumerateLabelPrefix": "skills-cursor"
+      },
+      {
+        "base": "home",
+        "segments": [".cursor", "skills"],
+        "enumerate": true,
+        "maxEntries": 100,
+        "enumerateLabelPrefix": "skills"
+      }
+    ],
+    "memory": [
+      {
+        "base": "dataRoot",
+        "segments": ["User", "globalStorage"],
+        "enumerate": true,
+        "maxEntries": 36,
+        "enumerateLabelPrefix": "globalStorage"
+      },
+      {
+        "base": "dataRoot",
+        "segments": ["User", "workspaceStorage"],
+        "enumerate": true,
+        "maxEntries": 24,
+        "enumerateLabelPrefix": "workspaceStorage"
+      }
+    ],
+    "files": [
+      { "base": "dataRoot", "segments": ["User", "settings.json"] },
+      { "base": "dataRoot", "segments": ["User", "keybindings.json"] }
+    ]
+  },
+  "hermes": {
+    "id": "hermes",
+    "dataRootCandidates": [
+      { "kind": "home", "segments": [".config", "hermes"] },
+      { "kind": "env", "envVar": "LOCALAPPDATA", "segments": ["hermes"] },
+      { "kind": "home", "segments": [".hermes"] }
+    ],
+    "dataPresentIfAny": [
+      { "kind": "home", "segments": [".config", "hermes"] },
+      { "kind": "home", "segments": [".local", "share", "himalaya"] },
+      { "kind": "env", "envVar": "LOCALAPPDATA", "segments": ["hermes"] },
+      { "kind": "home", "segments": [".hermes"] }
+    ],
+    "skills": [
+      {
+        "base": "home",
+        "segments": [".config", "hermes", "scripts"],
+        "enumerate": true,
+        "maxEntries": 80,
+        "enumerateLabelPrefix": ".config/hermes/scripts"
+      },
+      {
+        "base": "home",
+        "segments": [".config", "hermes", "templates"],
+        "enumerate": true,
+        "maxEntries": 80,
+        "enumerateLabelPrefix": ".config/hermes/templates"
+      }
+    ],
+    "memory": [
+      {
+        "base": "home",
+        "segments": [".config", "hermes", "db"],
+        "enumerate": true,
+        "maxEntries": 40,
+        "enumerateLabelPrefix": ".config/hermes/db"
+      },
+      {
+        "base": "home",
+        "segments": [".local", "share", "himalaya"],
+        "enumerate": true,
+        "maxEntries": 36,
+        "enumerateLabelPrefix": "himalaya"
+      }
+    ],
+    "files": [
+      { "base": "home", "segments": [".config", "hermes", "config.toml"] },
+      { "base": "home", "segments": [".config", "hermes", "config.yaml"] },
+      { "base": "home", "segments": [".config", "hermes", "config.yml"] }
+    ],
+    "extraRootsForGenericClawMerge": [
+      { "kind": "env", "envVar": "LOCALAPPDATA", "segments": ["hermes"] },
+      { "kind": "home", "segments": [".hermes"] }
+    ]
+  },
+  "openclaw": {
+    "id": "openclaw",
+    "dataRootCandidates": [{ "kind": "home", "segments": [".openclaw"] }],
+    "dataPresentIfAny": [{ "kind": "home", "segments": [".openclaw"] }],
+    "skills": [
+      { "base": "dataRoot", "segments": ["skills"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skills" },
+      { "base": "dataRoot", "segments": ["skill"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skill" },
+      { "base": "dataRoot", "segments": ["prompts"], "enumerate": true, "maxEntries": 80, "enumerateLabelPrefix": "prompts" }
+    ],
+    "memory": [
+      { "base": "dataRoot", "segments": ["data"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "data" },
+      { "base": "dataRoot", "segments": ["storage"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "storage" },
+      { "base": "dataRoot", "segments": ["vector_db"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "vector_db" },
+      { "base": "dataRoot", "segments": ["logs"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "logs" }
+    ],
+    "files": [
+      { "base": "dataRoot", "segments": [".env"] },
+      { "base": "dataRoot", "segments": ["config.yaml"] },
+      { "base": "dataRoot", "segments": ["config.yml"] },
+      { "base": "dataRoot", "segments": ["settings.json"] },
+      { "base": "dataRoot", "segments": ["cli-config.yaml"] },
+      { "base": "dataRoot", "segments": ["claude.json"] },
+      { "base": "dataRoot", "segments": ["agents.md"] },
+      { "base": "dataRoot", "segments": ["AGENTS.md"] }
+    ],
+    "appendGenericUnderDataRoot": true
+  },
+  "qclaw": {
+    "id": "qclaw",
+    "dataRootCandidates": [{ "kind": "home", "segments": [".qclaw"] }],
+    "dataPresentIfAny": [{ "kind": "home", "segments": [".qclaw"] }],
+    "skills": [
+      { "base": "dataRoot", "segments": ["skills"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skills" },
+      { "base": "dataRoot", "segments": ["skill"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skill" },
+      { "base": "dataRoot", "segments": ["prompts"], "enumerate": true, "maxEntries": 80, "enumerateLabelPrefix": "prompts" }
+    ],
+    "memory": [
+      { "base": "dataRoot", "segments": ["data"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "data" },
+      { "base": "dataRoot", "segments": ["storage"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "storage" },
+      { "base": "dataRoot", "segments": ["vector_db"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "vector_db" },
+      { "base": "dataRoot", "segments": ["logs"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "logs" }
+    ],
+    "files": [
+      { "base": "dataRoot", "segments": [".env"] },
+      { "base": "dataRoot", "segments": ["config.yaml"] },
+      { "base": "dataRoot", "segments": ["config.yml"] },
+      { "base": "dataRoot", "segments": ["settings.json"] },
+      { "base": "dataRoot", "segments": ["cli-config.yaml"] },
+      { "base": "dataRoot", "segments": ["claude.json"] },
+      { "base": "dataRoot", "segments": ["agents.md"] },
+      { "base": "dataRoot", "segments": ["AGENTS.md"] }
+    ],
+    "appendGenericUnderDataRoot": true
+  },
+  "kimiclaw": {
+    "id": "kimiclaw",
+    "dataRootCandidates": [{ "kind": "home", "segments": [".kimiclaw"] }],
+    "dataPresentIfAny": [{ "kind": "home", "segments": [".kimiclaw"] }],
+    "skills": [
+      { "base": "dataRoot", "segments": ["skills"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skills" },
+      { "base": "dataRoot", "segments": ["skill"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skill" },
+      { "base": "dataRoot", "segments": ["prompts"], "enumerate": true, "maxEntries": 80, "enumerateLabelPrefix": "prompts" }
+    ],
+    "memory": [
+      { "base": "dataRoot", "segments": ["data"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "data" },
+      { "base": "dataRoot", "segments": ["storage"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "storage" },
+      { "base": "dataRoot", "segments": ["vector_db"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "vector_db" },
+      { "base": "dataRoot", "segments": ["logs"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "logs" }
+    ],
+    "files": [
+      { "base": "dataRoot", "segments": [".env"] },
+      { "base": "dataRoot", "segments": ["config.yaml"] },
+      { "base": "dataRoot", "segments": ["config.yml"] },
+      { "base": "dataRoot", "segments": ["settings.json"] },
+      { "base": "dataRoot", "segments": ["cli-config.yaml"] },
+      { "base": "dataRoot", "segments": ["claude.json"] },
+      { "base": "dataRoot", "segments": ["agents.md"] },
+      { "base": "dataRoot", "segments": ["AGENTS.md"] }
+    ],
+    "appendGenericUnderDataRoot": true
+  },
+  "molili-claw": {
+    "id": "molili-claw",
+    "dataRootCandidates": [{ "kind": "home", "segments": [".molili-claw"] }],
+    "dataPresentIfAny": [{ "kind": "home", "segments": [".molili-claw"] }],
+    "skills": [
+      { "base": "dataRoot", "segments": ["skills"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skills" },
+      { "base": "dataRoot", "segments": ["skill"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skill" },
+      { "base": "dataRoot", "segments": ["prompts"], "enumerate": true, "maxEntries": 80, "enumerateLabelPrefix": "prompts" }
+    ],
+    "memory": [
+      { "base": "dataRoot", "segments": ["data"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "data" },
+      { "base": "dataRoot", "segments": ["storage"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "storage" },
+      { "base": "dataRoot", "segments": ["vector_db"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "vector_db" },
+      { "base": "dataRoot", "segments": ["logs"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "logs" }
+    ],
+    "files": [
+      { "base": "dataRoot", "segments": [".env"] },
+      { "base": "dataRoot", "segments": ["config.yaml"] },
+      { "base": "dataRoot", "segments": ["config.yml"] },
+      { "base": "dataRoot", "segments": ["settings.json"] },
+      { "base": "dataRoot", "segments": ["cli-config.yaml"] },
+      { "base": "dataRoot", "segments": ["claude.json"] },
+      { "base": "dataRoot", "segments": ["agents.md"] },
+      { "base": "dataRoot", "segments": ["AGENTS.md"] }
+    ],
+    "appendGenericUnderDataRoot": true
+  },
+  "maxclaw": {
+    "id": "maxclaw",
+    "dataRootCandidates": [{ "kind": "home", "segments": [".maxclaw"] }],
+    "dataPresentIfAny": [{ "kind": "home", "segments": [".maxclaw"] }],
+    "skills": [
+      { "base": "dataRoot", "segments": ["skills"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skills" },
+      { "base": "dataRoot", "segments": ["skill"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skill" },
+      { "base": "dataRoot", "segments": ["prompts"], "enumerate": true, "maxEntries": 80, "enumerateLabelPrefix": "prompts" }
+    ],
+    "memory": [
+      { "base": "dataRoot", "segments": ["data"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "data" },
+      { "base": "dataRoot", "segments": ["storage"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "storage" },
+      { "base": "dataRoot", "segments": ["vector_db"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "vector_db" },
+      { "base": "dataRoot", "segments": ["logs"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "logs" }
+    ],
+    "files": [
+      { "base": "dataRoot", "segments": [".env"] },
+      { "base": "dataRoot", "segments": ["config.yaml"] },
+      { "base": "dataRoot", "segments": ["config.yml"] },
+      { "base": "dataRoot", "segments": ["settings.json"] },
+      { "base": "dataRoot", "segments": ["cli-config.yaml"] },
+      { "base": "dataRoot", "segments": ["claude.json"] },
+      { "base": "dataRoot", "segments": ["agents.md"] },
+      { "base": "dataRoot", "segments": ["AGENTS.md"] }
+    ],
+    "appendGenericUnderDataRoot": true
+  },
+  "copaw": {
+    "id": "copaw",
+    "dataRootCandidates": [{ "kind": "home", "segments": [".copaw"] }],
+    "dataPresentIfAny": [{ "kind": "home", "segments": [".copaw"] }],
+    "skills": [
+      { "base": "dataRoot", "segments": ["skills"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skills" },
+      { "base": "dataRoot", "segments": ["skill"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skill" },
+      { "base": "dataRoot", "segments": ["prompts"], "enumerate": true, "maxEntries": 80, "enumerateLabelPrefix": "prompts" }
+    ],
+    "memory": [
+      { "base": "dataRoot", "segments": ["data"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "data" },
+      { "base": "dataRoot", "segments": ["storage"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "storage" },
+      { "base": "dataRoot", "segments": ["vector_db"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "vector_db" },
+      { "base": "dataRoot", "segments": ["logs"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "logs" }
+    ],
+    "files": [
+      { "base": "dataRoot", "segments": [".env"] },
+      { "base": "dataRoot", "segments": ["config.yaml"] },
+      { "base": "dataRoot", "segments": ["config.yml"] },
+      { "base": "dataRoot", "segments": ["settings.json"] },
+      { "base": "dataRoot", "segments": ["cli-config.yaml"] },
+      { "base": "dataRoot", "segments": ["claude.json"] },
+      { "base": "dataRoot", "segments": ["agents.md"] },
+      { "base": "dataRoot", "segments": ["AGENTS.md"] }
+    ],
+    "appendGenericUnderDataRoot": true
+  },
+  "lobster-ai": {
+    "id": "lobster-ai",
+    "dataRootCandidates": [{ "kind": "home", "segments": [".lobster-ai"] }],
+    "dataPresentIfAny": [{ "kind": "home", "segments": [".lobster-ai"] }],
+    "skills": [
+      { "base": "dataRoot", "segments": ["skills"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skills" },
+      { "base": "dataRoot", "segments": ["skill"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skill" },
+      { "base": "dataRoot", "segments": ["prompts"], "enumerate": true, "maxEntries": 80, "enumerateLabelPrefix": "prompts" }
+    ],
+    "memory": [
+      { "base": "dataRoot", "segments": ["data"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "data" },
+      { "base": "dataRoot", "segments": ["storage"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "storage" },
+      { "base": "dataRoot", "segments": ["vector_db"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "vector_db" },
+      { "base": "dataRoot", "segments": ["logs"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "logs" }
+    ],
+    "files": [
+      { "base": "dataRoot", "segments": [".env"] },
+      { "base": "dataRoot", "segments": ["config.yaml"] },
+      { "base": "dataRoot", "segments": ["config.yml"] },
+      { "base": "dataRoot", "segments": ["settings.json"] },
+      { "base": "dataRoot", "segments": ["cli-config.yaml"] },
+      { "base": "dataRoot", "segments": ["claude.json"] },
+      { "base": "dataRoot", "segments": ["agents.md"] },
+      { "base": "dataRoot", "segments": ["AGENTS.md"] }
+    ],
+    "appendGenericUnderDataRoot": true
+  },
+  "zeroclaw": {
+    "id": "zeroclaw",
+    "dataRootCandidates": [{ "kind": "home", "segments": [".zeroclaw"] }],
+    "dataPresentIfAny": [{ "kind": "home", "segments": [".zeroclaw"] }],
+    "skills": [
+      { "base": "dataRoot", "segments": ["skills"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skills" },
+      { "base": "dataRoot", "segments": ["skill"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skill" },
+      { "base": "dataRoot", "segments": ["prompts"], "enumerate": true, "maxEntries": 80, "enumerateLabelPrefix": "prompts" }
+    ],
+    "memory": [
+      { "base": "dataRoot", "segments": ["data"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "data" },
+      { "base": "dataRoot", "segments": ["storage"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "storage" },
+      { "base": "dataRoot", "segments": ["vector_db"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "vector_db" },
+      { "base": "dataRoot", "segments": ["logs"], "enumerate": true, "maxEntries": 48, "enumerateLabelPrefix": "logs" }
+    ],
+    "files": [
+      { "base": "dataRoot", "segments": [".env"] },
+      { "base": "dataRoot", "segments": ["config.yaml"] },
+      { "base": "dataRoot", "segments": ["config.yml"] },
+      { "base": "dataRoot", "segments": ["settings.json"] },
+      { "base": "dataRoot", "segments": ["cli-config.yaml"] },
+      { "base": "dataRoot", "segments": ["claude.json"] },
+      { "base": "dataRoot", "segments": ["agents.md"] },
+      { "base": "dataRoot", "segments": ["AGENTS.md"] }
+    ],
+    "appendGenericUnderDataRoot": true
+  }
+}

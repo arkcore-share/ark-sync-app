@@ -2,7 +2,7 @@ import React from 'react'
 import type { DiscoveryStatusEntry, ListenerStatusEntry, SystemConfig, SystemStatus } from '../../api/types'
 
 const LISTENER_NONE_CN =
-  'Syncthing 不监听任何地址上其他设备的连接尝试。只有来自此设备的传出连接才能工作。'
+  'Ark Sync 不监听任何地址上其他设备的连接尝试。只有来自此设备的传出连接才能工作。'
 
 const DISCOVERY_INTRO_CN =
   '以下方法用于发现网络上的其他设备，并通知其他人发现此设备：'

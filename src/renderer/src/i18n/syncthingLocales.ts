@@ -147,7 +147,7 @@ export const LOCALE_PICKER_OPTIONS: { code: SyncthingLang; label: string }[] = [
   .map((code) => ({ code, label: getLocalePickerLabel(code) }))
   .sort((a, b) => a.label.localeCompare(b.label, 'und', { sensitivity: 'base' }))
 
-/** 与 Syncthing Web GUI `LocaleService` 相同 */
+/** 与 Ark Sync Web GUI `LocaleService` 相同 */
 export const SYN_LANG_STORAGE_KEY = 'SYN_LANG'
 
 export function isValidSyncthingLang(code: string): code is SyncthingLang {

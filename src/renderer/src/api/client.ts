@@ -187,7 +187,7 @@ export class SyncthingClient {
     )
   }
 
-  /** GET /rest/system/loglevels（Syncthing ≥2.0） */
+  /** GET /rest/system/loglevels（Ark Sync 引擎 ≥2.0） */
   async getSystemLogLevels(): Promise<SystemLogLevelsResponse> {
     return this.request('GET', '/system/loglevels')
   }
@@ -214,12 +214,12 @@ export class SyncthingClient {
       }
       if (!res.base64) {
         throw new Error(
-          '无法获取支持捆绑包（Syncthing 可能未启用调试 REST，或返回了非 zip 内容）'
+          '无法获取支持捆绑包（Ark Sync 可能未启用调试 REST，或返回了非 zip 内容）'
         )
       }
       const bytes = Uint8Array.from(atob(res.base64), (c) => c.charCodeAt(0))
       const blob = new Blob([bytes], { type: res.contentType || 'application/zip' })
-      SyncthingClient.triggerBlobDownload(blob, `syncthing-support-${Date.now()}.zip`)
+      SyncthingClient.triggerBlobDownload(blob, `ark-sync-support-${Date.now()}.zip`)
       return
     }
     if (!this.apiKey) {
@@ -234,7 +234,7 @@ export class SyncthingClient {
       throw new Error(`${fetchRes.status} ${t}`.trim())
     }
     const blob = await fetchRes.blob()
-    SyncthingClient.triggerBlobDownload(blob, `syncthing-support-${Date.now()}.zip`)
+    SyncthingClient.triggerBlobDownload(blob, `ark-sync-support-${Date.now()}.zip`)
   }
 
   private static triggerBlobDownload(blob: Blob, filename: string): void {
@@ -271,7 +271,7 @@ export class SyncthingClient {
     return res as SyncthingDiskEvent[]
   }
 
-  /** 与官方 Web GUI 一致：GET/PUT `/rest/config`（Syncthing ≥1.12）；弃用的 `/rest/system/config` 请勿再用 */
+  /** 与官方 Web GUI 一致：GET/PUT `/rest/config`（Ark Sync 引擎 ≥1.12）；弃用的 `/rest/system/config` 请勿再用 */
   async getConfig(): Promise<SystemConfig> {
     return this.request('GET', '/config')
   }
@@ -316,7 +316,7 @@ export class SyncthingClient {
     return this.request('GET', '/folder/versions', undefined, { folder })
   }
 
-  /** `versions` maps relative file path → version time (RFC3339 or Syncthing time string) */
+  /** `versions` maps relative file path → version time (RFC3339 or Ark Sync engine time string) */
   async restoreFolderVersions(folder: string, versions: Record<string, string>): Promise<Record<string, string>> {
     return this.request('POST', '/folder/versions', versions, { folder })
   }

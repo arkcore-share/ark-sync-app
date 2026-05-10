@@ -1,5 +1,5 @@
 /**
- * Syncthing REST without API key (no GUI password): requires CSRF cookie + header.
+ * Ark Sync 引擎 REST without API key (no GUI password): requires CSRF cookie + header.
  * Node bypasses browser CORS; bootstrap with GET / then send Cookie + X-CSRF-Token-*.
  */
 

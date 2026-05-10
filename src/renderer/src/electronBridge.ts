@@ -11,6 +11,11 @@ import type {
   SyncthingRestIpc,
   SyncthingRestResult
 } from '../env'
+import type { AgentArtifactsDetail } from '../../shared/agentArtifactsTypes'
+import type { ThirdPartyScanResult } from '../../shared/thirdPartyScanTypes'
+import type { SecurityRulesPaths, SecurityRulesSyncStatus } from '../../shared/securityRulesSyncTypes'
+import type { SkillsSecurityResult } from '../../shared/skillsSecurityTypes'
+import type { ThirdPartyInstallResult } from '../../shared/thirdPartyInstallTypes'
 
 const STORAGE_KEY = 'sync-web-connection'
 
@@ -82,6 +87,93 @@ export async function showItemInFolder(p: string): Promise<boolean> {
 }
 
 /** 使用系统浏览器打开 http(s) 链接；纯浏览器环境下使用 window.open。 */
+/** 重启整个 Electron 应用（内嵌 Ark Sync 引擎经 before-quit 结束后再由新进程拉起）。 */
+export async function restartElectronApp(): Promise<boolean> {
+  if (isElectronApp() && window.syncWeb?.restartApp) {
+    try {
+      await window.syncWeb.restartApp()
+      return true
+    } catch (e) {
+      console.error('[sync-web] restartApp failed', e)
+      return false
+    }
+  }
+  if (!isElectronApp()) {
+    window.location.reload()
+    return true
+  }
+  return false
+}
+
+/** 退出整个 Electron 应用。 */
+export async function quitElectronApp(): Promise<boolean> {
+  if (isElectronApp() && window.syncWeb?.quitApp) {
+    try {
+      await window.syncWeb.quitApp()
+      return true
+    } catch (e) {
+      console.error('[sync-web] quitApp failed', e)
+      return false
+    }
+  }
+  return false
+}
+
+/** 主进程扫描本机是否安装常见 AI / Claw 系工具（仅 Electron）。 */
+export async function scanThirdPartyTools(): Promise<ThirdPartyScanResult | null> {
+  if (!isElectronApp() || !window.syncWeb?.scanThirdParty) {
+    return null
+  }
+  return window.syncWeb.scanThirdParty()
+}
+
+/** 列出各智能体数据目录下的技能、记忆相关路径与配置文件（仅 Electron）。 */
+export async function listAgentArtifacts(): Promise<AgentArtifactsDetail[] | null> {
+  if (!isElectronApp() || !window.syncWeb?.listAgentArtifacts) {
+    return null
+  }
+  return window.syncWeb.listAgentArtifacts()
+}
+
+/** 扫描本机 Cursor / Hermes 等 skills 下的 SKILL.md 并做简单内容分级（仅 Electron）。 */
+export async function scanSkillsSecurity(): Promise<SkillsSecurityResult | null> {
+  if (!isElectronApp() || !window.syncWeb?.scanSkillsSecurity) {
+    return null
+  }
+  return window.syncWeb.scanSkillsSecurity()
+}
+
+export async function getSecurityRulesSyncStatus(): Promise<SecurityRulesSyncStatus | null> {
+  if (!isElectronApp() || !window.syncWeb?.getSecurityRulesSyncStatus) {
+    return null
+  }
+  return window.syncWeb.getSecurityRulesSyncStatus()
+}
+
+export async function getSecurityRulesPaths(): Promise<SecurityRulesPaths | null> {
+  if (!isElectronApp() || !window.syncWeb?.getSecurityRulesPaths) {
+    return null
+  }
+  return window.syncWeb.getSecurityRulesPaths()
+}
+
+/** 订阅规则库同步状态；返回卸载函数，非 Electron 时返回 null */
+export function onSecurityRulesSyncStatus(
+  listener: (s: SecurityRulesSyncStatus) => void
+): (() => void) | null {
+  if (!isElectronApp() || !window.syncWeb?.onSecurityRulesSyncStatus) {
+    return null
+  }
+  return window.syncWeb.onSecurityRulesSyncStatus(listener)
+}
+
+export async function runThirdPartyInstall(productId: string): Promise<ThirdPartyInstallResult | null> {
+  if (!isElectronApp() || !window.syncWeb?.runThirdPartyInstall) {
+    return null
+  }
+  return window.syncWeb.runThirdPartyInstall(productId)
+}
+
 export async function openExternalUrl(url: string): Promise<boolean> {
   const u = url.trim()
   if (!/^https?:\/\//i.test(u)) {

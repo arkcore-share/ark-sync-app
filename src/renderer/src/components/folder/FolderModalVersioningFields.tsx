@@ -60,7 +60,7 @@ export default function FolderModalVersioningFields({
       {vType === 'simple' && (
         <>
           <p className="field-help">
-            当 Syncthing 替换或删除文件时，文件将移动到 .stversions 目录。保留最近若干份历史版本。
+            当 Ark Sync 替换或删除文件时，文件将移动到 .stversions 目录。保留最近若干份历史版本。
           </p>
           <div className="field">
             <label>保留版本数</label>
@@ -77,7 +77,7 @@ export default function FolderModalVersioningFields({
       {vType === 'trashcan' && (
         <>
           <p className="field-help">
-            当 Syncthing 替换或删除文件时，文件将移动到 .stversions 目录，并在超过保留天数后清理。
+            当 Ark Sync 替换或删除文件时，文件将移动到 .stversions 目录，并在超过保留天数后清理。
           </p>
           <div className="field">
             <label>清理天数</label>

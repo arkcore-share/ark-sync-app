@@ -94,6 +94,15 @@ function waitForTcpPort(host: string, port: number, timeoutMs: number): Promise<
   })
 }
 
+/** 传给内嵌后端：可用父进程 PID + 是否打包 做启动门禁（开发态父进程多为 electron.exe，非 arksync_client.exe） */
+function bundledChildEnv(): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    SYNCWEB_ELECTRON_MAIN_PID: String(process.pid),
+    SYNCWEB_ELECTRON_PACKAGED: app.isPackaged ? '1' : '0'
+  }
+}
+
 function spawnWithArgs(exe: string, exeDir: string, home: string, guiAddr: string, label: string): ChildProcess {
   logLine(`启动 (${label}): ${exe}`)
   logLine(`  cwd=${exeDir}`)
@@ -104,7 +113,8 @@ function spawnWithArgs(exe: string, exeDir: string, home: string, guiAddr: strin
     cwd: exeDir,
     detached: false,
     windowsHide: true,
-    stdio: ['ignore', 'pipe', 'pipe']
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: bundledChildEnv()
   })
 
   proc.stdout?.on('data', (buf) => {
@@ -126,7 +136,8 @@ function spawnLegacy(exe: string, exeDir: string, home: string, guiAddr: string)
     cwd: exeDir,
     detached: false,
     windowsHide: true,
-    stdio: ['ignore', 'pipe', 'pipe']
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: bundledChildEnv()
   })
   proc.stdout?.on('data', (buf) => logLine(`[legacy stdout] ${buf.toString().trimEnd()}`))
   proc.stderr?.on('data', (buf) => logLine(`[legacy stderr] ${buf.toString().trimEnd()}`))
@@ -137,7 +148,7 @@ function spawnLegacy(exe: string, exeDir: string, home: string, guiAddr: string)
 }
 
 /**
- * 若 `resources/backend/` 下存在 Syncthing，则启动并（可选）等待 GUI 端口可连。
+ * 若 `resources/backend/` 下存在 Ark Sync 同步引擎可执行文件，则启动并（可选）等待 GUI 端口可连。
  * `SYNCWEB_DISABLE_BUNDLED_SYNCTHING=1`：跳过。
  */
 export async function startBundledSyncthingIfPresent(): Promise<void> {
@@ -194,6 +205,11 @@ export async function startBundledSyncthingIfPresent(): Promise<void> {
         e instanceof Error ? e.message : String(e)
       }`
     )
+    if (!app.isPackaged) {
+      logLine(
+        '提示：开发模式 (npm run dev) 下 Electron 主进程名为 electron.exe。若 arksync 仅允许父进程 arksync_client.exe，子进程会拒绝启动导致 8384 无监听；请在后端同时允许 electron.exe，或改用打包后的客户端测试。子进程已注入 SYNCWEB_ELECTRON_MAIN_PID、SYNCWEB_ELECTRON_PACKAGED 供校验。'
+      )
+    }
   }
 }
 

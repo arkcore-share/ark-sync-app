@@ -1,6 +1,7 @@
-import { spawnSync } from 'node:child_process'
-import { app, BrowserWindow, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
+import { spawn, spawnSync } from 'node:child_process'
+import { app, BrowserWindow, ipcMain, Menu, nativeImage, nativeTheme, session, shell, Tray } from 'electron'
 import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from 'node:fs'
 import {
   ensureBasicSession,
@@ -11,6 +12,24 @@ import {
   restWithCsrf
 } from './syncthing-session'
 import { startBundledSyncthingIfPresent, stopBundledSyncthing } from './bundledSyncthing'
+import { buildTrayContextMenu } from './tray-menu'
+import { listAgentArtifactsDetails } from './agentArtifactsScan'
+import { invalidateThirdPartyScanCache, scanThirdPartyProducts } from './thirdPartyScan'
+import {
+  getSecurityRulesPaths,
+  getSecurityRulesSyncStatus,
+  setSecurityRulesSyncStatusBroadcaster,
+  startSecurityRulesSyncOnLaunch
+} from './securityRulesSync.js'
+import { scanSkillsSecurity } from './skillsSecurityScan.js'
+import { runThirdPartyInstallScript } from './thirdPartyInstall'
+import type { TrayCommand } from '../shared/trayCommand.js'
+
+/** 主窗口引用（托盘「显示」、关闭到托盘） */
+let mainWindow: BrowserWindow | null = null
+let appTray: Tray | null = null
+/** 为 true 时允许窗口真正关闭（退出应用） */
+let isAppQuitting = false
 
 function runningInWsl(): boolean {
   if (process.platform !== 'linux') {
@@ -118,7 +137,89 @@ if (process.env['SYNCWEB_DISABLE_GPU'] === '1' || runningInWsl()) {
   app.disableHardwareAcceleration()
 }
 
-const isDev = !!process.env['ELECTRON_RENDERER_URL']
+/**
+ * electron-vite 开发时靠 ELECTRON_RENDERER_URL 走 loadURL；relaunch 子进程常丢该 env。
+ * Windows 上自定义 argv 也可能传丢，故在重启前把 URL 写入临时文件，下次启动时恢复。
+ */
+const SYNCWEB_RENDERER_URL_ARG = '--syncweb-renderer-url='
+const SYNCWEB_DEV_RENDERER_URL_FILE = join(tmpdir(), 'sync-web-ark-dev-renderer-url.txt')
+/** 仅接受近期写入的 sidecar，避免很久以前开发留下的文件误伤 preview / 未打包运行 */
+const SYNCWEB_DEV_RENDERER_URL_MAX_AGE_MS = 30 * 60 * 1000
+
+function applySyncWebDevRendererUrlFromArgv(): void {
+  for (const a of process.argv) {
+    if (a.startsWith(SYNCWEB_RENDERER_URL_ARG)) {
+      const raw = a.slice(SYNCWEB_RENDERER_URL_ARG.length)
+      try {
+        process.env['ELECTRON_RENDERER_URL'] = decodeURIComponent(raw)
+      } catch {
+        process.env['ELECTRON_RENDERER_URL'] = raw
+      }
+      return
+    }
+  }
+}
+
+function applySyncWebDevRendererUrlFromSidecar(): void {
+  if (process.env['ELECTRON_RENDERER_URL']?.trim()) {
+    return
+  }
+  /** 与 !app.isPackaged 接近；部分环境下仅用 isPackaged 会误判，放宽以免读不到 sidecar */
+  const allowSidecar = process.defaultApp === true || !app.isPackaged
+  if (!allowSidecar) {
+    return
+  }
+  try {
+    if (!existsSync(SYNCWEB_DEV_RENDERER_URL_FILE)) {
+      return
+    }
+    const raw = readFileSync(SYNCWEB_DEV_RENDERER_URL_FILE, 'utf8').trim()
+    unlinkSync(SYNCWEB_DEV_RENDERER_URL_FILE)
+    let url: string | null = null
+    try {
+      const o = JSON.parse(raw) as { url?: string; t?: number }
+      if (
+        typeof o.url === 'string' &&
+        /^https?:\/\//i.test(o.url) &&
+        typeof o.t === 'number' &&
+        Date.now() - o.t <= SYNCWEB_DEV_RENDERER_URL_MAX_AGE_MS
+      ) {
+        url = o.url
+      }
+    } catch {
+      if (/^https?:\/\//i.test(raw)) {
+        url = raw
+      }
+    }
+    if (url) {
+      process.env['ELECTRON_RENDERER_URL'] = url
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+applySyncWebDevRendererUrlFromArgv()
+applySyncWebDevRendererUrlFromSidecar()
+
+/**
+ * 开发入口 URL：env → userData 持久化（上次 did-finish-load 的真实地址）→ electron-vite 兜底端口。
+ * 控制台 `npm run dev` 重启子进程时 env 常丢，持久化最稳。
+ */
+function getDevRendererUrl(): string | null {
+  const fromEnv = process.env['ELECTRON_RENDERER_URL']?.trim()
+  if (fromEnv) {
+    return fromEnv
+  }
+  const persisted = readPersistedDevRendererUrlFromUserData()
+  if (persisted) {
+    return persisted
+  }
+  if (process.env['NODE_ENV_ELECTRON_VITE'] === 'development') {
+    return 'http://127.0.0.1:5173/'
+  }
+  return null
+}
 
 type Connection = {
   baseUrl: string
@@ -161,6 +262,60 @@ function connectionPath(): string {
   return join(dir, 'connection.json')
 }
 
+/** 仅开发：上次成功打开的 Vite 地址（控制台重启后 env 常丢，用此恢复真实端口/路径） */
+const SYNCWEB_DEV_RENDERER_PERSIST = 'sync-web-dev-renderer-origin.json'
+const SYNCWEB_DEV_RENDERER_PERSIST_MAX_MS = 7 * 24 * 60 * 60 * 1000
+
+function devPersistedRendererPath(): string {
+  return join(app.getPath('userData'), SYNCWEB_DEV_RENDERER_PERSIST)
+}
+
+function readPersistedDevRendererUrlFromUserData(): string | null {
+  if (app.isPackaged) {
+    return null
+  }
+  try {
+    const p = devPersistedRendererPath()
+    if (!existsSync(p)) {
+      return null
+    }
+    const raw = readFileSync(p, 'utf8').trim()
+    const o = JSON.parse(raw) as { url?: string; t?: number }
+    if (typeof o.url !== 'string' || typeof o.t !== 'number') {
+      return null
+    }
+    if (Date.now() - o.t > SYNCWEB_DEV_RENDERER_PERSIST_MAX_MS) {
+      return null
+    }
+    const u = o.url.trim()
+    if (!/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(u)) {
+      return null
+    }
+    return u
+  } catch {
+    return null
+  }
+}
+
+function writePersistedDevRendererUrlToUserData(url: string): void {
+  if (app.isPackaged) {
+    return
+  }
+  const u = url.trim()
+  if (!/^https?:\/\/(localhost|127\.0\.0\.1)/i.test(u)) {
+    return
+  }
+  try {
+    const dir = app.getPath('userData')
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true })
+    }
+    writeFileSync(devPersistedRendererPath(), JSON.stringify({ url: u, t: Date.now() }), 'utf8')
+  } catch {
+    /* ignore */
+  }
+}
+
 function readConnection(): Connection | null {
   try {
     const raw = readFileSync(connectionPath(), 'utf8')
@@ -188,6 +343,170 @@ function applyWindowsWindowChrome(win: BrowserWindow): void {
       /* ignore */
     }
   }
+}
+
+function trayIconImage(): Electron.NativeImage {
+  const trayPath = join(__dirname, '../renderer/tray-icon.png')
+  const fallbackPath = join(__dirname, '../renderer/logo.png')
+  const logoPath = existsSync(trayPath) ? trayPath : fallbackPath
+  const source = nativeImage.createFromPath(logoPath)
+  if (source.isEmpty()) {
+    console.warn('[sync-web] tray: 图标未加载，路径', logoPath)
+    return nativeImage.createEmpty()
+  }
+  const { width: iw, height: ih } = source.getSize()
+  if (iw <= 0 || ih <= 0) {
+    return source
+  }
+
+  const isDarwin = process.platform === 'darwin'
+  /**
+   * Windows 托盘宜用 16/32 逻辑像素；过小易糊，故 1x=32 并加 @2x=64，减少高分屏发虚/锯齿。
+   * 近方形图（如专用 tray-icon）直接等比缩到边长，避免多余 crop 导致切边或发灰。
+   * 扁长图仍用 cover+居中裁剪，避免任务栏里只剩一条细线。
+   */
+  const edge1x = isDarwin ? 22 : 32
+  const edge2x = edge1x * 2
+
+  const toTraySquare = (edge: number): Electron.NativeImage => {
+    const ratio = iw / ih
+    const nearlySquare = ratio >= 0.9 && ratio <= 1.11
+    if (nearlySquare) {
+      return source.resize({ width: edge, height: edge, quality: 'best' })
+    }
+    const scale = Math.max(edge / iw, edge / ih)
+    const w = Math.max(1, Math.round(iw * scale))
+    const h = Math.max(1, Math.round(ih * scale))
+    const scaled = source.resize({ width: w, height: h, quality: 'best' })
+    const x = Math.max(0, Math.floor((w - edge) / 2))
+    const y = Math.max(0, Math.floor((h - edge) / 2))
+    return scaled.crop({ x, y, width: Math.min(edge, w), height: Math.min(edge, h) })
+  }
+
+  const oneX = toTraySquare(edge1x)
+  if (!isDarwin && typeof oneX.addRepresentation === 'function') {
+    try {
+      const twoX = toTraySquare(edge2x)
+      const buf = twoX.toPNG()
+      if (buf.length > 0) {
+        oneX.addRepresentation({
+          scaleFactor: 2,
+          width: edge2x,
+          height: edge2x,
+          buffer: buf
+        })
+      }
+    } catch {
+      /* 部分环境不支持 addRepresentation，仅用 1x */
+    }
+  }
+  return oneX
+}
+
+function showOrRestoreMainWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow()
+    return
+  }
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore()
+  }
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+function sendTrayCommand(cmd: TrayCommand): void {
+  const w = mainWindow
+  if (!w || w.isDestroyed()) {
+    return
+  }
+  w.webContents.send('app:tray-command', cmd)
+}
+
+function performAppQuit(): void {
+  setImmediate(() => {
+    isAppQuitting = true
+    app.quit()
+  })
+}
+
+/** 与 `ipcMain` `app:restart` 相同逻辑，供托盘菜单复用 */
+function performAppRestart(): void {
+  setImmediate(() => {
+    const cleanArgs = process.argv.slice(1).filter((a) => !a.startsWith(SYNCWEB_RENDERER_URL_ARG))
+    const persisted = readPersistedDevRendererUrlFromUserData()
+    const rendererUrlForRestart =
+      process.env['ELECTRON_RENDERER_URL']?.trim() ||
+      persisted ||
+      (process.env['NODE_ENV_ELECTRON_VITE'] === 'development' ? 'http://127.0.0.1:5173/' : '')
+    const isLocalViteUrl =
+      !!rendererUrlForRestart && /^https?:\/\/(localhost|127\.0\.0\.1)/i.test(rendererUrlForRestart)
+
+    if (!app.isPackaged && isLocalViteUrl) {
+      writePersistedDevRendererUrlToUserData(rendererUrlForRestart)
+      try {
+        writeFileSync(
+          SYNCWEB_DEV_RENDERER_URL_FILE,
+          JSON.stringify({ url: rendererUrlForRestart, t: Date.now() }),
+          'utf8'
+        )
+      } catch {
+        /* ignore */
+      }
+      try {
+        const child = spawn(process.execPath, cleanArgs, {
+          env: { ...process.env, ELECTRON_RENDERER_URL: rendererUrlForRestart },
+          detached: true,
+          stdio: 'ignore',
+          windowsHide: true
+        })
+        child.on('error', (err) => {
+          console.error('[sync-web] dev restart spawn error', err)
+        })
+        if (child.pid !== undefined) {
+          child.unref()
+          console.info('[sync-web] dev restart: spawned process', child.pid)
+          app.quit()
+          return
+        }
+        console.error('[sync-web] dev restart: spawn returned no pid, falling back to relaunch')
+      } catch (e) {
+        console.error('[sync-web] dev restart spawn failed', e)
+      }
+    }
+
+    const argv = [...cleanArgs]
+    if (rendererUrlForRestart) {
+      argv.push(`${SYNCWEB_RENDERER_URL_ARG}${encodeURIComponent(rendererUrlForRestart)}`)
+    }
+    app.relaunch(argv.length > 0 ? { args: argv } : undefined)
+    app.quit()
+  })
+}
+
+function ensureTray(): void {
+  if (appTray) {
+    return
+  }
+  const icon = trayIconImage()
+  if (icon.isEmpty()) {
+    console.warn('[sync-web] tray: 跳过创建（无有效图标）')
+    return
+  }
+  const tray = new Tray(icon)
+  tray.setToolTip('Ark Sync')
+  const menu = buildTrayContextMenu({
+    getMainWindow: () => mainWindow,
+    showMain: showOrRestoreMainWindow,
+    sendCommand: sendTrayCommand,
+    openExternal: openExternalUrlMain,
+    quitApp: performAppQuit
+  })
+  tray.setContextMenu(menu)
+  tray.on('click', () => {
+    showOrRestoreMainWindow()
+  })
+  appTray = tray
 }
 
 function createWindow(): void {
@@ -241,18 +560,42 @@ function createWindow(): void {
     }
   })
 
+  mainWindow = win
+  win.on('closed', () => {
+    if (mainWindow === win) {
+      mainWindow = null
+    }
+  })
+  /** Windows / Linux：点关闭隐藏到托盘，不结束进程；macOS 保留默认关闭行为 */
+  win.on('close', (e) => {
+    if (process.platform === 'darwin') {
+      return
+    }
+    if (!isAppQuitting) {
+      e.preventDefault()
+      win.hide()
+    }
+  })
+
   if (customTitlebar) {
     win.setTitle('Ark Sync')
     win.removeMenu()
   }
 
-  if (isWin) {
-    win.webContents.once('did-finish-load', () => {
-      if (!win.isDestroyed()) {
-        applyWindowsWindowChrome(win)
-      }
-    })
-  }
+  const devRendererUrl = getDevRendererUrl()
+
+  win.webContents.once('did-finish-load', () => {
+    if (win.isDestroyed()) {
+      return
+    }
+    const loaded = win.webContents.getURL()
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)/i.test(loaded)) {
+      writePersistedDevRendererUrlToUserData(loaded)
+    }
+    if (isWin) {
+      applyWindowsWindowChrome(win)
+    }
+  })
 
   win.once('ready-to-show', () => {
     if (isWin) {
@@ -272,8 +615,14 @@ function createWindow(): void {
     win.on('unmaximize', emitMax)
   }
 
-  if (isDev && process.env['ELECTRON_RENDERER_URL']) {
-    win.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  win.webContents.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
+    if (isMainFrame) {
+      console.error('[sync-web] renderer did-fail-load', { code, desc, url })
+    }
+  })
+
+  if (devRendererUrl) {
+    win.loadURL(devRendererUrl)
     win.webContents.openDevTools({ mode: 'detach' })
   } else {
     win.loadFile(join(__dirname, '../renderer/index.html'))
@@ -320,6 +669,18 @@ app.whenReady().then(async () => {
     return true
   })
   ipcMain.handle('shell:openExternal', async (_e, url: string) => openExternalUrlMain(url))
+  ipcMain.handle('env:scanThirdParty', () => scanThirdPartyProducts({ force: true }))
+  ipcMain.handle('env:listAgentArtifacts', () => listAgentArtifactsDetails())
+  ipcMain.handle('env:scanSkillsSecurity', async () => scanSkillsSecurity())
+  ipcMain.handle('env:getSecurityRulesSyncStatus', () => getSecurityRulesSyncStatus())
+  ipcMain.handle('env:getSecurityRulesPaths', () => getSecurityRulesPaths())
+  ipcMain.handle('env:installThirdParty', async (_e, productId: unknown) => {
+    const r = await runThirdPartyInstallScript(typeof productId === 'string' ? productId : '')
+    if (r.ok) {
+      invalidateThirdPartyScanCache()
+    }
+    return r
+  })
 
   ipcMain.handle('window:minimize', () => {
     const w = BrowserWindow.getFocusedWindow()
@@ -341,6 +702,14 @@ app.whenReady().then(async () => {
     BrowserWindow.getFocusedWindow()?.close()
   })
   ipcMain.handle('window:isMaximized', () => BrowserWindow.getFocusedWindow()?.isMaximized() ?? false)
+
+  ipcMain.handle('app:restart', () => {
+    // 须用 quit（会走 before-quit），否则 app.exit 不触发 before-quit，内嵌进程可能占端口导致「重启无反应」
+    performAppRestart()
+  })
+  ipcMain.handle('app:quit', () => {
+    performAppQuit()
+  })
 
   ipcMain.handle('syncthing:rest', async (_e, p: RestIpcPayload) => {
     const tls = { rejectUnauthorized: p.rejectUnauthorized !== false }
@@ -460,16 +829,30 @@ app.whenReady().then(async () => {
     })
   }
 
+  setSecurityRulesSyncStatusBroadcaster(() => {
+    const payload = getSecurityRulesSyncStatus()
+    const w = mainWindow
+    if (w && !w.isDestroyed()) {
+      w.webContents.send('env:security-rules-sync-status', payload)
+    }
+  })
+
+  startSecurityRulesSyncOnLaunch()
+
   createWindow()
+  ensureTray()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
+    } else {
+      showOrRestoreMainWindow()
     }
   })
 })
 
 app.on('before-quit', () => {
+  isAppQuitting = true
   stopBundledSyncthing()
 })
 

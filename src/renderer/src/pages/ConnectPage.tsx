@@ -66,9 +66,9 @@ export default function ConnectPage(): React.ReactElement {
 
   return (
     <div className="connect-page card">
-      <h1>Syncthing Sync Web</h1>
+      <h1>Ark Sync</h1>
       <p className="muted">
-        连接到 Syncthing 实例。若已设置 GUI 密码或启用 LDAP，可使用 API 密钥，或在 Electron 中使用「GUI
+        连接到 Ark Sync 实例。若已设置 GUI 密码或启用 LDAP，可使用 API 密钥，或在 Electron 中使用「GUI
         账户」由主进程完成 Basic 认证与 CSRF。
       </p>
       {!isElectronApp() && (
@@ -170,7 +170,7 @@ export default function ConnectPage(): React.ReactElement {
                 setGuiAuth(false)
               }
             }}
-            placeholder="从 Syncthing Web GUI 复制"
+            placeholder="从 Ark Sync Web GUI 复制"
             autoComplete="off"
             disabled={Boolean((localSession || guiAuth) && isElectronApp())}
           />

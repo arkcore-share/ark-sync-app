@@ -1,4 +1,4 @@
-/** Subset of Syncthing REST types used by Sync Web */
+/** Subset of Ark Sync engine REST types used by Sync Web */
 
 export type VersioningConfiguration = {
   type: string
@@ -130,7 +130,7 @@ export type DeviceConfiguration = {
   skipIntroductionRemovals?: boolean
   autoAcceptFolders?: boolean
   untrusted?: boolean
-  /** REST 字段 numConnections，0 表示由 Syncthing 决定 */
+  /** REST 字段 numConnections，0 表示由 Ark Sync 引擎决定 */
   numConnections?: number
   maxSendKbps?: number
   maxRecvKbps?: number
@@ -139,11 +139,11 @@ export type DeviceConfiguration = {
   ignoredFolders?: ObservedFolder[]
 }
 
-/** GET /rest/system/log（与官方日志查看器一致；`level` 由较新 Syncthing 返回） */
+/** GET /rest/system/log（与官方日志查看器一致；`level` 由较新 Ark Sync 引擎返回） */
 export type SystemLogMessage = { when?: string; message: string; level?: string }
 export type SystemLogResponse = { messages?: SystemLogMessage[] }
 
-/** GET/POST /rest/system/loglevels（Syncthing ≥2.0） */
+/** GET/POST /rest/system/loglevels（Ark Sync 引擎 ≥2.0） */
 export type SystemLogLevelsResponse = {
   levels: Record<string, string>
   packages: Record<string, string>

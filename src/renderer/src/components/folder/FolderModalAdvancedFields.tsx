@@ -157,7 +157,7 @@ export default function FolderModalAdvancedFields({
             忽略权限
           </label>
           <p className="field-help">
-            禁用比较和同步文件权限。适用于不存在或自定义权限的系统（例如 FAT、exFAT、Syncthing、Android）。
+            禁用比较和同步文件权限。适用于不存在或自定义权限的系统（例如 FAT、exFAT、Ark Sync、Android）。
           </p>
         </div>
         <div className="field">
