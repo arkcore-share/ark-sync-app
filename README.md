@@ -1,16 +1,64 @@
 # Ark Sync
 
-基于 **Electron**、**React**、**TypeScript** 与 **Vite**（[electron-vite](https://electron-vite.org/)）的 Ark Sync 客户端，通过 Ark Sync **REST API** 管理本机或远程实例。
+基于 **Electron**、**React**、**TypeScript** 与 **Vite**（[electron-vite](https://electron-vite.org/)）的 Ark Sync 桌面客户端，通过 Ark Sync **REST API** 管理本机或远程同步实例，并提供智能体探测、第三方工具安装状态与 **SKILLS** 安全扫描等能力。
 
-## 项目作用 
+## 功能概览
 
-- 连接 Ark Sync（默认示例：`http://127.0.0.1:8384`）
-- 认证方式：
-  - **API 密钥**（浏览器与 Electron 均支持）
-  - **Electron 本机**：对本地地址可使用无 API 密钥的 **CSRF 会话**
-  - **Electron**：**GUI 用户名/密码**（主进程完成 Basic 与 CSRF）
-- 功能概览：连接页、概览、本机状态、文件夹、设备、设置等
-- 主进程发起 REST 请求，避免浏览器 CORS；连接信息在 Electron 中保存在用户数据目录的 `connection.json`，纯浏览器模式下使用 `localStorage`（且仅支持 API 密钥）
+| 模块 | 说明 |
+|------|------|
+| **总览** | 智能体扫描与安全检测摘要、规则库状态、风险分级统计、常见 AI 开发工具安装探测 |
+| **智能体** | 已探测到的智能体/工具列表；技能、记忆、配置路径；**检测详情** 中对 SKILL 等文件的安全审计与处置建议 |
+| **本机设备** | 当前设备名称、上下行速率、本地文件统计、监听/发现状态、运行时间、设备 ID 与引擎版本 |
+| **文件夹** | 同步文件夹列表与详情（路径、类型、共享设备、重扫策略、版本控制、暂停/编辑等） |
+| **远程设备** | 对端设备连接信息、速率、地址与连接类型、压缩与自动接受策略等 |
+| **操作 / 个人中心** | 设置、高级、日志、语言、重启与关闭、帮助、二维码等入口；支持多语言界面 |
+| **设置** | 与底层引擎一致的选项（如设备名、磁盘空间、API 密钥、自动升级策略、默认文件夹/设备等） |
+
+**认证与连接**
+
+- 连接 Ark Sync 实例（默认示例：`http://127.0.0.1:8384`）
+- **API 密钥**（浏览器与 Electron 均支持）
+- **Electron 本机**：对本地地址可使用无 API 密钥的 **CSRF 会话**
+- **Electron**：**GUI 用户名/密码**（主进程完成 Basic 与 CSRF）
+- 主进程发起 REST 请求，避免浏览器 CORS；Electron 下连接信息保存在用户数据目录的 `connection.json`，纯浏览器模式使用 `localStorage`（且仅支持 API 密钥）
+
+## 界面截图
+
+图片文件位于仓库内 **`docs/screenshots/`**。若在 GitHub 网页或本地预览里看不到图，请确认这些 PNG 已随项目保存（未忽略、已提交）。
+
+### 总览
+
+![总览](docs/screenshots/01-overview.png)
+
+### 智能体 · 列表
+
+![智能体列表](docs/screenshots/02-agents-list.png)
+
+### 智能体 · 技能检测详情
+
+![技能检测详情](docs/screenshots/03-agents-skill-detection.png)
+
+### 本机设备
+
+![本机设备](docs/screenshots/04-local-device.png)
+
+### 文件夹
+
+![文件夹](docs/screenshots/05-folders.png)
+
+### 远程设备
+
+![远程设备](docs/screenshots/06-remote-devices.png)
+
+### 操作菜单 · 语言与关于
+
+![操作与语言、关于](docs/screenshots/07-operations-language-about.png)
+
+### 设置 · 常规
+
+![设置 - 常规](docs/screenshots/08-settings-general.png)
+
+**尚未配图的功能**（可按需往 `docs/screenshots/` 增加文件并在本节追加）：连接/首次配置页；设置中的 **GUI**、**连接**、忽略项等标签；**高级**；**日志**；**帮助**；**个人中心**（若与关于不同页）；**重启与关闭**、**显示二维码** 等。
 
 ## 环境要求
 
