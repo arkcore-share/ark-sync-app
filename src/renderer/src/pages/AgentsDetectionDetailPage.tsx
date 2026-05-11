@@ -55,8 +55,8 @@ export default function AgentsDetectionDetailPage(): React.ReactElement {
   const skillRiskRaw = searchParams.get('skillRisk')
   const skillRiskFilter: SkillsSecuritySeverity | undefined =
     skillRiskRaw === 'high' || skillRiskRaw === 'medium' || skillRiskRaw === 'low' || skillRiskRaw === 'ok'
-      ? skillRiskRaw
-      : undefined
+        ? skillRiskRaw
+        : undefined
 
   const [data, setData] = useState(() => loadSkillsSecurityFromStorage())
 

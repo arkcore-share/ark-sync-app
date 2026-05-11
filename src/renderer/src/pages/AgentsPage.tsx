@@ -285,8 +285,8 @@ export default function AgentsPage(): React.ReactElement {
   const skillRiskRaw = searchParams.get('skillRisk')
   const skillRisk: SkillsSecuritySeverity | undefined =
     skillRiskRaw === 'high' || skillRiskRaw === 'medium' || skillRiskRaw === 'low' || skillRiskRaw === 'ok'
-      ? skillRiskRaw
-      : undefined
+        ? skillRiskRaw
+        : undefined
   /** 总览按危害筛选跳转时高亮 Cursor 卡片（未带 agent 查询参数时） */
   const focusAgentId = highlightId ?? (skillRisk ? 'cursor' : undefined)
   const drawerRef = useRef<Partial<Record<string, HTMLDetailsElement | null>>>({})

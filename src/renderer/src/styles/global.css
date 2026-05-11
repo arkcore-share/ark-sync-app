@@ -1049,14 +1049,246 @@ th {
   gap: 0.35rem;
 }
 
-.connect-page {
-  max-width: 420px;
-  margin: 3rem auto;
-  padding: 1.5rem;
+/* 未连接时的欢迎页：全屏氛围 + 卡片层次 + 插图与深色底融合 */
+.connect-welcome-root {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1rem, 3vh, 2rem) 1rem;
+  overflow: auto;
+  background: var(--bg);
 }
 
-.connect-page h1 {
-  margin-top: 0;
+.connect-welcome-root::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 85% 55% at 50% -5%, rgba(8, 130, 200, 0.22), transparent 58%),
+    radial-gradient(ellipse 45% 40% at 100% 30%, rgba(8, 130, 200, 0.1), transparent 50%),
+    radial-gradient(ellipse 40% 35% at 0% 70%, rgba(59, 130, 246, 0.08), transparent 45%);
+}
+
+.connect-welcome {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 920px;
+  box-sizing: border-box;
+}
+
+.connect-welcome-inner.card {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(165deg, rgba(36, 48, 68, 0.95) 0%, rgba(22, 30, 44, 0.98) 55%, #121820 100%);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+    0 24px 64px rgba(0, 0, 0, 0.45),
+    0 4px 24px rgba(8, 130, 200, 0.12);
+}
+
+.connect-welcome-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.15fr);
+  gap: 0;
+  align-items: stretch;
+}
+
+@media (max-width: 720px) {
+  .connect-welcome-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .connect-welcome-visual {
+    min-height: 200px;
+  }
+}
+
+.connect-welcome-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.75rem;
+  isolation: isolate;
+  background: linear-gradient(160deg, rgba(26, 35, 50, 0.6) 0%, rgba(15, 20, 30, 0.85) 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@media (max-width: 720px) {
+  .connect-welcome-visual {
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+}
+
+/* 与插图白底融合：multiply 使白色区域透出底面色 */
+.connect-welcome-art {
+  position: relative;
+  max-width: min(100%, 360px);
+  padding: 0.65rem;
+  border-radius: 18px;
+  background: linear-gradient(155deg, #28364a 0%, #1a2433 55%, #141c28 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 12px 36px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(8, 130, 200, 0.15);
+}
+
+.connect-welcome-art img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: 14px;
+  mix-blend-mode: multiply;
+  filter: saturate(1.08) contrast(1.03);
+}
+
+.connect-welcome-copy {
+  padding: 2.25rem 2.25rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.connect-welcome-title {
+  margin: 0 0 0.4rem;
+  font-size: clamp(1.75rem, 2.8vw, 2.05rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  background: linear-gradient(120deg, #f0f6ff 0%, #b8d9f5 45%, #7ec8f0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@supports not (background-clip: text) {
+  .connect-welcome-title {
+    color: var(--text);
+    background: none;
+  }
+}
+
+.connect-welcome-tagline {
+  margin: 0 0 1.5rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 36rem;
+}
+
+.connect-welcome-features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.connect-welcome-features > li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1rem 1.15rem;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.connect-welcome-features > li:hover {
+  border-color: rgba(8, 130, 200, 0.28);
+  background: rgba(8, 130, 200, 0.06);
+}
+
+.connect-welcome-step {
+  flex-shrink: 0;
+  width: 2.1rem;
+  height: 2.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0d3d5c;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #5ec4ff 0%, var(--accent) 100%);
+  box-shadow: 0 2px 8px rgba(8, 130, 200, 0.35);
+}
+
+.connect-welcome-feature-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.connect-welcome-feature-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
+.connect-welcome-feature-desc {
+  font-size: 0.875rem;
+  line-height: 1.58;
+  color: var(--muted);
+}
+
+.connect-welcome-actions {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1.1rem 1.35rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.12) 0%, rgba(0, 0, 0, 0.28) 100%);
+}
+
+.connect-welcome-actions .error-banner {
+  align-self: stretch;
+  margin: 0;
+  text-align: left;
+}
+
+/* 须带 button 前缀：与全局 button:hover 协调 */
+button.connect-welcome-btn.primary {
+  min-width: 9.5rem;
+  padding: 0.65rem 1.6rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 10px;
+  letter-spacing: 0.02em;
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.2) inset,
+    0 6px 20px rgba(8, 130, 200, 0.35);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+button.connect-welcome-btn.primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.15) inset,
+    0 10px 28px rgba(8, 130, 200, 0.45);
+}
+
+button.connect-welcome-btn.primary:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .error-banner {
@@ -3480,22 +3712,29 @@ button.kv-value-click.muted {
   text-shadow: 0 0 22px rgba(251, 113, 133, 0.55);
 }
 
-.summary-sec-risk-line--med .summary-sec-risk-label,
-.summary-sec-risk-line--low .summary-sec-risk-label {
+.summary-sec-risk-line--med .summary-sec-risk-label {
   font-size: 0.78rem;
   color: var(--muted);
 }
 
 .summary-sec-risk-line--med .summary-sec-risk-num {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #4ade80;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #facc15;
+  text-shadow: 0 0 16px rgba(234, 179, 8, 0.45);
+}
+
+.summary-sec-risk-line--low .summary-sec-risk-label {
+  font-size: 0.78rem;
+  color: var(--muted);
 }
 
 .summary-sec-risk-line--low .summary-sec-risk-num {
   font-size: 0.95rem;
-  font-weight: 600;
-  color: #facc15;
+  font-weight: 700;
+  color: #86efac;
+  text-shadow: 0 0 14px rgba(134, 239, 172, 0.35);
 }
 
 .summary-sec-risk-line--ok .summary-sec-risk-label {

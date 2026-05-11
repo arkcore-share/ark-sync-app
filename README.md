@@ -24,39 +24,39 @@
 
 ## 界面截图
 
-源文件在仓库 **`docs/screenshots/`**。在 **GitHub 网页** 上若仍不显示，请确认已 `git push` 且默认分支为 `main`。在 **Cursor / VS Code** 中预览本仓库根目录下的 `README.md` 时，请用「打开预览」并保证工作区根目录为本项目（否则相对路径会失效）。
+图源文件在仓库目录 **`docs/screenshots/`**。下列使用 **GitHub Raw 绝对链接**（`main` 分支），在 **GitHub 网页**、**Cursor / VS Code 的 Markdown 预览**（需能访问 `raw.githubusercontent.com`）中一般均可显示；不依赖本地工作区路径。若你 Fork 了本仓库，请将 URL 中的 `arkcore-share/ark-sync-app` 换成自己的 `用户/仓库`。
 
 ### 总览
 
-![总览](./docs/screenshots/01-overview.png)
+<img src="https://raw.githubusercontent.com/arkcore-share/ark-sync-app/main/docs/screenshots/01-overview.png" alt="总览" width="820" />
 
 ### 智能体 · 列表
 
-![智能体列表](./docs/screenshots/02-agents-list.png)
+<img src="https://raw.githubusercontent.com/arkcore-share/ark-sync-app/main/docs/screenshots/02-agents-list.png" alt="智能体列表" width="820" />
 
 ### 智能体 · 技能检测详情
 
-![技能检测详情](./docs/screenshots/03-agents-skill-detection.png)
+<img src="https://raw.githubusercontent.com/arkcore-share/ark-sync-app/main/docs/screenshots/03-agents-skill-detection.png" alt="技能检测详情" width="820" />
 
 ### 本机设备
 
-![本机设备](./docs/screenshots/04-local-device.png)
+<img src="https://raw.githubusercontent.com/arkcore-share/ark-sync-app/main/docs/screenshots/04-local-device.png" alt="本机设备" width="820" />
 
 ### 文件夹
 
-![文件夹](./docs/screenshots/05-folders.png)
+<img src="https://raw.githubusercontent.com/arkcore-share/ark-sync-app/main/docs/screenshots/05-folders.png" alt="文件夹" width="820" />
 
 ### 远程设备
 
-![远程设备](./docs/screenshots/06-remote-devices.png)
+<img src="https://raw.githubusercontent.com/arkcore-share/ark-sync-app/main/docs/screenshots/06-remote-devices.png" alt="远程设备" width="820" />
 
 ### 操作菜单 · 语言与关于
 
-![操作与语言、关于](./docs/screenshots/07-operations-language-about.png)
+<img src="https://raw.githubusercontent.com/arkcore-share/ark-sync-app/main/docs/screenshots/07-operations-language-about.png" alt="操作与语言、关于" width="820" />
 
 ### 设置 · 常规
 
-![设置 - 常规](./docs/screenshots/08-settings-general.png)
+<img src="https://raw.githubusercontent.com/arkcore-share/ark-sync-app/main/docs/screenshots/08-settings-general.png" alt="设置 - 常规" width="820" />
 
 **尚未配图的功能**（可按需往 `docs/screenshots/` 增加文件并在本节追加）：连接/首次配置页；设置中的 **GUI**、**连接**、忽略项等标签；**高级**；**日志**；**帮助**；**个人中心**（若与关于不同页）；**重启与关闭**、**显示二维码** 等。
 
