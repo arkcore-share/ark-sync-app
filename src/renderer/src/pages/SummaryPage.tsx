@@ -231,6 +231,14 @@ export default function SummaryPage(): React.ReactElement {
     return null
   }, [])
 
+  /** 总览曾持久化到 localStorage，与智能体页实时扫描不一致时会出现「已安装仍显示一键安装」；进入总览时静默对齐主进程结果 */
+  useEffect(() => {
+    if (!isElectronApp()) {
+      return
+    }
+    void refreshEnvScanOnly()
+  }, [refreshEnvScanOnly])
+
   const handleOneClickInstall = useCallback(
     async (productId: string) => {
       if (!isElectronApp()) {

@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { app } from 'electron'
 import { THIRD_PARTY_SCAN_CATALOG } from '../shared/thirdPartyCatalog.js'
 import type { ThirdPartyInstallResult } from '../shared/thirdPartyInstallTypes.js'
+import { scanThirdPartyProducts } from './thirdPartyScan.js'
 
 const ALLOWED_IDS = new Set(THIRD_PARTY_SCAN_CATALOG.map((c) => c.id))
 
@@ -192,6 +193,16 @@ export async function runThirdPartyInstallScript(productId: string): Promise<Thi
     }
   }
 
+  const pre = scanThirdPartyProducts({ force: true })
+  const already = pre.items.find((i) => i.id === productId)
+  if (already?.installed) {
+    return {
+      ok: true,
+      log: `本机已能检测到「${already.name}」（${already.via ?? '已安装'}），未重复执行安装脚本。`,
+      exitCode: 0
+    }
+  }
+
   // Hermes Agent 官方安装器自带/安装 Node，不强制先具备 npm
   if (productId !== 'hermes') {
     const npmPre = await ensureNpmForThirdPartyInstall()
@@ -216,5 +227,5 @@ export async function runThirdPartyInstallScript(productId: string): Promise<Thi
     )
   }
 
-  return collectSpawn('sh', [scriptPath], { shell: false })
+  return collectSpawn('bash', [scriptPath], { shell: false })
 }
