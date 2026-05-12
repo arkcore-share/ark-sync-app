@@ -1,4 +1,4 @@
-import type { FolderConfiguration } from '../../api/types'
+import type { FolderConfiguration, MinDiskFreeSize } from '../../api/types'
 
 export type FolderModalTabId = 'general' | 'sharing' | 'versioning' | 'ignores' | 'advanced'
 
@@ -99,6 +99,22 @@ export function parseTrashDays(params: unknown): number {
 }
 
 export function parseMinDiskFree(s: unknown): { n: string; unit: MinDiskUnit } {
+  if (s != null && typeof s === 'object' && !Array.isArray(s)) {
+    const o = s as Record<string, unknown>
+    const rawU = o.unit
+    const unitStr = typeof rawU === 'string' && rawU.trim() ? rawU.trim() : '%'
+    const u = (MIN_DISK_UNITS.includes(unitStr as MinDiskUnit) ? unitStr : '%') as MinDiskUnit
+    const rawVal = o.value
+    let nStr: string
+    if (typeof rawVal === 'number' && Number.isFinite(rawVal)) {
+      nStr = String(rawVal)
+    } else if (typeof rawVal === 'string' && rawVal.trim()) {
+      nStr = rawVal.trim()
+    } else {
+      nStr = '1'
+    }
+    return { n: nStr, unit: u }
+  }
   if (s == null || (typeof s === 'string' && !s.trim())) {
     return { n: '1', unit: '%' }
   }
@@ -130,6 +146,21 @@ export function combineMinDiskFree(n: string, unit: string): string | undefined 
   return `${num} ${unit}`.trim()
 }
 
+/** 将 GET defaults / 文件夹配置中的 `minDiskFree` 转为 REST 要求的 `{ value, unit }` */
+export function minDiskFreeToApiSize(v: unknown): MinDiskFreeSize {
+  const parsed = parseMinDiskFree(v)
+  const value = parseFloat(parsed.n)
+  return {
+    value: Number.isFinite(value) ? value : 1,
+    unit: MIN_DISK_UNITS.includes(parsed.unit) ? parsed.unit : '%'
+  }
+}
+
+/** 表单中的数值 + 单位 → REST 对象 */
+export function minDiskFreeFormToApi(n: string, unit: MinDiskUnit): MinDiskFreeSize {
+  return minDiskFreeToApiSize(combineMinDiskFree(n.trim() || '1', unit))
+}
+
 const FOLDER_TYPES_FOR_UI: readonly FolderConfiguration['type'][] = [
   'sendreceive',
   'sendonly',
@@ -148,9 +179,6 @@ export function cloneFolder(f: FolderConfiguration): FolderConfiguration {
   const c = JSON.parse(JSON.stringify(f)) as FolderConfiguration
   if (!Array.isArray(c.devices)) {
     c.devices = []
-  }
-  if (c.minDiskFree != null && typeof c.minDiskFree !== 'string') {
-    c.minDiskFree = String(c.minDiskFree)
   }
   if (c.versioning != null && typeof c.versioning === 'object') {
     const p = c.versioning.params

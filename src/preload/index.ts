@@ -3,7 +3,11 @@ import type { TrayCommand } from '../shared/trayCommand.js'
 import type { ThirdPartyScanResult } from '../shared/thirdPartyScanTypes.js'
 import type { SecurityRulesPaths, SecurityRulesSyncStatus } from '../shared/securityRulesSyncTypes.js'
 import type { SkillsSecurityResult } from '../shared/skillsSecurityTypes.js'
-import type { AgentArtifactsDetail } from '../shared/agentArtifactsTypes.js'
+import type {
+  AgentArtifactsDetail,
+  AgentArtifactsExportOptions,
+  AgentArtifactsExportResult
+} from '../shared/agentArtifactsTypes.js'
 import type { ThirdPartyInstallResult } from '../shared/thirdPartyInstallTypes.js'
 
 export type ConnectionPayload = {
@@ -49,7 +53,12 @@ contextBridge.exposeInMainWorld('syncWeb', {
     return () => ipcRenderer.removeListener('app:tray-command', handler)
   },
   scanThirdParty: (): Promise<ThirdPartyScanResult> => ipcRenderer.invoke('env:scanThirdParty'),
-  listAgentArtifacts: (): Promise<AgentArtifactsDetail[]> => ipcRenderer.invoke('env:listAgentArtifacts'),
+  listAgentArtifacts: (opts?: { force?: boolean }): Promise<AgentArtifactsDetail[]> =>
+    ipcRenderer.invoke('env:listAgentArtifacts', opts ?? {}),
+  exportAgentArtifactsToSyncTmp: (
+    opts?: AgentArtifactsExportOptions
+  ): Promise<AgentArtifactsExportResult> =>
+    ipcRenderer.invoke('env:exportAgentArtifactsToSyncTmp', opts ?? {}),
   scanSkillsSecurity: (): Promise<SkillsSecurityResult> => ipcRenderer.invoke('env:scanSkillsSecurity'),
   getSecurityRulesSyncStatus: (): Promise<SecurityRulesSyncStatus> =>
     ipcRenderer.invoke('env:getSecurityRulesSyncStatus'),

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useConnection } from '../../context/ConnectionContext'
 import type { FolderConfiguration } from '../../api/types'
-import { combineMinDiskFree, type FolderModalTabId, generateFolderId, type MinDiskUnit } from './folderModalConstants'
+import { type FolderModalTabId, generateFolderId, minDiskFreeFormToApi, type MinDiskUnit } from './folderModalConstants'
 import FolderModalAdvancedFields from './FolderModalAdvancedFields'
 import FolderModalGeneralFields from './FolderModalGeneralFields'
 import FolderModalIgnoresFields from './FolderModalIgnoresFields'
@@ -146,7 +146,6 @@ export default function AddFolderModal({
           }
         }
       }
-      const mdf = combineMinDiskFree(minDiskNum, minDiskUnit)
       const folder: FolderConfiguration = {
         id,
         label: label.trim() || id,
@@ -156,7 +155,7 @@ export default function AddFolderModal({
         devices: devs,
         rescanIntervalS,
         fsWatcherEnabled,
-        minDiskFree: mdf,
+        minDiskFree: minDiskFreeFormToApi(minDiskNum, minDiskUnit),
         order,
         ignorePerms,
         blockIndexing,

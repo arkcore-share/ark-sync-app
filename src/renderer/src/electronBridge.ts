@@ -11,7 +11,11 @@ import type {
   SyncthingRestIpc,
   SyncthingRestResult
 } from '../env'
-import type { AgentArtifactsDetail } from '../../shared/agentArtifactsTypes'
+import type {
+  AgentArtifactsDetail,
+  AgentArtifactsExportOptions,
+  AgentArtifactsExportResult
+} from '../../shared/agentArtifactsTypes'
 import type { ThirdPartyScanResult } from '../../shared/thirdPartyScanTypes'
 import type { SecurityRulesPaths, SecurityRulesSyncStatus } from '../../shared/securityRulesSyncTypes'
 import type { SkillsSecurityResult } from '../../shared/skillsSecurityTypes'
@@ -128,11 +132,20 @@ export async function scanThirdPartyTools(): Promise<ThirdPartyScanResult | null
 }
 
 /** 列出各智能体数据目录下的技能、记忆相关路径与配置文件（仅 Electron）。 */
-export async function listAgentArtifacts(): Promise<AgentArtifactsDetail[] | null> {
+export async function listAgentArtifacts(opts?: { force?: boolean }): Promise<AgentArtifactsDetail[] | null> {
   if (!isElectronApp() || !window.syncWeb?.listAgentArtifacts) {
     return null
   }
-  return window.syncWeb.listAgentArtifacts()
+  return window.syncWeb.listAgentArtifacts(opts)
+}
+
+export async function exportAgentArtifactsToSyncTmp(
+  opts?: AgentArtifactsExportOptions
+): Promise<AgentArtifactsExportResult | null> {
+  if (!isElectronApp() || !window.syncWeb?.exportAgentArtifactsToSyncTmp) {
+    return null
+  }
+  return window.syncWeb.exportAgentArtifactsToSyncTmp(opts)
 }
 
 /** 扫描本机 Cursor / Hermes 等 skills 下的 SKILL.md 并做简单内容分级（仅 Electron）。 */

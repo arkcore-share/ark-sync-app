@@ -1,10 +1,11 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LocalStateTotalStat } from '../components/ConnectionSignal'
 import AddFolderModal from '../components/folder/AddFolderModal'
 import EditFolderModal from '../components/folder/EditFolderModal'
 import VersionsModal from '../components/folder/VersionsModal'
 import { useConnection } from '../context/ConnectionContext'
+import { exportAgentArtifactsToSyncTmp, isElectronApp } from '../electronBridge'
 import { usePoll } from '../hooks/usePoll'
 import type {
   DeviceConfiguration,
@@ -443,6 +444,8 @@ export default function FoldersPage(): React.ReactElement {
   const [versionsFolder, setVersionsFolder] = useState<string | null>(null)
   const [cardOpen, setCardOpen] = useState<Record<string, boolean>>({})
   const [statsWarn, setStatsWarn] = useState<string | null>(null)
+  const [autoSyncBanner, setAutoSyncBanner] = useState<string | null>(null)
+  const [agentProbeBusy, setAgentProbeBusy] = useState(false)
   const folderStatsRef = useRef<Record<string, FolderStatisticsEntry>>({})
 
   const toggleCard = (folderId: string) => {
@@ -532,6 +535,34 @@ export default function FoldersPage(): React.ReactElement {
     void actions(() => client.scanAllFolders())
   }
 
+  const probeAgentFolders = () => {
+    if (!client || !isElectronApp() || agentProbeBusy) {
+      return
+    }
+    setAgentProbeBusy(true)
+    void (async () => {
+      try {
+        const sourceDeviceName = cfg?.devices.find((d) => sameDeviceId(d.deviceID, myId))?.name
+        const r = await exportAgentArtifactsToSyncTmp({
+          sourceDeviceId: myId,
+          sourceDeviceName
+        })
+        if (!r) {
+          setAutoSyncBanner('请在 Electron 桌面窗口中执行智能体资料导出。')
+          window.setTimeout(() => setAutoSyncBanner(null), 12_000)
+          return
+        }
+        const errorText = r.errors.length > 0 ? ` 部分失败 ${r.errors.length} 项。` : ''
+        setAutoSyncBanner(
+          `已复制 ${r.entries} 个智能体条目到 ${r.targetRoot}，文件 ${r.copiedFiles} 个、目录 ${r.copiedDirs} 个；清单已写入 ${r.manifestPath}。${errorText}`
+        )
+        window.setTimeout(() => setAutoSyncBanner(null), 25_000)
+      } finally {
+        setAgentProbeBusy(false)
+      }
+    })()
+  }
+
   if (!client) {
     return <p className="muted">未连接</p>
   }
@@ -555,6 +586,19 @@ export default function FoldersPage(): React.ReactElement {
             </span>
             全部重新扫描
           </button>
+          {isElectronApp() ? (
+            <button
+              type="button"
+              onClick={() => probeAgentFolders()}
+              disabled={agentProbeBusy}
+              title="扫描本机智能体资料，将 Skill、Memory、Files 复制到 ~/.sync_tmp 并生成跨系统恢复清单"
+            >
+              <span className="btn-glyph" aria-hidden>
+                ⊕
+              </span>
+              {agentProbeBusy ? '正在导出…' : '从智能体扫描添加'}
+            </button>
+          ) : null}
           <button type="button" className="primary" onClick={() => setShowAdd(true)}>
             <span className="btn-glyph" aria-hidden>
               ＋
@@ -564,6 +608,14 @@ export default function FoldersPage(): React.ReactElement {
         </div>
       </div>
       {err && <div className="error-banner">{err}</div>}
+      {autoSyncBanner && (
+        <div
+          className="error-banner"
+          style={{ borderColor: 'rgba(34, 197, 94, 0.45)', color: '#bbf7d0', background: 'rgba(22, 163, 74, 0.12)' }}
+        >
+          {autoSyncBanner}
+        </div>
+      )}
       {statsWarn && (
         <div className="error-banner" style={{ borderColor: 'rgba(234, 179, 8, 0.45)', color: 'var(--warning)' }}>
           {statsWarn}

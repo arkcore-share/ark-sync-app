@@ -47,57 +47,6 @@
       { "base": "home", "segments": [".clauderc"] }
     ]
   },
-  "cursor": {
-    "id": "cursor",
-    "dataRootCandidates": [
-      { "kind": "env", "envVar": "APPDATA", "segments": ["Cursor"] },
-      { "kind": "home", "segments": [".config", "Cursor"] },
-      { "kind": "home", "segments": ["Library", "Application Support", "Cursor"] },
-      { "kind": "home", "segments": [".cursor"] }
-    ],
-    "dataPresentIfAny": [
-      { "kind": "env", "envVar": "APPDATA", "segments": ["Cursor"] },
-      { "kind": "home", "segments": [".config", "Cursor"] },
-      { "kind": "home", "segments": ["Library", "Application Support", "Cursor"] },
-      { "kind": "home", "segments": [".cursor"] }
-    ],
-    "skills": [
-      {
-        "base": "home",
-        "segments": [".cursor", "skills-cursor"],
-        "enumerate": true,
-        "maxEntries": 100,
-        "enumerateLabelPrefix": "skills-cursor"
-      },
-      {
-        "base": "home",
-        "segments": [".cursor", "skills"],
-        "enumerate": true,
-        "maxEntries": 100,
-        "enumerateLabelPrefix": "skills"
-      }
-    ],
-    "memory": [
-      {
-        "base": "dataRoot",
-        "segments": ["User", "globalStorage"],
-        "enumerate": true,
-        "maxEntries": 36,
-        "enumerateLabelPrefix": "globalStorage"
-      },
-      {
-        "base": "dataRoot",
-        "segments": ["User", "workspaceStorage"],
-        "enumerate": true,
-        "maxEntries": 24,
-        "enumerateLabelPrefix": "workspaceStorage"
-      }
-    ],
-    "files": [
-      { "base": "dataRoot", "segments": ["User", "settings.json"] },
-      { "base": "dataRoot", "segments": ["User", "keybindings.json"] }
-    ]
-  },
   "hermes": {
     "id": "hermes",
     "dataRootCandidates": [

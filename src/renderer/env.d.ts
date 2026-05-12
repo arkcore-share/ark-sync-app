@@ -78,7 +78,12 @@ declare global {
       quitApp?: () => Promise<void>
       onTrayCommand?: (listener: (cmd: import('../shared/trayCommand.js').TrayCommand) => void) => () => void
       scanThirdParty?: () => Promise<import('../shared/thirdPartyScanTypes.js').ThirdPartyScanResult>
-      listAgentArtifacts?: () => Promise<import('../shared/agentArtifactsTypes.js').AgentArtifactsDetail[]>
+      listAgentArtifacts?: (opts?: {
+        force?: boolean
+      }) => Promise<import('../shared/agentArtifactsTypes.js').AgentArtifactsDetail[]>
+      exportAgentArtifactsToSyncTmp?: (
+        opts?: import('../shared/agentArtifactsTypes.js').AgentArtifactsExportOptions
+      ) => Promise<import('../shared/agentArtifactsTypes.js').AgentArtifactsExportResult>
       scanSkillsSecurity?: () => Promise<import('../shared/skillsSecurityTypes.js').SkillsSecurityResult>
       getSecurityRulesSyncStatus?: () => Promise<import('../shared/securityRulesSyncTypes.js').SecurityRulesSyncStatus>
       getSecurityRulesPaths?: () => Promise<import('../shared/securityRulesSyncTypes.js').SecurityRulesPaths>

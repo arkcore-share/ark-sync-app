@@ -1,6 +1,7 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { collectSkillSecurityScanSeeds } from './agentArtifactsScan.js'
 import toml from 'toml'
 import type {
   SkillSecurityDetail,
@@ -209,25 +210,31 @@ function readSkillSnippet(path: string): string {
   }
 }
 
-/** Cursor + Hermes Agent 等常见 skills 根目录（存在则向下收集 SKILL.md） */
-function skillSecurityScanRoots(home: string): string[] {
-  const raw: string[] = [
-    join(home, '.cursor', 'skills-cursor'),
-    join(home, '.cursor', 'skills'),
-    join(home, '.hermes', 'skills')
-  ]
-  const la = process.env['LOCALAPPDATA']
-  if (la) {
-    raw.push(join(la, 'hermes', 'skills'))
-  }
-  const seen = new Set<string>()
+function normPathKey(p: string): string {
+  return p.replace(/[/\\]+$/, '').replace(/\\/g, '/').toLowerCase()
+}
+
+/**
+ * 合并规则推导目录与常见 Cursor skills 根（未写入产品目录时仍可检测）。
+ */
+function skillSecurityScanDirs(home: string, fromRules: string[]): string[] {
+  const extra = [join(home, '.cursor', 'skills-cursor'), join(home, '.cursor', 'skills')]
   const out: string[] = []
-  for (const r of raw) {
-    const key = r.replace(/\\/g, '/').toLowerCase()
-    if (!seen.has(key)) {
-      seen.add(key)
-      out.push(r)
+  const seen = new Set<string>()
+  for (const d of [...fromRules, ...extra]) {
+    try {
+      if (!existsSync(d) || !statSync(d).isDirectory()) {
+        continue
+      }
+    } catch {
+      continue
     }
+    const k = normPathKey(d)
+    if (seen.has(k)) {
+      continue
+    }
+    seen.add(k)
+    out.push(d)
   }
   return out
 }
@@ -236,9 +243,16 @@ export async function scanSkillsSecurity(): Promise<SkillsSecurityResult> {
   const t0 = Date.now()
 
   const home = homedir()
-  const roots = skillSecurityScanRoots(home)
+  const seeds = collectSkillSecurityScanSeeds(home)
+  const roots = skillSecurityScanDirs(home, seeds.dirs)
   const seen = new Set<string>()
   const paths: string[] = []
+  for (const f of seeds.files) {
+    if (!seen.has(f)) {
+      seen.add(f)
+      paths.push(f)
+    }
+  }
   for (const root of roots) {
     for (const p of collectSkillMdUnder(root)) {
       if (!seen.has(p)) {

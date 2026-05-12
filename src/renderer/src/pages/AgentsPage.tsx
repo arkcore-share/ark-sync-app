@@ -6,6 +6,7 @@ import type { AgentArtifactsDetail, AgentArtifactEntry } from '../../../shared/a
 import type { SkillSecurityItem, SkillsSecuritySeverity } from '../../../shared/skillsSecurityTypes'
 import { THIRD_PARTY_SCAN_CATALOG } from '../../../shared/thirdPartyCatalog'
 import { isElectronApp, listAgentArtifacts, openPath, showItemInFolder } from '../electronBridge'
+import { syncFolderRoots } from '../util/agentSyncRoots'
 import { loadSkillsSecurityFromStorage, mergeSeverity, normSkillPath } from '../util/skillsSecurityStorage'
 
 function placeholderAgentRows(): AgentArtifactsDetail[] {
@@ -80,7 +81,7 @@ const ArtifactList = memo(function ArtifactList({
   items: AgentArtifactEntry[]
   emptyLabel: string
   onOpen: (path: string, isDir: boolean) => void
-  /** Cursor / Hermes 等参与 SKILL.md 安全扫描的产品 */
+  /** Hermes 等参与 SKILL.md 安全扫描的产品 */
   showSkillSecLabels: boolean
   skillRows: SkillSecurityItem[]
   firstItemScrollRef?: React.RefObject<HTMLLIElement | null>
@@ -124,82 +125,6 @@ const ArtifactList = memo(function ArtifactList({
     </ul>
   )
 })
-
-function parentDir(p: string): string {
-  const i = Math.max(p.lastIndexOf('\\'), p.lastIndexOf('/'))
-  return i > 0 ? p.slice(0, i) : p
-}
-
-function normPathKey(p: string): string {
-  return p.replace(/[/\\]+$/, '').replace(/\\/g, '/').toLowerCase()
-}
-
-function isUnder(parent: string, child: string): boolean {
-  const a = normPathKey(parent)
-  const b = normPathKey(child)
-  return b === a || b.startsWith(a + '/')
-}
-
-function mergeDirectSiblingsToParent(roots: string[]): string[] {
-  const byParent = new Map<string, number>()
-  for (const r of roots) {
-    const p = parentDir(r)
-    if (normPathKey(p) !== normPathKey(r)) {
-      byParent.set(p, (byParent.get(p) ?? 0) + 1)
-    }
-  }
-  const collapseParent = new Set<string>()
-  for (const [par, n] of byParent) {
-    if (n >= 2) {
-      collapseParent.add(par)
-    }
-  }
-  if (collapseParent.size === 0) {
-    return roots
-  }
-  const next: string[] = []
-  const addedParent = new Set<string>()
-  for (const r of roots) {
-    const p = parentDir(r)
-    if (collapseParent.has(p)) {
-      const pk = normPathKey(p)
-      if (!addedParent.has(pk)) {
-        next.push(p)
-        addedParent.add(pk)
-      }
-    } else {
-      next.push(r)
-    }
-  }
-  return next
-}
-
-function syncFolderRoots(entries: AgentArtifactEntry[]): string[] {
-  if (entries.length === 0) {
-    return []
-  }
-  const raw = [...new Set(entries.map((e) => (e.kind === 'dir' ? e.path : parentDir(e.path))))]
-  raw.sort((a, b) => {
-    const la = normPathKey(a).length
-    const lb = normPathKey(b).length
-    if (la !== lb) {
-      return la - lb
-    }
-    return a.localeCompare(b, undefined, { sensitivity: 'base' })
-  })
-  const out: string[] = []
-  for (const f of raw) {
-    if (out.some((ex) => isUnder(ex, f))) {
-      continue
-    }
-    const kept = out.filter((ex) => !isUnder(f, ex))
-    kept.push(f)
-    out.length = 0
-    out.push(...kept)
-  }
-  const merged = mergeDirectSiblingsToParent(out)
-  return merged.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-}
 
 /** 由当前分类条目推导的同步根路径列表（无标题，仅路径 +「打开目录」） */
 const AgentSyncRoots = memo(function AgentSyncRoots({
@@ -287,8 +212,8 @@ export default function AgentsPage(): React.ReactElement {
     skillRiskRaw === 'high' || skillRiskRaw === 'medium' || skillRiskRaw === 'low' || skillRiskRaw === 'ok'
         ? skillRiskRaw
         : undefined
-  /** 总览按危害筛选跳转时高亮 Cursor 卡片（未带 agent 查询参数时） */
-  const focusAgentId = highlightId ?? (skillRisk ? 'cursor' : undefined)
+  /** 总览按危害筛选跳转时高亮 Hermes 卡片（未带 agent 查询参数时） */
+  const focusAgentId = highlightId ?? (skillRisk ? 'hermes' : undefined)
   const drawerRef = useRef<Partial<Record<string, HTMLDetailsElement | null>>>({})
   const skillRiskScrollRef = useRef<HTMLLIElement | null>(null)
 
@@ -297,7 +222,6 @@ export default function AgentsPage(): React.ReactElement {
   const [skillSecRows, setSkillSecRows] = useState<SkillSecurityItem[]>([])
   /** 主抽屉是否展开：`defaultOpen` 在异步数据就绪后不可靠，改为受控 */
   const [drawerOpen, setDrawerOpen] = useState<Record<string, boolean>>({})
-
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -335,7 +259,7 @@ export default function AgentsPage(): React.ReactElement {
       const next: Record<string, boolean> = {}
       for (const a of visibleRows) {
         const fromHighlight = highlightId ? a.id === highlightId : false
-        const fromSkillFilter = skillRisk != null && a.id === 'cursor'
+        const fromSkillFilter = skillRisk != null && a.id === 'hermes'
         /** 无深链且非 Skill 筛选时默认折叠 */
         next[a.id] = fromHighlight || fromSkillFilter
       }
@@ -355,7 +279,7 @@ export default function AgentsPage(): React.ReactElement {
   }, [focusAgentId, loading, rows, focusDrawerOpen])
 
   useEffect(() => {
-    if (skillRisk == null || focusAgentId !== 'cursor' || loading) {
+    if (skillRisk == null || focusAgentId !== 'hermes' || loading) {
       return
     }
     const id = window.setTimeout(() => {
@@ -405,7 +329,7 @@ export default function AgentsPage(): React.ReactElement {
         <p className="muted agents-none-detected">{t('Ark.AgentsNoneDetected')}</p>
       ) : (
         <div className="agents-drawer-stack">
-          {focusAgentId === 'cursor' && skillRisk != null && !visibleRows.some((a) => a.id === 'cursor') ? (
+          {focusAgentId === 'hermes' && skillRisk != null && !visibleRows.some((a) => a.id === 'hermes') ? (
             <p className="muted agents-skill-risk-warn card">{t('Ark.AgentsSkillRiskFilterEmpty')}</p>
           ) : null}
           {visibleRows.map((agent, index) => (
@@ -430,27 +354,27 @@ export default function AgentsPage(): React.ReactElement {
               {drawerOpen[agent.id] ? (
                 <div className="agents-drawer-body">
                   {(() => {
-                    const isCursorSkillFilter = agent.id === 'cursor' && skillRisk != null
-                    const cursorSkillsMatchingRisk = isCursorSkillFilter
+                    const isHermesSkillFilter = agent.id === 'hermes' && skillRisk != null
+                    const hermesSkillsMatchingRisk = isHermesSkillFilter
                       ? agent.skills.filter((e) => severityForSkillEntry(e, skillSecRows) === skillRisk)
                       : agent.skills
                     /** 筛选无匹配时仍展示全部 Skill，避免只看到空列表 */
                     const skillFilterNoMatch =
-                      isCursorSkillFilter &&
-                      cursorSkillsMatchingRisk.length === 0 &&
+                      isHermesSkillFilter &&
+                      hermesSkillsMatchingRisk.length === 0 &&
                       agent.skills.length > 0
-                    const cursorSkillsForList = skillFilterNoMatch
+                    const hermesSkillsForList = skillFilterNoMatch
                       ? agent.skills
-                      : isCursorSkillFilter
-                        ? cursorSkillsMatchingRisk
+                      : isHermesSkillFilter
+                        ? hermesSkillsMatchingRisk
                         : agent.skills
                     const skillsEmptyLabel =
                       agent.skills.length === 0
                         ? t('Ark.AgentsEmptySkills')
-                        : isCursorSkillFilter && cursorSkillsMatchingRisk.length === 0 && !skillFilterNoMatch
+                        : isHermesSkillFilter && hermesSkillsMatchingRisk.length === 0 && !skillFilterNoMatch
                           ? t('Ark.AgentsSkillRiskFilterEmpty')
                           : t('Ark.AgentsEmptySkills')
-                    const expandSkills = isCursorSkillFilter
+                    const expandSkills = isHermesSkillFilter
                     return (
                       <>
                   <LazyAgentsSubdrawer
@@ -460,10 +384,10 @@ export default function AgentsPage(): React.ReactElement {
                         {t('Ark.AgentsSkills')}{' '}
                         <span className="agents-count">
                           (
-                          {isCursorSkillFilter
+                          {isHermesSkillFilter
                             ? skillFilterNoMatch
                               ? `0/${agent.skills.length}`
-                              : `${cursorSkillsMatchingRisk.length}/${agent.skills.length}`
+                              : `${hermesSkillsMatchingRisk.length}/${agent.skills.length}`
                             : agent.skills.length}
                           )
                         </span>
@@ -479,14 +403,14 @@ export default function AgentsPage(): React.ReactElement {
                       capVisibleRows={5}
                     />
                     <ArtifactList
-                      items={cursorSkillsForList}
+                      items={hermesSkillsForList}
                       emptyLabel={skillsEmptyLabel}
                       onOpen={openEntry}
-                      showSkillSecLabels={agent.id === 'cursor' || agent.id === 'hermes'}
+                      showSkillSecLabels={agent.id === 'hermes'}
                       skillRows={skillSecRows}
                       capVisibleRows={5}
                       firstItemScrollRef={
-                        expandSkills && cursorSkillsMatchingRisk.length > 0 ? skillRiskScrollRef : undefined
+                        expandSkills && hermesSkillsMatchingRisk.length > 0 ? skillRiskScrollRef : undefined
                       }
                     />
                   </LazyAgentsSubdrawer>

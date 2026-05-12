@@ -49,9 +49,6 @@ export default function ConnectPage(): React.ReactElement {
               <p className="connect-welcome-tagline">智能体安全与配置同步，从本机一键开始</p>
               <ul className="connect-welcome-features">
                 <li>
-                  <span className="connect-welcome-step" aria-hidden>
-                    1
-                  </span>
                   <div className="connect-welcome-feature-body">
                     <span className="connect-welcome-feature-name">Skill 安全检测</span>
                     <span className="connect-welcome-feature-desc">
@@ -60,13 +57,10 @@ export default function ConnectPage(): React.ReactElement {
                   </div>
                 </li>
                 <li>
-                  <span className="connect-welcome-step" aria-hidden>
-                    2
-                  </span>
                   <div className="connect-welcome-feature-body">
-                    <span className="connect-welcome-feature-name">Skill · Memory · Files</span>
+                    <span className="connect-welcome-feature-name">Skill、Memory、Files自动迁移多台设备</span>
                     <span className="connect-welcome-feature-desc">
-                      技能、记忆 / 数据库与配置文件等路径的探测与展示；在已连接实例与共享策略下，配合 Ark Sync 保持多端一致。
+                      使用Ark Sync小程序扫描多台设备，自动同步Skill（技能）、Memory（记忆/数据库）、Files（配置文件）。
                     </span>
                   </div>
                 </li>

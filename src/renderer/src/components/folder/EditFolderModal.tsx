@@ -4,8 +4,8 @@ import type { FolderConfiguration, VersioningConfiguration } from '../../api/typ
 import { sameDeviceId } from '../../util/format'
 import {
   cloneFolder,
-  combineMinDiskFree,
   type FolderModalTabId,
+  minDiskFreeFormToApi,
   normalizeFolderType,
   parseMinDiskFree,
   parseSimpleKeep,
@@ -259,10 +259,9 @@ export default function EditFolderModal({
     setErr(null)
     try {
       const ver = buildVersioningForSave()
-      const mdf = combineMinDiskFree(minDiskNum, minDiskUnit)
       const toSave: FolderConfiguration = {
         ...draft,
-        minDiskFree: mdf,
+        minDiskFree: minDiskFreeFormToApi(minDiskNum, minDiskUnit),
         devices: mergeDevicesWithPasswords(),
         versioning: ver.type ? ver : { type: '', params: {} }
       }

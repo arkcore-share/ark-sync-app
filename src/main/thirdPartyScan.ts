@@ -21,11 +21,6 @@ const BY_ID: Record<string, { cmds: string[]; dirNeedles?: string[]; npmNeedles?
     dirNeedles: ['claude', 'anthropic'],
     npmNeedles: ['@anthropic-ai/claude-code', 'claude-code']
   },
-  cursor: {
-    cmds: ['cursor', 'cursor.exe'],
-    dirNeedles: ['cursor'],
-    npmNeedles: []
-  },
   hermes: {
     cmds: ['hermes', 'hermes.exe']
   },
@@ -255,17 +250,6 @@ function thirdPartyDataRootCandidates(id: string): string[] {
     const paths = [normalize(join(home, '.claude'))]
     if (WIN && process.env['APPDATA']) {
       paths.push(normalize(join(process.env['APPDATA'], 'Claude')))
-    }
-    return [...new Set(paths)]
-  }
-  if (id === 'cursor') {
-    const paths = [
-      normalize(join(home, '.cursor')),
-      normalize(join(home, '.config', 'Cursor')),
-      normalize(join(home, 'Library', 'Application Support', 'Cursor'))
-    ]
-    if (WIN && process.env['APPDATA']) {
-      paths.push(normalize(join(process.env['APPDATA'], 'Cursor')))
     }
     return [...new Set(paths)]
   }

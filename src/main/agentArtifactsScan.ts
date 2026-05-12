@@ -321,10 +321,14 @@ function listAgentArtifactsCacheKey(scan: ThirdPartyScanResult): string {
 
 let listAgentArtifactsMemo: { key: string; value: AgentArtifactsDetail[] } | null = null
 
-export function listAgentArtifactsDetails(): AgentArtifactsDetail[] {
-  const scan = scanThirdPartyProducts()
+export function listAgentArtifactsDetails(opts?: { force?: boolean }): AgentArtifactsDetail[] {
+  const force = opts?.force === true
+  if (force) {
+    listAgentArtifactsMemo = null
+  }
+  const scan = scanThirdPartyProducts(force ? { force: true } : undefined)
   const memoKey = listAgentArtifactsCacheKey(scan)
-  if (listAgentArtifactsMemo != null && listAgentArtifactsMemo.key === memoKey) {
+  if (!force && listAgentArtifactsMemo != null && listAgentArtifactsMemo.key === memoKey) {
     return listAgentArtifactsMemo.value
   }
 
@@ -382,4 +386,62 @@ export function listAgentArtifactsDetails(): AgentArtifactsDetail[] {
 
   listAgentArtifactsMemo = { key: memoKey, value: out }
   return out
+}
+
+/**
+ * 供 Skill 安全检测使用：按 `agent-artifact-scan-rules.json` 解析各产品的 skills 规则（含 generic merge），
+ * **不**依赖环境扫描「已安装」；路径在磁盘上存在即纳入。
+ * 返回应递归查找 `SKILL.md` 的目录，以及规则直接指向的 `skill.md` 文件。
+ */
+export function collectSkillSecurityScanSeeds(home: string): { dirs: string[]; files: string[] } {
+  const rules = loadAgentArtifactScanRules()
+  const dirs = new Set<string>()
+  const files = new Set<string>()
+  const addDir = (p: string | null | undefined): void => {
+    if (!p) {
+      return
+    }
+    try {
+      if (existsSync(p) && statSync(p).isDirectory()) {
+        dirs.add(p)
+      }
+    } catch {
+      /* skip */
+    }
+  }
+  const addSkillFile = (p: string | null | undefined): void => {
+    if (!p) {
+      return
+    }
+    try {
+      if (!existsSync(p) || !statSync(p).isFile()) {
+        return
+      }
+      if (basename(p).toLowerCase() === 'skill.md') {
+        files.add(p)
+      }
+    } catch {
+      /* skip */
+    }
+  }
+
+  for (const c of THIRD_PARTY_SCAN_CATALOG) {
+    const rule = rules[c.id]
+    if (!rule) {
+      continue
+    }
+    const col = collectByRule(home, rule)
+    for (const e of col.skills) {
+      if (e.kind === 'dir') {
+        addDir(e.path)
+      } else {
+        addSkillFile(e.path)
+      }
+    }
+  }
+
+  return {
+    dirs: [...dirs].sort((a, b) => a.localeCompare(b)),
+    files: [...files].sort((a, b) => a.localeCompare(b))
+  }
 }

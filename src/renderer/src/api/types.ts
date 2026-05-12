@@ -1,5 +1,11 @@
 /** Subset of Ark Sync engine REST types used by Sync Web */
 
+/** `PUT /rest/config/folders/*` 等接口要求的对象形态（Go `config.Size`），非旧版字符串 */
+export type MinDiskFreeSize = {
+  value: number
+  unit: string
+}
+
 export type VersioningConfiguration = {
   type: string
   params?: Record<string, string>
@@ -22,7 +28,8 @@ export type FolderConfiguration = {
   fsWatcherDelayS?: number
   ignorePerms?: boolean
   autoNormalize?: boolean
-  minDiskFree?: string
+  /** 字符串为历史/表单中间态；提交配置时请使用 `MinDiskFreeSize` */
+  minDiskFree?: string | MinDiskFreeSize
   versioning?: VersioningConfiguration
   copiers?: number
   pullerMaxPendingKiB?: number

@@ -14,6 +14,7 @@ import {
 import { startBundledSyncthingIfPresent, stopBundledSyncthing } from './bundledSyncthing'
 import { buildTrayContextMenu } from './tray-menu'
 import { listAgentArtifactsDetails } from './agentArtifactsScan'
+import { exportAgentArtifactsToSyncTmp } from './agentArtifactsExport'
 import { invalidateThirdPartyScanCache, scanThirdPartyProducts } from './thirdPartyScan'
 import {
   getSecurityRulesPaths,
@@ -670,7 +671,22 @@ app.whenReady().then(async () => {
   })
   ipcMain.handle('shell:openExternal', async (_e, url: string) => openExternalUrlMain(url))
   ipcMain.handle('env:scanThirdParty', () => scanThirdPartyProducts({ force: true }))
-  ipcMain.handle('env:listAgentArtifacts', () => listAgentArtifactsDetails())
+  ipcMain.handle('env:listAgentArtifacts', (_e, opts?: unknown) => {
+    const force =
+      opts != null && typeof opts === 'object' && (opts as { force?: boolean }).force === true
+    return listAgentArtifactsDetails(force ? { force: true } : undefined)
+  })
+  ipcMain.handle('env:exportAgentArtifactsToSyncTmp', (_e, opts?: unknown) => {
+    const sourceDeviceId =
+      opts != null && typeof opts === 'object' && typeof (opts as { sourceDeviceId?: unknown }).sourceDeviceId === 'string'
+        ? (opts as { sourceDeviceId: string }).sourceDeviceId
+        : undefined
+    const sourceDeviceName =
+      opts != null && typeof opts === 'object' && typeof (opts as { sourceDeviceName?: unknown }).sourceDeviceName === 'string'
+        ? (opts as { sourceDeviceName: string }).sourceDeviceName
+        : undefined
+    return exportAgentArtifactsToSyncTmp({ sourceDeviceId, sourceDeviceName })
+  })
   ipcMain.handle('env:scanSkillsSecurity', async () => scanSkillsSecurity())
   ipcMain.handle('env:getSecurityRulesSyncStatus', () => getSecurityRulesSyncStatus())
   ipcMain.handle('env:getSecurityRulesPaths', () => getSecurityRulesPaths())
