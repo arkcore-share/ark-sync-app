@@ -13,8 +13,7 @@ import type {
 } from '../env'
 import type {
   AgentArtifactsDetail,
-  AgentArtifactsExportOptions,
-  AgentArtifactsExportResult
+  AgentArtifactsSyncTmpExportResult
 } from '../../shared/agentArtifactsTypes'
 import type { ThirdPartyScanResult } from '../../shared/thirdPartyScanTypes'
 import type { SecurityRulesPaths, SecurityRulesSyncStatus } from '../../shared/securityRulesSyncTypes'
@@ -139,13 +138,12 @@ export async function listAgentArtifacts(opts?: { force?: boolean }): Promise<Ag
   return window.syncWeb.listAgentArtifacts(opts)
 }
 
-export async function exportAgentArtifactsToSyncTmp(
-  opts?: AgentArtifactsExportOptions
-): Promise<AgentArtifactsExportResult | null> {
+/** 将各智能体 Skill / Memory / Files 复制到 ~/.sync_tmp（路径镜像，保留原名；仅 Electron）。 */
+export async function exportAgentArtifactsToSyncTmp(): Promise<AgentArtifactsSyncTmpExportResult | null> {
   if (!isElectronApp() || !window.syncWeb?.exportAgentArtifactsToSyncTmp) {
     return null
   }
-  return window.syncWeb.exportAgentArtifactsToSyncTmp(opts)
+  return window.syncWeb.exportAgentArtifactsToSyncTmp()
 }
 
 /** 扫描本机 Cursor / Hermes 等 skills 下的 SKILL.md 并做简单内容分级（仅 Electron）。 */

@@ -21,50 +21,11 @@ export type AgentArtifactsDetail = {
   files: AgentArtifactEntry[]
 }
 
-export type AgentArtifactCategory = 'skills' | 'memory' | 'files'
-
-export type AgentArtifactsExportOptions = {
-  sourceDeviceId?: string
-  sourceDeviceName?: string
-}
-
-export type AgentArtifactsExportManifestEntry = {
-  id: string
-  agentId: string
-  agentName: string
-  category: AgentArtifactCategory
-  categoryLabel: string
-  kind: AgentArtifactEntry['kind']
-  label: string
-  sourcePath: string
-  sourceDataRoot: string | null
-  relativeToDataRoot: string | null
-  exportedRelativePath: string
-}
-
-export type AgentArtifactsExportManifest = {
-  schemaVersion: 1
-  createdAt: string
-  sourceDevice: {
-    arkSyncDeviceId: string | null
-    name: string | null
-    hostname: string
-    platform: string
-    osRelease: string
-    homeDir: string
-  }
-  syncTmpRoot: string
-  payloadRootRelative: string
-  entries: AgentArtifactsExportManifestEntry[]
-}
-
-export type AgentArtifactsExportResult = {
+/** 将智能体条目导出到 ~/.sync_tmp 后的结果摘要 */
+export type AgentArtifactsSyncTmpExportResult = {
   ok: boolean
   targetRoot: string
-  exportRoot: string
-  manifestPath: string
-  agents: number
-  entries: number
+  copiedItems: number
   copiedFiles: number
   copiedDirs: number
   skipped: number

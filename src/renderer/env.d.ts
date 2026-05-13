@@ -81,9 +81,9 @@ declare global {
       listAgentArtifacts?: (opts?: {
         force?: boolean
       }) => Promise<import('../shared/agentArtifactsTypes.js').AgentArtifactsDetail[]>
-      exportAgentArtifactsToSyncTmp?: (
-        opts?: import('../shared/agentArtifactsTypes.js').AgentArtifactsExportOptions
-      ) => Promise<import('../shared/agentArtifactsTypes.js').AgentArtifactsExportResult>
+      exportAgentArtifactsToSyncTmp?: () => Promise<
+        import('../shared/agentArtifactsTypes.js').AgentArtifactsSyncTmpExportResult
+      >
       scanSkillsSecurity?: () => Promise<import('../shared/skillsSecurityTypes.js').SkillsSecurityResult>
       getSecurityRulesSyncStatus?: () => Promise<import('../shared/securityRulesSyncTypes.js').SecurityRulesSyncStatus>
       getSecurityRulesPaths?: () => Promise<import('../shared/securityRulesSyncTypes.js').SecurityRulesPaths>

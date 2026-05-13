@@ -14,7 +14,7 @@ import {
 import { startBundledSyncthingIfPresent, stopBundledSyncthing } from './bundledSyncthing'
 import { buildTrayContextMenu } from './tray-menu'
 import { listAgentArtifactsDetails } from './agentArtifactsScan'
-import { exportAgentArtifactsToSyncTmp } from './agentArtifactsExport'
+import { exportAgentArtifactsToSyncTmp } from './agentArtifactsExport.js'
 import { invalidateThirdPartyScanCache, scanThirdPartyProducts } from './thirdPartyScan'
 import {
   getSecurityRulesPaths,
@@ -676,17 +676,7 @@ app.whenReady().then(async () => {
       opts != null && typeof opts === 'object' && (opts as { force?: boolean }).force === true
     return listAgentArtifactsDetails(force ? { force: true } : undefined)
   })
-  ipcMain.handle('env:exportAgentArtifactsToSyncTmp', (_e, opts?: unknown) => {
-    const sourceDeviceId =
-      opts != null && typeof opts === 'object' && typeof (opts as { sourceDeviceId?: unknown }).sourceDeviceId === 'string'
-        ? (opts as { sourceDeviceId: string }).sourceDeviceId
-        : undefined
-    const sourceDeviceName =
-      opts != null && typeof opts === 'object' && typeof (opts as { sourceDeviceName?: unknown }).sourceDeviceName === 'string'
-        ? (opts as { sourceDeviceName: string }).sourceDeviceName
-        : undefined
-    return exportAgentArtifactsToSyncTmp({ sourceDeviceId, sourceDeviceName })
-  })
+  ipcMain.handle('env:exportAgentArtifactsToSyncTmp', () => exportAgentArtifactsToSyncTmp())
   ipcMain.handle('env:scanSkillsSecurity', async () => scanSkillsSecurity())
   ipcMain.handle('env:getSecurityRulesSyncStatus', () => getSecurityRulesSyncStatus())
   ipcMain.handle('env:getSecurityRulesPaths', () => getSecurityRulesPaths())

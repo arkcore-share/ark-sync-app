@@ -1,236 +1,131 @@
-import { createHash } from 'node:crypto'
-import {
-  copyFileSync,
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readdirSync,
-  rmSync,
-  writeFileSync
-} from 'node:fs'
-import { homedir, hostname, platform, release } from 'node:os'
-import { basename, dirname, isAbsolute, join, relative } from 'node:path'
-import type {
-  AgentArtifactCategory,
-  AgentArtifactEntry,
-  AgentArtifactsDetail,
-  AgentArtifactsExportManifest,
-  AgentArtifactsExportManifestEntry,
-  AgentArtifactsExportOptions,
-  AgentArtifactsExportResult
-} from '../shared/agentArtifactsTypes.js'
+import { cpSync, existsSync, mkdirSync, statSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import type { AgentArtifactEntry, AgentArtifactsSyncTmpExportResult } from '../shared/agentArtifactsTypes.js'
 import { listAgentArtifactsDetails } from './agentArtifactsScan.js'
 
-const EXPORT_DIR_NAME = 'ark-sync-agent-artifacts'
-const MANIFEST_FILE_NAME = 'ark-sync-agent-artifacts-manifest.json'
-
-type CopyStats = {
-  files: number
-  dirs: number
-  skipped: number
-}
-
-function toPosixPath(p: string): string {
-  return p.replace(/\\/g, '/')
-}
-
-function shortHash(input: string): string {
-  return createHash('sha256').update(input).digest('hex').slice(0, 10)
-}
-
-function sanitizeSegment(raw: string): string {
-  const cleaned = raw
-    .trim()
-    .replace(/[<>:"/\\|?*\x00-\x1f]+/g, '_')
-    .replace(/\s+/g, ' ')
-    .replace(/[. ]+$/g, '')
-  if (!cleaned || cleaned === '.' || cleaned === '..') {
-    return 'item'
+/**
+ * 将绝对路径映射为 ~/.sync_tmp 下的相对路径段（保留各段原名，含盘符 / UNC 编码，避免跨路径同名覆盖）。
+ */
+export function absPathToSyncTmpSegments(absPath: string): string[] {
+  const resolved = resolve(absPath)
+  if (process.platform === 'win32') {
+    let r = resolved.replace(/^\\\\\?\\/, '')
+    if (/^unc\\/i.test(r)) {
+      const rest = r.slice(4)
+      const parts = rest.split(/\\+/).filter(Boolean)
+      return ['__unc', ...parts]
+    }
+    if (r.startsWith('\\\\')) {
+      const body = r.slice(2).split(/\\+/).filter(Boolean)
+      return ['__unc', ...body]
+    }
+    const driveMatch = /^([a-zA-Z]):([\\/]|$)/.exec(r)
+    if (driveMatch) {
+      const letter = driveMatch[1].toUpperCase()
+      const rest = r.slice(2).replace(/^[\\/]+/, '')
+      const parts = rest.split(/\\+/).filter(Boolean)
+      return [letter, ...parts]
+    }
   }
-  return cleaned.slice(0, 80)
+  const posix = resolved.replace(/\\/g, '/')
+  const without = posix.startsWith('/') ? posix.slice(1) : posix
+  return without.split('/').filter(Boolean)
 }
 
-function entryLabel(entry: AgentArtifactEntry): string {
-  return (entry.label?.trim() || basename(entry.path) || 'item').trim()
-}
-
-function exportedRelativePath(agentId: string, category: AgentArtifactCategory, entry: AgentArtifactEntry): string {
-  const labelParts = entryLabel(entry)
-    .split(/[\\/]+/g)
-    .map(sanitizeSegment)
-    .filter(Boolean)
-  const parts = labelParts.length > 0 ? labelParts : [sanitizeSegment(basename(entry.path))]
-  const last = parts[parts.length - 1] || 'item'
-  parts[parts.length - 1] = `${last}-${shortHash(entry.path)}`
-  return toPosixPath(join(EXPORT_DIR_NAME, sanitizeSegment(agentId), category, ...parts))
-}
-
-function relativeIfUnder(parent: string | null, child: string): string | null {
-  if (!parent) {
-    return null
-  }
-  const rel = relative(parent, child)
+function isUnderSyncTmpRoot(syncTmpRoot: string, sourceAbs: string): boolean {
+  const rel = relative(resolve(syncTmpRoot), resolve(sourceAbs))
   if (rel === '') {
-    return ''
+    return true
   }
-  if (!rel || rel.startsWith('..') || isAbsolute(rel)) {
-    return null
+  if (isAbsolute(rel)) {
+    return false
   }
-  return toPosixPath(rel)
+  return rel !== '..' && !rel.startsWith(`..${sep}`)
 }
 
-function isUnderPath(parent: string, child: string): boolean {
-  const rel = relative(parent, child)
-  return rel === '' || (!!rel && !rel.startsWith('..') && !isAbsolute(rel))
-}
-
-function copyPath(src: string, dest: string): CopyStats {
-  const st = lstatSync(src)
-  if (st.isSymbolicLink()) {
-    return { files: 0, dirs: 0, skipped: 1 }
+function copyEntry(syncTmpRoot: string, entry: AgentArtifactEntry, errors: string[], tallies: Tallies): void {
+  if (!existsSync(entry.path)) {
+    tallies.skipped++
+    return
   }
-  if (st.isDirectory()) {
-    mkdirSync(dest, { recursive: true })
-    const total: CopyStats = { files: 0, dirs: 1, skipped: 0 }
-    for (const name of readdirSync(src)) {
-      const child = copyPath(join(src, name), join(dest, name))
-      total.files += child.files
-      total.dirs += child.dirs
-      total.skipped += child.skipped
+  if (isUnderSyncTmpRoot(syncTmpRoot, entry.path)) {
+    tallies.skipped++
+    return
+  }
+  let dest: string
+  try {
+    const segments = absPathToSyncTmpSegments(entry.path)
+    if (segments.length === 0) {
+      throw new Error('无法从路径推导镜像层级')
     }
-    return total
+    dest = join(syncTmpRoot, ...segments)
+  } catch (e) {
+    errors.push(`${entry.path}: ${e instanceof Error ? e.message : String(e)}`)
+    tallies.skipped++
+    return
   }
-  if (st.isFile()) {
-    mkdirSync(dirname(dest), { recursive: true })
-    copyFileSync(src, dest)
-    return { files: 1, dirs: 0, skipped: 0 }
-  }
-  return { files: 0, dirs: 0, skipped: 1 }
-}
-
-function categoryLabel(category: AgentArtifactCategory): string {
-  if (category === 'skills') {
-    return 'Skill'
-  }
-  if (category === 'memory') {
-    return 'Memory'
-  }
-  return 'Files'
-}
-
-function entriesForCategory(
-  agent: AgentArtifactsDetail,
-  category: AgentArtifactCategory
-): AgentArtifactEntry[] {
-  if (category === 'skills') {
-    return agent.skills
-  }
-  if (category === 'memory') {
-    return agent.memory
-  }
-  return agent.files
-}
-
-function manifestEntry(
-  agent: AgentArtifactsDetail,
-  category: AgentArtifactCategory,
-  entry: AgentArtifactEntry,
-  exportedRel: string
-): AgentArtifactsExportManifestEntry {
-  return {
-    id: shortHash(`${agent.id}:${category}:${entry.path}`),
-    agentId: agent.id,
-    agentName: agent.name,
-    category,
-    categoryLabel: categoryLabel(category),
-    kind: entry.kind,
-    label: entryLabel(entry),
-    sourcePath: entry.path,
-    sourceDataRoot: agent.dataRoot,
-    relativeToDataRoot: relativeIfUnder(agent.dataRoot, entry.path),
-    exportedRelativePath: exportedRel
+  try {
+    mkdirSync(join(dest, '..'), { recursive: true })
+    const st = statSync(entry.path)
+    if (entry.kind === 'dir' && !st.isDirectory()) {
+      tallies.skipped++
+      return
+    }
+    if (entry.kind === 'file' && !st.isFile()) {
+      tallies.skipped++
+      return
+    }
+    cpSync(entry.path, dest, { recursive: true, force: true })
+    if (st.isDirectory()) {
+      tallies.dirs++
+    } else {
+      tallies.files++
+    }
+  } catch (e) {
+    errors.push(`${entry.path} → ${dest}: ${e instanceof Error ? e.message : String(e)}`)
+    tallies.skipped++
   }
 }
 
-export function exportAgentArtifactsToSyncTmp(
-  opts?: AgentArtifactsExportOptions
-): AgentArtifactsExportResult {
-  const targetRoot = join(homedir(), '.sync_tmp')
-  const exportRoot = join(targetRoot, EXPORT_DIR_NAME)
-  const manifestPath = join(targetRoot, MANIFEST_FILE_NAME)
+type Tallies = { files: number; dirs: number; skipped: number }
+
+/**
+ * 将「智能体」页所列各已安装产品的 Skill / Memory / Files 复制到 ~/.sync_tmp，
+ * 目标路径为「用户主目录/.sync_tmp」+ 与源绝对路径一致的目录层级，不改动文件名。
+ */
+export function exportAgentArtifactsToSyncTmp(): AgentArtifactsSyncTmpExportResult {
   const errors: string[] = []
-  const manifestEntries: AgentArtifactsExportManifestEntry[] = []
-  let copiedFiles = 0
-  let copiedDirs = 0
-  let skipped = 0
-
+  const targetRoot = join(homedir(), '.sync_tmp')
   mkdirSync(targetRoot, { recursive: true })
-  rmSync(exportRoot, { recursive: true, force: true })
-  mkdirSync(exportRoot, { recursive: true })
 
-  const agents = listAgentArtifactsDetails({ force: true }).filter((agent) => agent.installed)
+  const details = listAgentArtifactsDetails({ force: true })
+  const tallies: Tallies = { files: 0, dirs: 0, skipped: 0 }
+  const seen = new Set<string>()
 
-  for (const agent of agents) {
-    for (const category of ['skills', 'memory', 'files'] as const) {
-      const seen = new Set<string>()
-      for (const entry of entriesForCategory(agent, category)) {
-        if (seen.has(entry.path)) {
-          continue
-        }
-        seen.add(entry.path)
-        if (!existsSync(entry.path)) {
-          errors.push(`${agent.name} ${categoryLabel(category)}: missing ${entry.path}`)
-          continue
-        }
-        if (isUnderPath(exportRoot, entry.path)) {
-          skipped += 1
-          errors.push(`${agent.name} ${categoryLabel(category)}: skipped export output ${entry.path}`)
-          continue
-        }
-        const exportedRel = exportedRelativePath(agent.id, category, entry)
-        const dest = join(targetRoot, exportedRel)
-        try {
-          rmSync(dest, { recursive: true, force: true })
-          const stats = copyPath(entry.path, dest)
-          copiedFiles += stats.files
-          copiedDirs += stats.dirs
-          skipped += stats.skipped
-          manifestEntries.push(manifestEntry(agent, category, entry, exportedRel))
-        } catch (e) {
-          errors.push(`${agent.name} ${categoryLabel(category)} ${entry.path}: ${e instanceof Error ? e.message : String(e)}`)
-        }
+  for (const agent of details) {
+    if (!agent.installed) {
+      continue
+    }
+    const all: AgentArtifactEntry[] = [...agent.skills, ...agent.memory, ...agent.files]
+    for (const e of all) {
+      const key = resolve(e.path)
+      if (seen.has(key)) {
+        continue
       }
+      seen.add(key)
+      copyEntry(targetRoot, e, errors, tallies)
     }
   }
 
-  const manifest: AgentArtifactsExportManifest = {
-    schemaVersion: 1,
-    createdAt: new Date().toISOString(),
-    sourceDevice: {
-      arkSyncDeviceId: opts?.sourceDeviceId?.trim() || null,
-      name: opts?.sourceDeviceName?.trim() || null,
-      hostname: hostname(),
-      platform: platform(),
-      osRelease: release(),
-      homeDir: homedir()
-    },
-    syncTmpRoot: targetRoot,
-    payloadRootRelative: EXPORT_DIR_NAME,
-    entries: manifestEntries
-  }
-
-  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8')
-
+  const copiedItems = tallies.files + tallies.dirs
   return {
     ok: errors.length === 0,
     targetRoot,
-    exportRoot,
-    manifestPath,
-    agents: agents.length,
-    entries: manifestEntries.length,
-    copiedFiles,
-    copiedDirs,
-    skipped,
+    copiedItems,
+    copiedFiles: tallies.files,
+    copiedDirs: tallies.dirs,
+    skipped: tallies.skipped,
     errors
   }
 }
