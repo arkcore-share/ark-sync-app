@@ -10,6 +10,25 @@ import { listAgentArtifactsDetails } from './agentArtifactsScan.js'
 export function absPathToSyncTmpSegments(absPath: string): string[] {
   const resolved = resolve(absPath)
   if (process.platform === 'win32') {
+    const home = resolve(homedir())
+    const relToHome = relative(home, resolved)
+    if (relToHome === '') {
+      return []
+    }
+    if (!isAbsolute(relToHome) && relToHome !== '..' && !relToHome.startsWith(`..${sep}`)) {
+      const parts = relToHome.split(/[\\/]+/).filter(Boolean)
+      const hermesTail = ['AppData', 'Local', 'hermes']
+      if (
+        parts.length >= hermesTail.length &&
+        parts[0].toLowerCase() === hermesTail[0].toLowerCase() &&
+        parts[1].toLowerCase() === hermesTail[1].toLowerCase() &&
+        parts[2].toLowerCase() === hermesTail[2].toLowerCase()
+      ) {
+        return ['hermes', ...parts.slice(3)]
+      }
+      return parts
+    }
+
     let r = resolved.replace(/^\\\\\?\\/, '')
     if (/^unc\\/i.test(r)) {
       const rest = r.slice(4)
