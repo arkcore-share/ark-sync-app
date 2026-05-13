@@ -44,7 +44,11 @@
     ],
     "files": [
       { "base": "home", "segments": [".claude", "config.json"] },
-      { "base": "home", "segments": [".clauderc"] }
+      { "base": "home", "segments": [".clauderc"] },
+      { "base": "home", "segments": [".claude", "settings.json"] },
+      { "base": "home", "segments": [".claude", "policy-limits.json"] },
+      { "base": "home", "segments": [".claude", "history.jsonl"] },
+      { "base": "home", "segments": [".claude.json"] }
     ]
   },
   "hermes": {
@@ -95,7 +99,8 @@
     "files": [
       { "base": "home", "segments": [".config", "hermes", "config.toml"] },
       { "base": "home", "segments": [".config", "hermes", "config.yaml"] },
-      { "base": "home", "segments": [".config", "hermes", "config.yml"] }
+      { "base": "home", "segments": [".config", "hermes", "config.yml"] },
+      { "base": "home", "segments": [".hermes", "SOUL.md"] }
     ],
     "extraRootsForGenericClawMerge": [
       { "kind": "env", "envVar": "LOCALAPPDATA", "segments": ["hermes"] },
@@ -125,7 +130,9 @@
       { "base": "dataRoot", "segments": ["cli-config.yaml"] },
       { "base": "dataRoot", "segments": ["claude.json"] },
       { "base": "dataRoot", "segments": ["agents.md"] },
-      { "base": "dataRoot", "segments": ["AGENTS.md"] }
+      { "base": "dataRoot", "segments": ["AGENTS.md"] },
+      { "base": "dataRoot", "segments": ["logs", "config-audit.jsonl"] },
+      { "base": "dataRoot", "segments": ["logs", "config-health.json"] }
     ],
     "appendGenericUnderDataRoot": true
   },
