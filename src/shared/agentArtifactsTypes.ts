@@ -31,3 +31,33 @@ export type AgentArtifactsSyncTmpExportResult = {
   skipped: number
   errors: string[]
 }
+
+/** 从 ~/.sync_tmp 中转目录与本地智能体目录做双向同步后的结果 */
+export type AgentConfigSyncResult = {
+  ok: boolean
+  mode: 'synced' | 'local_scan_only'
+  message: string
+  relayRoot: string | null
+  runId: string | null
+  reportDir: string | null
+  dryRun: boolean
+  copiedToLocal: number
+  copiedToRelay: number
+  conflicts: number
+  skipped: number
+  errors: string[]
+}
+
+export type AgentConfigSyncScanResult = {
+  hasRelayContent: boolean
+  relayRoot: string | null
+  syncTmpRoot: string
+}
+
+export type AgentConfigSyncRollbackResult = {
+  ok: boolean
+  runId: string
+  restoredLocal: number
+  restoredRelay: number
+  errors: string[]
+}

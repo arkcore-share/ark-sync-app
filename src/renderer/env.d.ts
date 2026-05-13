@@ -84,6 +84,18 @@ declare global {
       exportAgentArtifactsToSyncTmp?: () => Promise<
         import('../shared/agentArtifactsTypes.js').AgentArtifactsSyncTmpExportResult
       >
+      syncAgentConfigsWithRelay?: () => Promise<
+        import('../shared/agentArtifactsTypes.js').AgentConfigSyncResult
+      >
+      syncAgentConfigsDryRun?: () => Promise<
+        import('../shared/agentArtifactsTypes.js').AgentConfigSyncResult
+      >
+      scanSyncRelayContent?: () => Promise<
+        import('../shared/agentArtifactsTypes.js').AgentConfigSyncScanResult
+      >
+      rollbackAgentConfigSync?: (
+        runId: string
+      ) => Promise<import('../shared/agentArtifactsTypes.js').AgentConfigSyncRollbackResult>
       scanSkillsSecurity?: () => Promise<import('../shared/skillsSecurityTypes.js').SkillsSecurityResult>
       getSecurityRulesSyncStatus?: () => Promise<import('../shared/securityRulesSyncTypes.js').SecurityRulesSyncStatus>
       getSecurityRulesPaths?: () => Promise<import('../shared/securityRulesSyncTypes.js').SecurityRulesPaths>

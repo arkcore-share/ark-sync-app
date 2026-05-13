@@ -13,7 +13,10 @@ import type {
 } from '../env'
 import type {
   AgentArtifactsDetail,
-  AgentArtifactsSyncTmpExportResult
+  AgentArtifactsSyncTmpExportResult,
+  AgentConfigSyncResult,
+  AgentConfigSyncRollbackResult,
+  AgentConfigSyncScanResult
 } from '../../shared/agentArtifactsTypes'
 import type { ThirdPartyScanResult } from '../../shared/thirdPartyScanTypes'
 import type { SecurityRulesPaths, SecurityRulesSyncStatus } from '../../shared/securityRulesSyncTypes'
@@ -144,6 +147,38 @@ export async function exportAgentArtifactsToSyncTmp(): Promise<AgentArtifactsSyn
     return null
   }
   return window.syncWeb.exportAgentArtifactsToSyncTmp()
+}
+
+/** 检测 ~/.sync_tmp 中转目录并执行本地<->中转双向同步（仅 Electron）。 */
+export async function syncAgentConfigsWithRelay(): Promise<AgentConfigSyncResult | null> {
+  if (!isElectronApp() || !window.syncWeb?.syncAgentConfigsWithRelay) {
+    return null
+  }
+  return window.syncWeb.syncAgentConfigsWithRelay()
+}
+
+/** 仅检查变更，不落盘（仅 Electron）。 */
+export async function syncAgentConfigsDryRun(): Promise<AgentConfigSyncResult | null> {
+  if (!isElectronApp() || !window.syncWeb?.syncAgentConfigsDryRun) {
+    return null
+  }
+  return window.syncWeb.syncAgentConfigsDryRun()
+}
+
+/** 仅扫描 ~/.sync_tmp 是否存在可用中转目录（仅 Electron）。 */
+export async function scanSyncRelayContent(): Promise<AgentConfigSyncScanResult | null> {
+  if (!isElectronApp() || !window.syncWeb?.scanSyncRelayContent) {
+    return null
+  }
+  return window.syncWeb.scanSyncRelayContent()
+}
+
+/** 按运行 ID 回滚（仅 Electron）。 */
+export async function rollbackAgentConfigSync(runId: string): Promise<AgentConfigSyncRollbackResult | null> {
+  if (!isElectronApp() || !window.syncWeb?.rollbackAgentConfigSync) {
+    return null
+  }
+  return window.syncWeb.rollbackAgentConfigSync(runId)
 }
 
 /** 扫描本机 Cursor / Hermes 等 skills 下的 SKILL.md 并做简单内容分级（仅 Electron）。 */

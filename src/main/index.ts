@@ -15,6 +15,7 @@ import { startBundledSyncthingIfPresent, stopBundledSyncthing } from './bundledS
 import { buildTrayContextMenu } from './tray-menu'
 import { listAgentArtifactsDetails } from './agentArtifactsScan'
 import { exportAgentArtifactsToSyncTmp } from './agentArtifactsExport.js'
+import { rollbackAgentConfigSync, scanSyncRelayContent, syncAgentConfigs, syncAgentConfigsWithRelay } from './agentConfigSync.js'
 import { invalidateThirdPartyScanCache, scanThirdPartyProducts } from './thirdPartyScan'
 import {
   getSecurityRulesPaths,
@@ -677,6 +678,12 @@ app.whenReady().then(async () => {
     return listAgentArtifactsDetails(force ? { force: true } : undefined)
   })
   ipcMain.handle('env:exportAgentArtifactsToSyncTmp', () => exportAgentArtifactsToSyncTmp())
+  ipcMain.handle('env:syncAgentConfigsWithRelay', () => syncAgentConfigsWithRelay())
+  ipcMain.handle('env:syncAgentConfigsDryRun', () => syncAgentConfigs({ dryRun: true }))
+  ipcMain.handle('env:scanSyncRelayContent', () => scanSyncRelayContent())
+  ipcMain.handle('env:rollbackAgentConfigSync', (_e, runId: unknown) =>
+    rollbackAgentConfigSync(typeof runId === 'string' ? runId : '')
+  )
   ipcMain.handle('env:scanSkillsSecurity', async () => scanSkillsSecurity())
   ipcMain.handle('env:getSecurityRulesSyncStatus', () => getSecurityRulesSyncStatus())
   ipcMain.handle('env:getSecurityRulesPaths', () => getSecurityRulesPaths())

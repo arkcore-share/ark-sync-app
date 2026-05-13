@@ -5,7 +5,7 @@ import AddFolderModal from '../components/folder/AddFolderModal'
 import EditFolderModal from '../components/folder/EditFolderModal'
 import VersionsModal from '../components/folder/VersionsModal'
 import { useConnection } from '../context/ConnectionContext'
-import { isElectronApp, exportAgentArtifactsToSyncTmp } from '../electronBridge'
+import { isElectronApp, scanSyncRelayContent, syncAgentConfigsDryRun, syncAgentConfigsWithRelay } from '../electronBridge'
 import { usePoll } from '../hooks/usePoll'
 import type {
   DeviceConfiguration,
@@ -444,7 +444,7 @@ export default function FoldersPage(): React.ReactElement {
   const [versionsFolder, setVersionsFolder] = useState<string | null>(null)
   const [cardOpen, setCardOpen] = useState<Record<string, boolean>>({})
   const [statsWarn, setStatsWarn] = useState<string | null>(null)
-  const [exportingAgentArtifacts, setExportingAgentArtifacts] = useState(false)
+  const [syncingAgentConfigs, setSyncingAgentConfigs] = useState(false)
   const folderStatsRef = useRef<Record<string, FolderStatisticsEntry>>({})
 
   const toggleCard = (folderId: string) => {
@@ -534,21 +534,41 @@ export default function FoldersPage(): React.ReactElement {
     void actions(() => client.scanAllFolders())
   }
 
-  const exportAgentScanToSyncTmp = () => {
+  const syncAgentConfigs = () => {
     if (!isElectronApp()) {
       return
     }
     if (
       !confirm(
-        '将把当前已检测到的各智能体的 Skill（技能）、Memory（记忆 / 数据）、Files（配置文件）复制到用户目录下的 .sync_tmp。\n\n目标内会按源文件的绝对路径保留相同文件夹层级且不改动文件名，以避免同名覆盖。\n\n是否继续？'
+        '将先检查 ~/.sync_tmp 中是否存在智能体中转目录。\n\n若存在：按映射规则执行本地与中转目录的双向同步（含冲突保全）。\n若不存在：跳过同步，仅继续本地扫描。\n\n是否继续？'
       )
     ) {
       return
     }
-    setExportingAgentArtifacts(true)
+    setSyncingAgentConfigs(true)
     void (async () => {
       try {
-        const r = await exportAgentArtifactsToSyncTmp()
+        const scan = await scanSyncRelayContent()
+        if (scan == null) {
+          window.alert('当前环境不支持此操作（请在 Ark Sync 桌面客户端中使用）。')
+          return
+        }
+        if (!scan.hasRelayContent) {
+          window.alert('未发现可用中转目录，已跳过双向同步，仅继续本地扫描。')
+          await load()
+          return
+        }
+
+        const dry = await syncAgentConfigsDryRun()
+        if (dry == null) {
+          window.alert('当前环境不支持此操作（请在 Ark Sync 桌面客户端中使用）。')
+          return
+        }
+        if (!confirm(`检测到可同步内容。\n\nDry-run 结果：同步到本地 ${dry.copiedToLocal} 项，同步到中转 ${dry.copiedToRelay} 项，冲突处理 ${dry.conflicts} 项，跳过 ${dry.skipped} 项。\n\n是否继续执行真实同步？`)) {
+          return
+        }
+
+        const r = await syncAgentConfigsWithRelay()
         if (r == null) {
           window.alert('当前环境不支持此操作（请在 Ark Sync 桌面客户端中使用）。')
           return
@@ -557,13 +577,17 @@ export default function FoldersPage(): React.ReactElement {
           r.errors.length > 0
             ? `\n\n部分路径失败（最多显示 10 条）：\n${r.errors.slice(0, 10).join('\n')}${r.errors.length > 10 ? '\n…' : ''}`
             : ''
+        const modeText = r.mode === 'synced' ? '已执行双向同步' : '未发现中转目录，已仅本地扫描'
+        const relayText = r.relayRoot ? `\n中转根目录：${r.relayRoot}` : ''
+        const runText = r.runId ? `\n运行 ID：${r.runId}` : ''
         window.alert(
-          `${r.ok ? '复制完成。' : '复制结束，但有部分失败。'}\n\n目标目录：${r.targetRoot}\n已复制：${r.copiedItems} 项（文件 ${r.copiedFiles}，目录 ${r.copiedDirs}），跳过 ${r.skipped}。${errBlock}`
+          `${r.ok ? '执行完成。' : '执行结束，但有部分失败。'}\n\n模式：${modeText}${relayText}${runText}\n变更：同步到本地 ${r.copiedToLocal} 项，同步到中转 ${r.copiedToRelay} 项，冲突处理 ${r.conflicts} 项，跳过 ${r.skipped} 项。${errBlock}`
         )
+        await load()
       } catch (e) {
         window.alert(e instanceof Error ? e.message : String(e))
       } finally {
-        setExportingAgentArtifacts(false)
+        setSyncingAgentConfigs(false)
       }
     })()
   }
@@ -594,14 +618,14 @@ export default function FoldersPage(): React.ReactElement {
           {isElectronApp() ? (
             <button
               type="button"
-              disabled={exportingAgentArtifacts}
-              onClick={exportAgentScanToSyncTmp}
-              title="复制到 ~/.sync_tmp，目录层级与源路径一致"
+              disabled={syncingAgentConfigs}
+              onClick={syncAgentConfigs}
+              title="先检查 ~/.sync_tmp，再按映射规则执行双向同步"
             >
               <span className="btn-glyph" aria-hidden>
                 ⧉
               </span>
-              {exportingAgentArtifacts ? '正在导出…' : '从智能体扫描添加'}
+              {syncingAgentConfigs ? '正在同步…' : '从智能体扫描添加'}
             </button>
           ) : null}
           <button type="button" className="primary" onClick={() => setShowAdd(true)}>

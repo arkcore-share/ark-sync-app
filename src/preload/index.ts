@@ -5,7 +5,10 @@ import type { SecurityRulesPaths, SecurityRulesSyncStatus } from '../shared/secu
 import type { SkillsSecurityResult } from '../shared/skillsSecurityTypes.js'
 import type {
   AgentArtifactsDetail,
-  AgentArtifactsSyncTmpExportResult
+  AgentArtifactsSyncTmpExportResult,
+  AgentConfigSyncResult,
+  AgentConfigSyncRollbackResult,
+  AgentConfigSyncScanResult
 } from '../shared/agentArtifactsTypes.js'
 import type { ThirdPartyInstallResult } from '../shared/thirdPartyInstallTypes.js'
 
@@ -56,6 +59,14 @@ contextBridge.exposeInMainWorld('syncWeb', {
     ipcRenderer.invoke('env:listAgentArtifacts', opts ?? {}),
   exportAgentArtifactsToSyncTmp: (): Promise<AgentArtifactsSyncTmpExportResult> =>
     ipcRenderer.invoke('env:exportAgentArtifactsToSyncTmp'),
+  syncAgentConfigsWithRelay: (): Promise<AgentConfigSyncResult> =>
+    ipcRenderer.invoke('env:syncAgentConfigsWithRelay'),
+  syncAgentConfigsDryRun: (): Promise<AgentConfigSyncResult> =>
+    ipcRenderer.invoke('env:syncAgentConfigsDryRun'),
+  scanSyncRelayContent: (): Promise<AgentConfigSyncScanResult> =>
+    ipcRenderer.invoke('env:scanSyncRelayContent'),
+  rollbackAgentConfigSync: (runId: string): Promise<AgentConfigSyncRollbackResult> =>
+    ipcRenderer.invoke('env:rollbackAgentConfigSync', runId),
   scanSkillsSecurity: (): Promise<SkillsSecurityResult> => ipcRenderer.invoke('env:scanSkillsSecurity'),
   getSecurityRulesSyncStatus: (): Promise<SecurityRulesSyncStatus> =>
     ipcRenderer.invoke('env:getSecurityRulesSyncStatus'),
