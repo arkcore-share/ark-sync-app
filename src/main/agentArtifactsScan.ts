@@ -8,6 +8,20 @@ import type { AgentArtifactEntry, AgentArtifactsDetail } from '../shared/agentAr
 import type { ThirdPartyScanResult } from '../shared/thirdPartyScanTypes.js'
 import { scanThirdPartyProducts } from './thirdPartyScan.js'
 
+function isIgnoredArtifactName(name: string): boolean {
+  const n = name.toLowerCase()
+  if (n.includes('.conflict-')) {
+    return true
+  }
+  if (n.endsWith('~') || n.endsWith('.bak') || n.endsWith('.tmp') || n.endsWith('.orig') || n.endsWith('.rej')) {
+    return true
+  }
+  if (n.startsWith('.#') || n.startsWith('#') || n.endsWith('#')) {
+    return true
+  }
+  return false
+}
+
 function resolveCandidatePath(home: string, c: DataRootCandidate): string | null {
   if (c.kind === 'home') {
     return join(home, ...c.segments)
@@ -64,7 +78,9 @@ function listDirLimited(dir: string, max: number, depthLabel = ''): AgentArtifac
   } catch {
     return []
   }
-  const sorted = entries.filter((n) => !n.startsWith('.') || n === '.env').sort((a, b) => a.localeCompare(b))
+  const sorted = entries
+    .filter((n) => (!n.startsWith('.') || n === '.env') && !isIgnoredArtifactName(n))
+    .sort((a, b) => a.localeCompare(b))
   for (const n of sorted.slice(0, max)) {
     const p = join(dir, n)
     try {

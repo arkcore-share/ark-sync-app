@@ -55,6 +55,20 @@ function mergeSev(a: SkillsSecuritySeverity, b: SkillsSecuritySeverity): SkillsS
   return sevRank(a) >= sevRank(b) ? a : b
 }
 
+function isIgnoredSkillScanName(name: string): boolean {
+  const n = name.toLowerCase()
+  if (n.includes('.conflict-')) {
+    return true
+  }
+  if (n.endsWith('~') || n.endsWith('.bak') || n.endsWith('.tmp') || n.endsWith('.orig') || n.endsWith('.rej')) {
+    return true
+  }
+  if (n.startsWith('.#') || n.startsWith('#') || n.endsWith('#')) {
+    return true
+  }
+  return false
+}
+
 function ruleLikelyHigh(r: GitleaksTomlRule): boolean {
   const tags = (r.tags ?? []).map((t) => String(t).toLowerCase())
   if (tags.some((t) => ['secret', 'private-key', 'api', 'aws', 'key', 'token'].includes(t))) {
@@ -187,6 +201,9 @@ function collectSkillMdUnder(root: string): string[] {
       return
     }
     for (const e of entries) {
+      if (isIgnoredSkillScanName(e.name)) {
+        continue
+      }
       const p = join(dir, e.name)
       if (e.isDirectory()) {
         if (e.name === 'node_modules' || e.name === '.git') {
