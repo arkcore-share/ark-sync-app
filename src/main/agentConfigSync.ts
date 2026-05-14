@@ -13,7 +13,7 @@ import {
 } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { homedir } from 'node:os'
-import { basename, dirname, extname, join, relative, resolve } from 'node:path'
+import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path'
 import { parse as parseToml } from 'toml'
 
 export type AgentConfigSyncResult = {
@@ -192,6 +192,34 @@ function resolveRelayPath(candidates: string[]): string {
 
 function ensureParent(p: string): void {
   mkdirSync(dirname(p), { recursive: true })
+}
+
+/**
+ * Convert an absolute path to portable relative segments for backup storage.
+ * This avoids Windows absolute path semantics overriding join(backupRoot, ...).
+ */
+function absPathToBackupSegments(absPath: string): string[] {
+  const resolved = resolve(absPath)
+  if (process.platform === 'win32') {
+    let raw = resolved.replace(/^\\\\\?\\/, '')
+    if (/^unc\\/i.test(raw)) {
+      const rest = raw.slice(4)
+      return ['__unc', ...rest.split(/\\+/).filter(Boolean)]
+    }
+    if (raw.startsWith('\\\\')) {
+      return ['__unc', ...raw.slice(2).split(/\\+/).filter(Boolean)]
+    }
+    const driveMatch = /^([a-zA-Z]):([\\/]|$)/.exec(raw)
+    if (driveMatch) {
+      const drive = driveMatch[1].toUpperCase()
+      const rest = raw.slice(2).replace(/^[\\/]+/, '')
+      const parts = rest.split(/\\+/).filter(Boolean)
+      return [drive, ...parts]
+    }
+  }
+  const posix = resolved.replace(/\\/g, '/')
+  const withoutLeadingSlash = posix.startsWith('/') ? posix.slice(1) : posix
+  return withoutLeadingSlash.split('/').filter(Boolean)
 }
 
 function hashFile(abs: string): string {
@@ -444,8 +472,7 @@ function backupBeforeChange(abs: string, backupRoot: string, side: 'local' | 're
   if (dryRun || !existsSync(abs)) {
     return
   }
-  const rel = abs.replace(/^[/\\]+/, '')
-  const target = join(backupRoot, side, rel)
+  const target = join(backupRoot, side, ...absPathToBackupSegments(abs))
   ensureParent(target)
   cpSync(abs, target, { recursive: true, force: true })
 }
@@ -471,8 +498,7 @@ function ensureDir(abs: string, dryRun: boolean): void {
 }
 
 function snapshotTarget(backupRoot: string, side: 'local' | 'relay', absPath: string): string {
-  const rel = absPath.replace(/^[/\\]+/, '')
-  return join(backupRoot, side, rel)
+  return join(backupRoot, side, ...absPathToBackupSegments(absPath))
 }
 
 function captureFullSnapshots(mappings: Mapping[], backupRoot: string): SnapshotEntry[] {
@@ -1060,7 +1086,18 @@ function restoreFromBackup(backupSideRoot: string): number {
   let restored = 0
   for (const rel of files) {
     const src = join(backupSideRoot, rel)
-    const dst = join('/', rel)
+    const relParts = rel.split(/[\\/]+/).filter(Boolean)
+    let dst: string
+    if (process.platform === 'win32' && relParts.length > 1 && /^[A-Z]$/i.test(relParts[0])) {
+      dst = `${relParts[0].toUpperCase()}:\\${relParts.slice(1).join('\\')}`
+    } else if (process.platform === 'win32' && relParts[0] === '__unc' && relParts.length > 2) {
+      dst = `\\\\${relParts.slice(1).join('\\')}`
+    } else {
+      dst = join('/', ...relParts)
+      if (process.platform === 'win32' && isAbsolute(dst) && /^[\\/][A-Z](?:[\\/]|$)/i.test(dst)) {
+        dst = `${dst[1].toUpperCase()}:${dst.slice(2)}`
+      }
+    }
     ensureParent(dst)
     copyFileSync(src, dst)
     restored++
