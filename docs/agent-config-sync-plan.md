@@ -11,14 +11,148 @@
 
 ## 2. 路径映射
 
-按以下映射进行同步：
+不再使用“按产品写死路径”的映射方式，统一改为“**规则驱动映射**”：
 
-1. `~/.sync_tmp/.../.claude` <-> `~/.claude`
-2. `~/.sync_tmp/.../.openclaw` <-> `~/.openclaw`
-3. `~/.sync_tmp/.../hermes` 或 `~/.sync_tmp/.../.hermes` <-> `~/.hermes`
-4. `~/.sync_tmp/.../.clauderc` <-> `~/.clauderc`
+1. 从 `resources/agent-artifact-scan-rules.json` 读取所有产品规则（不限 Claude / Hermes / OpenClaw）。
+2. 对每个“已安装产品”，收集其 `skills`、`memory`、`files` 三类条目。
+3. 将每个本地绝对路径映射到 `~/.sync_tmp` 下的对应相对路径：
+  - 规则：`relayPath = join(relayRoot, relative(HOME, localPath))`
+4. 对少数历史兼容路径保留候选映射（例如 Hermes 在中转侧同时兼容 `~/.sync_tmp/.hermes` 与 `~/.sync_tmp/hermes`）。
+5. 去重后按“文件/目录”类型进入双向同步流程。
 
-说明：`...` 表示你实际的中转路径层级。Hermes 的中转目录名允许两种形式：`hermes` 与 `.hermes`，同步程序应自动识别并映射到本地 `~/.hermes`。
+说明：
+
+1. `relayRoot` 为自动探测到的中转根（`~/.sync_tmp` 下的实际层级）。
+2. 该策略对**当前所有产品**生效，且对**未来新增产品**同样生效：只要在 `agent-artifact-scan-rules.json` 增加规则并被扫描识别，即自动纳入同步范围。
+3. Windows 下 Hermes 的数据根优先为 `%LOCALAPPDATA%\\hermes`（如 `C:\Users\Administrator\AppData\Local\hermes`），其 Skill / Memory / Files 均从该目录映射。
+
+### 2.1 路径映射示例（Windows / Linux / macOS）
+
+统一规则：`relayPath = join(relayRoot, relative(HOME, localPath))`。
+
+1. Windows（`HOME = ~`，`relayRoot = ~\.sync_tmp`）
+- `~\.claude\commands\weather.md` -> `~\.sync_tmp\.claude\commands\weather.md`
+- `~\.openclaw\skills\demo\SKILL.md` -> `~\.sync_tmp\.openclaw\skills\demo\SKILL.md`
+- `~\AppData\Local\hermes\skills\agent\SKILL.md` -> `~\.sync_tmp\hermes\skills\agent\SKILL.md`
+- `~\AppData\Local\hermes\db\memory.db` -> `~\.sync_tmp\hermes\db\memory.db`
+- `~\AppData\Local\hermes\config.yaml` -> `~\.sync_tmp\hermes\config.yaml`
+- Hermes 兼容候选：若中转侧历史目录是 `hermes` 或 `.hermes`，则可同时候选对应路径
+
+2. Linux（`HOME = ~`，`relayRoot = ~/.sync_tmp`）
+- `~/.claude/commands/weather.md` -> `~/.sync_tmp/.claude/commands/weather.md`
+- `~/.openclaw/skills/demo/SKILL.md` -> `~/.sync_tmp/.openclaw/skills/demo/SKILL.md`
+- `~/.hermes/skills/agent/SKILL.md` -> `~/.sync_tmp/.hermes/skills/agent/SKILL.md`
+- Hermes 兼容候选：`~/.sync_tmp/hermes/skills/agent/SKILL.md`
+
+3. macOS（`HOME = ~`，`relayRoot = ~/.sync_tmp`）
+- `~/.claude/commands/weather.md` -> `~/.sync_tmp/.claude/commands/weather.md`
+- `~/.openclaw/skills/demo/SKILL.md` -> `~/.sync_tmp/.openclaw/skills/demo/SKILL.md`
+- `~/.hermes/skills/agent/SKILL.md` -> `~/.sync_tmp/.hermes/skills/agent/SKILL.md`
+- Hermes 兼容候选：`~/.sync_tmp/hermes/skills/agent/SKILL.md`
+
+### 2.2 Linux 当前机器实际映射清单（`HOME=~`）
+
+#### Claude Code
+
+- Skill（技能）
+- `~/.claude/commands/weather.md` -> `~/.sync_tmp/.claude/commands/weather.md`
+
+- Memory（记忆 / 数据）
+- `~/.claude/history/weather-memory.md` -> `~/.sync_tmp/.claude/history/weather-memory.md`
+
+- Files（配置文件）
+- `~/.claude.json` -> `~/.sync_tmp/.claude.json`
+- `~/.claude/config.json` -> `~/.sync_tmp/.claude/config.json`
+- `~/.claude/history.jsonl` -> `~/.sync_tmp/.claude/history.jsonl`
+- `~/.claude/policy-limits.json` -> `~/.sync_tmp/.claude/policy-limits.json`
+- `~/.claude/settings.json` -> `~/.sync_tmp/.claude/settings.json`
+- `~/.clauderc` -> `~/.sync_tmp/.clauderc`
+
+#### Hermes Agent
+
+- Skill（技能）
+- `~/.hermes/skills/.bundled_manifest` -> `~/.sync_tmp/.hermes/skills/.bundled_manifest`
+- `~/.hermes/skills/.bundled_manifest` -> `~/.sync_tmp/hermes/skills/.bundled_manifest（Hermes 兼容候选）`
+- `~/.hermes/skills/apple` -> `~/.sync_tmp/.hermes/skills/apple`
+- `~/.hermes/skills/apple` -> `~/.sync_tmp/hermes/skills/apple（Hermes 兼容候选）`
+- `~/.hermes/skills/autonomous-ai-agents` -> `~/.sync_tmp/.hermes/skills/autonomous-ai-agents`
+- `~/.hermes/skills/autonomous-ai-agents` -> `~/.sync_tmp/hermes/skills/autonomous-ai-agents（Hermes 兼容候选）`
+- `~/.hermes/skills/creative` -> `~/.sync_tmp/.hermes/skills/creative`
+- `~/.hermes/skills/creative` -> `~/.sync_tmp/hermes/skills/creative（Hermes 兼容候选）`
+- `~/.hermes/skills/data-science` -> `~/.sync_tmp/.hermes/skills/data-science`
+- `~/.hermes/skills/data-science` -> `~/.sync_tmp/hermes/skills/data-science（Hermes 兼容候选）`
+- `~/.hermes/skills/devops` -> `~/.sync_tmp/.hermes/skills/devops`
+- `~/.hermes/skills/devops` -> `~/.sync_tmp/hermes/skills/devops（Hermes 兼容候选）`
+- `~/.hermes/skills/diagramming` -> `~/.sync_tmp/.hermes/skills/diagramming`
+- `~/.hermes/skills/diagramming` -> `~/.sync_tmp/hermes/skills/diagramming（Hermes 兼容候选）`
+- `~/.hermes/skills/dogfood` -> `~/.sync_tmp/.hermes/skills/dogfood`
+- `~/.hermes/skills/dogfood` -> `~/.sync_tmp/hermes/skills/dogfood（Hermes 兼容候选）`
+- `~/.hermes/skills/domain` -> `~/.sync_tmp/.hermes/skills/domain`
+- `~/.hermes/skills/domain` -> `~/.sync_tmp/hermes/skills/domain（Hermes 兼容候选）`
+- `~/.hermes/skills/email` -> `~/.sync_tmp/.hermes/skills/email`
+- `~/.hermes/skills/email` -> `~/.sync_tmp/hermes/skills/email（Hermes 兼容候选）`
+- `~/.hermes/skills/gaming` -> `~/.sync_tmp/.hermes/skills/gaming`
+- `~/.hermes/skills/gaming` -> `~/.sync_tmp/hermes/skills/gaming（Hermes 兼容候选）`
+- `~/.hermes/skills/gifs` -> `~/.sync_tmp/.hermes/skills/gifs`
+- `~/.hermes/skills/gifs` -> `~/.sync_tmp/hermes/skills/gifs（Hermes 兼容候选）`
+- `~/.hermes/skills/github` -> `~/.sync_tmp/.hermes/skills/github`
+- `~/.hermes/skills/github` -> `~/.sync_tmp/hermes/skills/github（Hermes 兼容候选）`
+- `~/.hermes/skills/inference-sh` -> `~/.sync_tmp/.hermes/skills/inference-sh`
+- `~/.hermes/skills/inference-sh` -> `~/.sync_tmp/hermes/skills/inference-sh（Hermes 兼容候选）`
+- `~/.hermes/skills/mcp` -> `~/.sync_tmp/.hermes/skills/mcp`
+- `~/.hermes/skills/mcp` -> `~/.sync_tmp/hermes/skills/mcp（Hermes 兼容候选）`
+- `~/.hermes/skills/media` -> `~/.sync_tmp/.hermes/skills/media`
+- `~/.hermes/skills/media` -> `~/.sync_tmp/hermes/skills/media（Hermes 兼容候选）`
+- `~/.hermes/skills/mlops` -> `~/.sync_tmp/.hermes/skills/mlops`
+- `~/.hermes/skills/mlops` -> `~/.sync_tmp/hermes/skills/mlops（Hermes 兼容候选）`
+- `~/.hermes/skills/note-taking` -> `~/.sync_tmp/.hermes/skills/note-taking`
+- `~/.hermes/skills/note-taking` -> `~/.sync_tmp/hermes/skills/note-taking（Hermes 兼容候选）`
+- `~/.hermes/skills/productivity` -> `~/.sync_tmp/.hermes/skills/productivity`
+- `~/.hermes/skills/productivity` -> `~/.sync_tmp/hermes/skills/productivity（Hermes 兼容候选）`
+- `~/.hermes/skills/red-teaming` -> `~/.sync_tmp/.hermes/skills/red-teaming`
+- `~/.hermes/skills/red-teaming` -> `~/.sync_tmp/hermes/skills/red-teaming（Hermes 兼容候选）`
+- `~/.hermes/skills/research` -> `~/.sync_tmp/.hermes/skills/research`
+- `~/.hermes/skills/research` -> `~/.sync_tmp/hermes/skills/research（Hermes 兼容候选）`
+- `~/.hermes/skills/smart-home` -> `~/.sync_tmp/.hermes/skills/smart-home`
+- `~/.hermes/skills/smart-home` -> `~/.sync_tmp/hermes/skills/smart-home（Hermes 兼容候选）`
+- `~/.hermes/skills/social-media` -> `~/.sync_tmp/.hermes/skills/social-media`
+- `~/.hermes/skills/social-media` -> `~/.sync_tmp/hermes/skills/social-media（Hermes 兼容候选）`
+- `~/.hermes/skills/software-development` -> `~/.sync_tmp/.hermes/skills/software-development`
+- `~/.hermes/skills/software-development` -> `~/.sync_tmp/hermes/skills/software-development（Hermes 兼容候选）`
+- `~/.hermes/skills/yuanbao` -> `~/.sync_tmp/.hermes/skills/yuanbao`
+- `~/.hermes/skills/yuanbao` -> `~/.sync_tmp/hermes/skills/yuanbao（Hermes 兼容候选）`
+
+- Memory（记忆 / 数据）
+- `~/.hermes/logs/agent.log` -> `~/.sync_tmp/.hermes/logs/agent.log`
+- `~/.hermes/logs/agent.log` -> `~/.sync_tmp/hermes/logs/agent.log（Hermes 兼容候选）`
+- `~/.hermes/logs/curator` -> `~/.sync_tmp/.hermes/logs/curator`
+- `~/.hermes/logs/curator` -> `~/.sync_tmp/hermes/logs/curator（Hermes 兼容候选）`
+- `~/.hermes/logs/errors.log` -> `~/.sync_tmp/.hermes/logs/errors.log`
+- `~/.hermes/logs/errors.log` -> `~/.sync_tmp/hermes/logs/errors.log（Hermes 兼容候选）`
+
+- Files（配置文件）
+- `~/.hermes/.env` -> `~/.sync_tmp/.hermes/.env`
+- `~/.hermes/.env` -> `~/.sync_tmp/hermes/.env（Hermes 兼容候选）`
+- `~/.hermes/config.yaml` -> `~/.sync_tmp/.hermes/config.yaml`
+- `~/.hermes/config.yaml` -> `~/.sync_tmp/hermes/config.yaml（Hermes 兼容候选）`
+- `~/.hermes/SOUL.md` -> `~/.sync_tmp/.hermes/SOUL.md`
+- `~/.hermes/SOUL.md` -> `~/.sync_tmp/hermes/SOUL.md（Hermes 兼容候选）`
+
+#### OpenClaw
+
+- Skill（技能）
+- `~/.openclaw/skills/local-file-search.md` -> `~/.sync_tmp/.openclaw/skills/local-file-search.md`
+- `~/.openclaw/skills/search-folder` -> `~/.sync_tmp/.openclaw/skills/search-folder`
+
+- Memory（记忆 / 数据）
+- `~/.openclaw/logs/config-audit.jsonl` -> `~/.sync_tmp/.openclaw/logs/config-audit.jsonl`
+- `~/.openclaw/logs/config-health.json` -> `~/.sync_tmp/.openclaw/logs/config-health.json`
+
+- Files（配置文件）
+- `~/.openclaw/config.yaml` -> `~/.sync_tmp/.openclaw/config.yaml`
+- `~/.openclaw/logs/config-audit.jsonl` -> `~/.sync_tmp/.openclaw/logs/config-audit.jsonl`
+- `~/.openclaw/logs/config-health.json` -> `~/.sync_tmp/.openclaw/logs/config-health.json`
+- `~/.openclaw/settings.json` -> `~/.sync_tmp/.openclaw/settings.json`
 
 ## 3. 同步总策略
 
@@ -140,9 +274,8 @@
 
 #### Hermes
 
-- `~/.hermes/config.yaml` / `config.yml` / `config.toml`
-- `~/.hermes/SOUL.md`
-- `~/.hermes/.env`
+- Linux/macOS：`~/.hermes/config.yaml` / `config.yml` / `config.toml`、`~/.hermes/SOUL.md`、`~/.hermes/.env`
+- Windows：`%LOCALAPPDATA%\hermes\config.yaml` / `config.yml` / `config.toml`、`%LOCALAPPDATA%\hermes\SOUL.md`、`%LOCALAPPDATA%\hermes\.env`
 
 ## 9. 幂等性要求
 
@@ -175,29 +308,46 @@
 ```ts
 import os from 'node:os'
 import path from 'node:path'
+import { listAgentArtifactsDetails } from './agentArtifactsScan'
 
 const HOME = os.homedir()
-const SYNC_BASE = path.join(HOME, '.sync_tmp', 'root') // 按实际情况调整
 
 type Mapping = {
-  name: 'claude' | 'openclaw' | 'hermes' | 'clauderc'
+  name: string
   local: string
   syncCandidates: string[]
+  kind: 'file' | 'dir'
 }
 
-const MAPPINGS: Mapping[] = [
-  { name: 'claude', local: path.join(HOME, '.claude'), syncCandidates: [path.join(SYNC_BASE, '.claude')] },
-  { name: 'openclaw', local: path.join(HOME, '.openclaw'), syncCandidates: [path.join(SYNC_BASE, '.openclaw')] },
-  {
-    name: 'hermes',
-    local: path.join(HOME, '.hermes'),
-    syncCandidates: [path.join(SYNC_BASE, 'hermes'), path.join(SYNC_BASE, '.hermes')]
-  },
-  { name: 'clauderc', local: path.join(HOME, '.clauderc'), syncCandidates: [path.join(SYNC_BASE, '.clauderc')] }
-]
+function buildMappings(relayRoot: string): Mapping[] {
+  const out: Mapping[] = []
+  const seen = new Set<string>()
+  const details = listAgentArtifactsDetails({ force: true }).filter((x) => x.installed)
+  for (const d of details) {
+    for (const e of [...d.skills, ...d.memory, ...d.files]) {
+      const local = path.resolve(e.path)
+      const dedupe = `${e.kind}:${local}`
+      if (seen.has(dedupe)) continue
+      seen.add(dedupe)
+      const rel = path.relative(HOME, local)
+      const base = path.join(relayRoot, rel)
+      const syncCandidates = [base]
+      if (rel === '.hermes' || rel.startsWith(`.hermes${path.sep}`)) {
+        syncCandidates.push(path.join(relayRoot, `hermes${rel.slice('.hermes'.length)}`))
+      }
+      out.push({
+        name: `${d.id}:${e.label}`,
+        local,
+        syncCandidates: [...new Set(syncCandidates)],
+        kind: e.kind === 'dir' ? 'dir' : 'file'
+      })
+    }
+  }
+  return out
+}
 ```
 
-### 11.2 Hermes 中转路径自动识别规则
+### 11.2 中转候选路径自动识别规则
 
 ```ts
 import { existsSync } from 'node:fs'
@@ -207,7 +357,7 @@ function resolveSyncPath(candidates: string[]): string {
   const existing = candidates.filter((p) => existsSync(p))
   if (existing.length === 1) return existing[0]
   if (existing.length >= 2) {
-    // 同时存在时，优先隐藏目录 .hermes；也可改为“最近修改时间优先”
+    // 同时存在时，按兼容优先级选择（例如 Hermes 优先 .hermes）
     const hidden = existing.find((p) => path.basename(p) === '.hermes')
     return hidden ?? existing[0]
   }
@@ -219,14 +369,15 @@ function resolveSyncPath(candidates: string[]): string {
 ### 11.3 同步主流程（伪代码）
 
 ```text
-for each mapping:
-  1) 解析 sync 实际路径（支持 hermes/.hermes）
-  2) 做本地与中转快照
-  3) 扫描两侧文件索引（相对路径）
-  4) A有B无 -> 复制到B
-  5) B有A无 -> 复制到A
-  6) A有B有且不同 -> 按类型自动冲突处理
-  7) 记录 report/conflicts/ops
+1) 基于 rules + 已安装产品构建 mappings（skills/memory/files）
+2) for each mapping:
+  a) 解析 sync 实际路径（支持兼容候选，如 hermes/.hermes）
+  b) 做本地与中转快照
+  c) 扫描两侧文件索引（相对路径）
+  d) A有B无 -> 复制到B
+  e) B有A无 -> 复制到A
+  f) A有B有且不同 -> 按类型自动冲突处理
+  g) 记录 report/conflicts/ops
 ```
 
 ### 11.4 冲突自动处理模板（关键函数签名）

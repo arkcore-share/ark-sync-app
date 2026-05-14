@@ -67,39 +67,33 @@
     "skills": [
       {
         "base": "home",
-        "segments": [".config", "hermes", "scripts"],
+        "segments": [".hermes", "skills"],
         "enumerate": true,
         "maxEntries": 80,
-        "enumerateLabelPrefix": ".config/hermes/scripts"
-      },
-      {
-        "base": "home",
-        "segments": [".config", "hermes", "templates"],
-        "enumerate": true,
-        "maxEntries": 80,
-        "enumerateLabelPrefix": ".config/hermes/templates"
+        "enumerateLabelPrefix": ".hermes/skills"
       }
     ],
     "memory": [
       {
         "base": "home",
-        "segments": [".config", "hermes", "db"],
+        "segments": [".hermes", "memories"],
         "enumerate": true,
         "maxEntries": 40,
-        "enumerateLabelPrefix": ".config/hermes/db"
+        "enumerateLabelPrefix": ".hermes/memories"
       },
       {
         "base": "home",
-        "segments": [".local", "share", "himalaya"],
+        "segments": [".hermes", "logs"],
         "enumerate": true,
         "maxEntries": 36,
-        "enumerateLabelPrefix": "himalaya"
+        "enumerateLabelPrefix": ".hermes/logs"
       }
     ],
     "files": [
-      { "base": "home", "segments": [".config", "hermes", "config.toml"] },
-      { "base": "home", "segments": [".config", "hermes", "config.yaml"] },
-      { "base": "home", "segments": [".config", "hermes", "config.yml"] },
+      { "base": "home", "segments": [".hermes", "config.toml"] },
+      { "base": "home", "segments": [".hermes", "config.yaml"] },
+      { "base": "home", "segments": [".hermes", "config.yml"] },
+      { "base": "home", "segments": [".hermes", ".env"] },
       { "base": "home", "segments": [".hermes", "SOUL.md"] }
     ],
     "extraRootsForGenericClawMerge": [
@@ -130,9 +124,7 @@
       { "base": "dataRoot", "segments": ["cli-config.yaml"] },
       { "base": "dataRoot", "segments": ["claude.json"] },
       { "base": "dataRoot", "segments": ["agents.md"] },
-      { "base": "dataRoot", "segments": ["AGENTS.md"] },
-      { "base": "dataRoot", "segments": ["logs", "config-audit.jsonl"] },
-      { "base": "dataRoot", "segments": ["logs", "config-health.json"] }
+      { "base": "dataRoot", "segments": ["AGENTS.md"] }
     ],
     "appendGenericUnderDataRoot": true
   },

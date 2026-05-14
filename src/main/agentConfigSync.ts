@@ -15,6 +15,8 @@ import { createHash } from 'node:crypto'
 import { homedir } from 'node:os'
 import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path'
 import { parse as parseToml } from 'toml'
+import { listAgentArtifactsDetails } from './agentArtifactsScan.js'
+import type { AgentArtifactEntry } from '../shared/agentArtifactsTypes.js'
 
 export type AgentConfigSyncResult = {
   ok: boolean
@@ -57,7 +59,7 @@ type SnapshotEntry = {
 }
 
 type Mapping = {
-  name: 'claude' | 'openclaw' | 'hermes' | 'clauderc' | 'claudejson'
+  name: string
   localPath: string
   relayCandidates: string[]
   kind: 'dir' | 'file'
@@ -95,12 +97,19 @@ type ConflictRecord = {
 type JsonLike = null | boolean | number | string | JsonLike[] | { [key: string]: JsonLike }
 
 function isIgnoredName(name: string): boolean {
+  const n = name.toLowerCase()
   return (
     name === '.git' ||
     name === 'node_modules' ||
+    name === '_agent_sync_runs' ||
     name === 'tmp' ||
     name === '.DS_Store' ||
-    name.endsWith('.lock')
+    name.endsWith('.lock') ||
+    n.includes('.conflict-') ||
+    n === 'sync-report.json' ||
+    n === 'conflicts-manifest.json' ||
+    n === 'operations.log' ||
+    n === 'snapshot-manifest.json'
   )
 }
 
@@ -188,6 +197,58 @@ function resolveRelayPath(candidates: string[]): string {
     return hidden ?? existing[0]
   }
   return candidates[0]
+}
+
+function buildRelayCandidatesForLocalPath(relayRoot: string, localPath: string): string[] {
+  const home = homedir()
+  const out: string[] = []
+  const localNorm = resolve(localPath).replace(/\\/g, '/')
+  const homeNorm = resolve(home).replace(/\\/g, '/')
+  if (isAbsolute(localPath) && (localNorm === homeNorm || localNorm.startsWith(`${homeNorm}/`))) {
+    const rel = relative(home, localPath)
+    out.push(join(relayRoot, rel))
+    if (rel === '.hermes' || rel.startsWith('.hermes/')) {
+      const rest = rel.slice('.hermes'.length)
+      out.push(join(relayRoot, `hermes${rest}`))
+    } else if (rel === 'hermes' || rel.startsWith('hermes/')) {
+      const rest = rel.slice('hermes'.length)
+      out.push(join(relayRoot, `.hermes${rest}`))
+    }
+  } else {
+    out.push(join(relayRoot, ...absPathToBackupSegments(localPath)))
+  }
+  return [...new Set(out)]
+}
+
+function buildScopedMappings(relayRoot: string): Mapping[] {
+  const details = listAgentArtifactsDetails({ force: true }).filter(
+    (d) => d.installed && (d.skills.length > 0 || d.memory.length > 0 || d.files.length > 0)
+  )
+  const all: Mapping[] = []
+  const seen = new Set<string>()
+  const addEntry = (id: string, e: AgentArtifactEntry): void => {
+    const localPath = resolve(e.path)
+    if (!isAbsolute(localPath)) {
+      return
+    }
+    const dedupeKey = `${e.kind}:${localPath}`
+    if (seen.has(dedupeKey)) {
+      return
+    }
+    seen.add(dedupeKey)
+    all.push({
+      name: `${id}:${e.label}`,
+      localPath,
+      relayCandidates: buildRelayCandidatesForLocalPath(relayRoot, localPath),
+      kind: e.kind === 'dir' ? 'dir' : 'file'
+    })
+  }
+  for (const d of details) {
+    for (const e of [...d.skills, ...d.memory, ...d.files]) {
+      addEntry(d.id, e)
+    }
+  }
+  return all
 }
 
 function ensureParent(p: string): void {
@@ -913,38 +974,7 @@ export function syncAgentConfigs(options?: SyncOptions): AgentConfigSyncResult {
   }
   mkdirSync(reportDir, { recursive: true })
 
-  const mappings: Mapping[] = [
-    {
-      name: 'claude',
-      localPath: resolve(join(homedir(), '.claude')),
-      relayCandidates: [join(scan.relayRoot, '.claude')],
-      kind: 'dir'
-    },
-    {
-      name: 'openclaw',
-      localPath: resolve(join(homedir(), '.openclaw')),
-      relayCandidates: [join(scan.relayRoot, '.openclaw')],
-      kind: 'dir'
-    },
-    {
-      name: 'hermes',
-      localPath: resolve(join(homedir(), '.hermes')),
-      relayCandidates: [join(scan.relayRoot, 'hermes'), join(scan.relayRoot, '.hermes')],
-      kind: 'dir'
-    },
-    {
-      name: 'clauderc',
-      localPath: resolve(join(homedir(), '.clauderc')),
-      relayCandidates: [join(scan.relayRoot, '.clauderc')],
-      kind: 'file'
-    },
-    {
-      name: 'claudejson',
-      localPath: resolve(join(homedir(), '.claude.json')),
-      relayCandidates: [join(scan.relayRoot, '.claude.json')],
-      kind: 'file'
-    }
-  ]
+  const mappings = buildScopedMappings(scan.relayRoot)
 
   const tally: Tally = { copiedToLocal: 0, copiedToRelay: 0, conflicts: 0, skipped: 0, errors: [] }
   const operations: OperationRecord[] = []
