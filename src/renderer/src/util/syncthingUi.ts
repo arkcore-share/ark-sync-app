@@ -294,3 +294,49 @@ export function sharedFolderLabels(deviceId: string, folders: FolderConfiguratio
     .map((f) => f.label || f.id)
   return names.join(', ')
 }
+
+/** 单文件夹 completion 切片（/db/completion?folder=&device=） */
+export type FolderDeviceCompletionSlice = {
+  globalBytes?: number
+  needBytes?: number
+  needItems?: number
+  needDeletes?: number
+}
+
+/** 与官方 GUI recalcCompletion 一致的设备级汇总 */
+export type DeviceCompletionAggregate = {
+  completion: number
+  needBytes: number
+  needItems: number
+}
+
+export function aggregateDeviceCompletion(
+  slices: FolderDeviceCompletionSlice[]
+): DeviceCompletionAggregate {
+  let total = 0
+  let needed = 0
+  let items = 0
+  let deletes = 0
+  for (const s of slices) {
+    total += s.globalBytes ?? 0
+    needed += s.needBytes ?? 0
+    items += s.needItems ?? 0
+    deletes += s.needDeletes ?? 0
+  }
+  if (total === 0) {
+    return { completion: 100, needBytes: 0, needItems: 0 }
+  }
+  let completion = Math.floor(100 * (1 - needed / total))
+  const needItems = items + deletes
+  if (needed === 0 && needItems > 0) {
+    completion = 95
+  }
+  return { completion, needBytes: needed, needItems }
+}
+
+export function foldersSharedWithDevice(
+  deviceId: string,
+  folders: FolderConfiguration[]
+): FolderConfiguration[] {
+  return folders.filter((f) => (f.devices ?? []).some((d) => sameDeviceId(d.deviceID, deviceId)))
+}

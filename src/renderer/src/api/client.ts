@@ -376,7 +376,7 @@ export class SyncthingClient {
     return this.request('GET', '/db/completion', undefined, { device: deviceId })
   }
 
-  /** 某远程设备在指定文件夹上的完成度 */
+  /** 某远程设备在指定文件夹上的完成度（与官方 GUI 一致，按 folder+device 查询） */
   async getFolderDeviceCompletion(
     folder: string,
     device: string
@@ -384,7 +384,9 @@ export class SyncthingClient {
     completion: number
     needItems?: number
     needBytes?: number
+    needDeletes?: number
     globalBytes?: number
+    globalItems?: number
   }> {
     return this.request('GET', '/db/completion', undefined, { folder, device })
   }
