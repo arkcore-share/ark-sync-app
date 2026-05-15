@@ -20,6 +20,8 @@
 4. 对少数历史兼容路径保留候选映射（例如 Hermes 在中转侧同时兼容 `~/.sync_tmp/.hermes` 与 `~/.sync_tmp/hermes`）。
 5. 去重后按“文件/目录”类型进入双向同步流程。
 
+补充：中转根自动探测会识别以下 Claude 痕迹：`.claude`、`.claude.json`、`.clauderc`（以及其他产品目录）。
+
 说明：
 
 1. `relayRoot` 为自动探测到的中转根（`~/.sync_tmp` 下的实际层级）。
@@ -55,17 +57,22 @@
 #### Claude Code
 
 - Skill（技能）
+- `~/.claude/skills/my-skill/SKILL.md` -> `~/.sync_tmp/.claude/skills/my-skill/SKILL.md`
 - `~/.claude/commands/weather.md` -> `~/.sync_tmp/.claude/commands/weather.md`
+- `~/.claude/agents/reviewer.md` -> `~/.sync_tmp/.claude/agents/reviewer.md`
 
 - Memory（记忆 / 数据）
 - `~/.claude/history/weather-memory.md` -> `~/.sync_tmp/.claude/history/weather-memory.md`
+- `~/.claude/index/index.db` -> `~/.sync_tmp/.claude/index/index.db`
+- `~/.claude/projects/<project>/memory/*.json` -> `~/.sync_tmp/.claude/projects/<project>/memory/*.json`
+- `~/.claude/history.jsonl` -> `~/.sync_tmp/.claude/history.jsonl`
 
 - Files（配置文件）
 - `~/.claude.json` -> `~/.sync_tmp/.claude.json`
 - `~/.claude/config.json` -> `~/.sync_tmp/.claude/config.json`
-- `~/.claude/history.jsonl` -> `~/.sync_tmp/.claude/history.jsonl`
 - `~/.claude/policy-limits.json` -> `~/.sync_tmp/.claude/policy-limits.json`
 - `~/.claude/settings.json` -> `~/.sync_tmp/.claude/settings.json`
+- `~/.claude/CLAUDE.md` -> `~/.sync_tmp/.claude/CLAUDE.md`
 - `~/.clauderc` -> `~/.sync_tmp/.clauderc`
 
 #### Hermes Agent
@@ -263,6 +270,7 @@
 - `~/.claude/settings.json`
 - `~/.claude/policy-limits.json`
 - `~/.claude/history.jsonl`
+- `~/.claude/CLAUDE.md`
 - `~/.claude.json`
 - `~/.clauderc`
 

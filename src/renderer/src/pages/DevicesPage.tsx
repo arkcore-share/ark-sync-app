@@ -157,7 +157,7 @@ export default function DevicesPage(): React.ReactElement {
   const toggleCard = (deviceId: string) => {
     setCardOpen((prev) => ({
       ...prev,
-      [deviceId]: !(prev[deviceId] ?? false)
+      [deviceId]: !(prev[deviceId] ?? true)
     }))
   }
 
@@ -232,7 +232,7 @@ export default function DevicesPage(): React.ReactElement {
               : undefined
           const comp = getValueByDeviceId(completionByDevice, d.deviceID)
           const syncLabel = aggregateSyncStatusLabel(comp)
-          const expanded = cardOpen[d.deviceID] ?? false
+          const expanded = cardOpen[d.deviceID] ?? true
           const foldersText = sharedFolderLabels(d.deviceID, folders)
 
           const headClass =

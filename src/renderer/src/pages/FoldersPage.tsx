@@ -450,7 +450,7 @@ export default function FoldersPage(): React.ReactElement {
   const toggleCard = (folderId: string) => {
     setCardOpen((prev) => ({
       ...prev,
-      [folderId]: !(prev[folderId] ?? false)
+      [folderId]: !(prev[folderId] ?? true)
     }))
   }
 
@@ -554,9 +554,7 @@ export default function FoldersPage(): React.ReactElement {
           return
         }
         if (!scan.hasRelayContent) {
-          window.alert('未发现可用中转目录，已跳过双向同步，仅继续本地扫描。')
-          await load()
-          return
+          window.alert('未发现可用中转目录，将使用 ~/.sync_tmp 作为中转根并执行初始化同步。')
         }
 
         const dry = await syncAgentConfigsDryRun()
@@ -650,7 +648,7 @@ export default function FoldersPage(): React.ReactElement {
             row={row}
             configDevices={cfg?.devices ?? []}
             myId={myId}
-            expanded={cardOpen[row.folder.id] ?? false}
+            expanded={cardOpen[row.folder.id] ?? true}
             onToggleHead={() => toggleCard(row.folder.id)}
             onPause={() =>
               void actions(() => client.setFolderPaused(row.folder.id, !row.folder.paused))

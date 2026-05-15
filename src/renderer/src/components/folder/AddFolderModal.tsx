@@ -128,13 +128,13 @@ export default function AddFolderModal({
       return
     }
     const id = folderId.trim()
-    if (!id || !path.trim()) {
-      setErr('请填写文件夹 ID 与路径')
-      return
-    }
-    setBusy(true)
-    setErr(null)
-    try {
+      if (!id || !path.trim()) {
+        setErr('请填写文件夹 ID 与路径')
+        return
+      }
+      setBusy(true)
+      setErr(null)
+      try {
       const devs: FolderConfiguration['devices'] = [{ deviceID: myId }]
       for (const d of devices) {
         if (selected[d.deviceID]) {

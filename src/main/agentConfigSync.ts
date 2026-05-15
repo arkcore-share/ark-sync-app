@@ -133,7 +133,12 @@ function listRelayRootCandidates(syncTmpRoot: string): string[] {
     }
     const names = new Set(ents)
     const hasAny =
-      names.has('.claude') || names.has('.openclaw') || names.has('hermes') || names.has('.hermes') || names.has('.clauderc')
+      names.has('.claude') ||
+      names.has('.claude.json') ||
+      names.has('.openclaw') ||
+      names.has('hermes') ||
+      names.has('.hermes') ||
+      names.has('.clauderc')
     if (hasAny) {
       out.add(cur.p)
     }
@@ -159,7 +164,7 @@ function listRelayRootCandidates(syncTmpRoot: string): string[] {
 
 function scoreRelayRoot(root: string): number {
   let score = 0
-  const must = ['.claude', '.openclaw', '.clauderc']
+  const must = ['.claude', '.claude.json', '.openclaw', '.clauderc']
   for (const name of must) {
     if (existsSync(join(root, name))) {
       score += 2
@@ -948,21 +953,9 @@ export function scanSyncRelayContent(): AgentConfigSyncScanResult {
 export function syncAgentConfigs(options?: SyncOptions): AgentConfigSyncResult {
   const dryRun = options?.dryRun === true
   const scan = scanSyncRelayContent()
-  if (!scan.relayRoot) {
-    return {
-      ok: true,
-      mode: 'local_scan_only',
-      message: '未发现 ~/.sync_tmp 中可用的智能体中转目录，已跳过双向同步并继续本地扫描。',
-      relayRoot: null,
-      runId: null,
-      reportDir: null,
-      dryRun,
-      copiedToLocal: 0,
-      copiedToRelay: 0,
-      conflicts: 0,
-      skipped: 0,
-      errors: []
-    }
+  const effectiveRelayRoot = scan.relayRoot ?? scan.syncTmpRoot
+  if (!scan.relayRoot && !dryRun) {
+    mkdirSync(scan.syncTmpRoot, { recursive: true })
   }
 
   const runId = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)
@@ -974,7 +967,7 @@ export function syncAgentConfigs(options?: SyncOptions): AgentConfigSyncResult {
   }
   mkdirSync(reportDir, { recursive: true })
 
-  const mappings = buildScopedMappings(scan.relayRoot)
+  const mappings = buildScopedMappings(effectiveRelayRoot)
 
   const tally: Tally = { copiedToLocal: 0, copiedToRelay: 0, conflicts: 0, skipped: 0, errors: [] }
   const operations: OperationRecord[] = []
@@ -990,7 +983,7 @@ export function syncAgentConfigs(options?: SyncOptions): AgentConfigSyncResult {
         ok: false,
         mode: 'synced',
         message: `创建同步前快照失败：${e instanceof Error ? e.message : String(e)}`,
-        relayRoot: scan.relayRoot,
+        relayRoot: effectiveRelayRoot,
         runId,
         reportDir,
         dryRun,
@@ -1040,7 +1033,7 @@ export function syncAgentConfigs(options?: SyncOptions): AgentConfigSyncResult {
           ? '已完成智能体配置 dry-run（仅检测，不落盘）。'
           : '已完成智能体配置双向同步。'
         : '双向同步已执行，但存在部分失败，请查看错误列表。',
-    relayRoot: scan.relayRoot,
+    relayRoot: effectiveRelayRoot,
     runId,
     reportDir,
     dryRun,

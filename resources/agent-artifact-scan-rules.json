@@ -8,22 +8,30 @@
     ],
     "dataPresentIfAny": [
       { "kind": "home", "segments": [".claude"] },
-      { "kind": "env", "envVar": "APPDATA", "segments": ["Claude"] }
+      { "kind": "env", "envVar": "APPDATA", "segments": ["Claude"] },
+      { "kind": "home", "segments": [".claude.json"] }
     ],
     "skills": [
+      {
+        "base": "home",
+        "segments": [".claude", "skills"],
+        "enumerate": true,
+        "maxEntries": 100,
+        "enumerateLabelPrefix": "skills"
+      },
+      {
+        "base": "home",
+        "segments": [".claude", "agents"],
+        "enumerate": true,
+        "maxEntries": 100,
+        "enumerateLabelPrefix": "agents"
+      },
       {
         "base": "home",
         "segments": [".claude", "commands"],
         "enumerate": true,
         "maxEntries": 100,
         "enumerateLabelPrefix": "commands"
-      },
-      {
-        "base": "home",
-        "segments": [".claude", "tools"],
-        "enumerate": true,
-        "maxEntries": 100,
-        "enumerateLabelPrefix": "tools"
       }
     ],
     "memory": [
@@ -40,14 +48,22 @@
         "enumerate": true,
         "maxEntries": 48,
         "enumerateLabelPrefix": "index"
-      }
+      },
+      {
+        "base": "home",
+        "segments": [".claude", "projects"],
+        "enumerate": true,
+        "maxEntries": 64,
+        "enumerateLabelPrefix": "projects"
+      },
+      { "base": "home", "segments": [".claude", "history.jsonl"] }
     ],
     "files": [
       { "base": "home", "segments": [".claude", "config.json"] },
       { "base": "home", "segments": [".clauderc"] },
       { "base": "home", "segments": [".claude", "settings.json"] },
+      { "base": "home", "segments": [".claude", "CLAUDE.md"] },
       { "base": "home", "segments": [".claude", "policy-limits.json"] },
-      { "base": "home", "segments": [".claude", "history.jsonl"] },
       { "base": "home", "segments": [".claude.json"] }
     ]
   },

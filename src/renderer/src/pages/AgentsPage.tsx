@@ -258,10 +258,8 @@ export default function AgentsPage(): React.ReactElement {
     setDrawerOpen(() => {
       const next: Record<string, boolean> = {}
       for (const a of visibleRows) {
-        const fromHighlight = highlightId ? a.id === highlightId : false
-        const fromSkillFilter = skillRisk != null && a.id === 'hermes'
-        /** 无深链且非 Skill 筛选时默认折叠 */
-        next[a.id] = fromHighlight || fromSkillFilter
+        /** 默认全部展开；仍支持手动折叠 */
+        next[a.id] = true
       }
       return next
     })
@@ -341,7 +339,7 @@ export default function AgentsPage(): React.ReactElement {
               className={`agents-drawer card agents-drawer--stripe-${index % 2 === 0 ? 'a' : 'b'}${
                 agent.id === focusAgentId ? ' agents-drawer--focus' : ''
               }`}
-              open={drawerOpen[agent.id] ?? false}
+              open={drawerOpen[agent.id] ?? true}
               onToggle={(e) => {
                 const el = e.currentTarget
                 setDrawerOpen((p) => ({ ...p, [agent.id]: el.open }))

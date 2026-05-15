@@ -150,6 +150,14 @@ function SummaryThirdPartyResultRow({
 const RING_LEN = 2 * Math.PI * 50
 
 type ScanVisual = 'idle' | 'env' | 'security'
+type InstallDetailState = {
+  open: boolean
+  productName: string
+  productId: string
+  status: 'running' | 'success' | 'warning' | 'error'
+  summary: string
+  detailLog: string
+}
 
 export default function SummaryPage(): React.ReactElement {
   const navigate = useNavigate()
@@ -171,6 +179,7 @@ export default function SummaryPage(): React.ReactElement {
   const [secResult, setSecResult] = useState<SkillsSecurityResult | null>(initial.secResult)
   const [browserOnly, setBrowserOnly] = useState(false)
   const [installingId, setInstallingId] = useState<string | null>(null)
+  const [installDetail, setInstallDetail] = useState<InstallDetailState | null>(null)
   const [rulesSyncStatus, setRulesSyncStatus] = useState<SecurityRulesSyncStatus | null>(null)
   const [securityRulesPaths, setSecurityRulesPaths] = useState<SecurityRulesPaths | null>(null)
 
@@ -245,37 +254,95 @@ export default function SummaryPage(): React.ReactElement {
         window.alert('一键安装仅支持在 Ark Sync 桌面客户端中使用。')
         return
       }
+      const productName = THIRD_PARTY_SCAN_CATALOG.find((x) => x.id === productId)?.name ?? productId
       setInstallingId(productId)
+      setInstallDetail({
+        open: true,
+        productId,
+        productName,
+        status: 'running',
+        summary: `正在执行 ${productName} 安装脚本，请稍候…`,
+        detailLog: ''
+      })
       try {
         const r = await runThirdPartyInstall(productId)
         if (r == null) {
-          window.alert('无法调用安装。')
+          setInstallDetail((prev) =>
+            prev == null
+              ? null
+              : {
+                  ...prev,
+                  status: 'error',
+                  summary: '无法调用安装流程，请稍后重试。',
+                  detailLog: ''
+                }
+          )
           return
         }
         if (r.ok) {
           await delay(400)
           const scanned = await refreshEnvScanOnly()
           if (scanned == null) {
-            window.alert('安装脚本已执行，但无法拉取新的检测结果，请稍后点击「智能体扫描」。')
+            setInstallDetail((prev) =>
+              prev == null
+                ? null
+                : {
+                    ...prev,
+                    status: 'warning',
+                    summary: '安装脚本已执行，但无法刷新检测结果，请稍后手动执行「智能体扫描」。',
+                    detailLog: r.log ? r.log.slice(-4000) : ''
+                  }
+            )
             return
           }
           const row = scanned.items.find((i) => i.id === productId)
           if (row?.installed) {
-            window.alert(
-              `安装完成：本机已能检测到「${row.name}」（${row.via ?? '已就绪'}），可按常见方式直接使用。`
+            setInstallDetail((prev) =>
+              prev == null
+                ? null
+                : {
+                    ...prev,
+                    status: 'success',
+                    summary: `安装完成：已检测到「${row.name}」（${row.via ?? '已就绪'}）。`,
+                    detailLog: r.log ? r.log.slice(-4000) : ''
+                  }
             )
           } else {
-            const tail = r.log ? `\n\n--- 脚本输出（节选）---\n${r.log.slice(-1800)}` : ''
-            window.alert(
-              `安装命令已结束，但刷新后仍无法确认该工具已可用（未在 PATH、常见目录或 npm 全局列表中命中）。请根据脚本输出排查，或手动安装并配置环境后，再点「智能体扫描」。${tail}`
+            setInstallDetail((prev) =>
+              prev == null
+                ? null
+                : {
+                    ...prev,
+                    status: 'warning',
+                    summary:
+                      '安装命令已结束，但刷新后仍未检测到工具。请检查日志并确认 PATH/安装目录配置后再扫描。',
+                    detailLog: r.log ? r.log.slice(-4000) : ''
+                  }
             )
           }
         } else {
-          const tail = r.log ? `\n\n${r.log.slice(-2000)}` : ''
-          window.alert(`${r.error ?? '安装失败'}${tail}`)
+          setInstallDetail((prev) =>
+            prev == null
+              ? null
+              : {
+                  ...prev,
+                  status: 'error',
+                  summary: r.error ?? '安装失败',
+                  detailLog: r.log ? r.log.slice(-4000) : ''
+                }
+          )
         }
       } catch (e) {
-        window.alert(e instanceof Error ? e.message : '安装过程出错')
+        setInstallDetail((prev) =>
+          prev == null
+            ? null
+            : {
+                ...prev,
+                status: 'error',
+                summary: e instanceof Error ? e.message : '安装过程出错',
+                detailLog: ''
+              }
+        )
       } finally {
         setInstallingId(null)
       }
@@ -562,7 +629,7 @@ export default function SummaryPage(): React.ReactElement {
                     ) : null}
                     <div className="summary-meta-skillscan muted">
                       {secResult != null
-                        ? `已扫描${secResult.skillFiles}个SKILL · 健康 ${secResult.ok} · 规则库正则${secResult.gitleaksRegexRulesUsed}条`
+                        ? `已扫描${secResult.skillFiles}个SKILL`
                         : '未扫描'}
                     </div>
                   </div>
@@ -696,6 +763,43 @@ export default function SummaryPage(): React.ReactElement {
           ) : null}
         </div>
       </div>
+
+      {installDetail?.open ? (
+        <div className="summary-install-overlay" role="dialog" aria-modal="true" aria-label="安装详情">
+          <div className="summary-install-console">
+            <div className="summary-install-console-head">
+              <div className="summary-install-console-title">
+                <span>安装详情</span>
+                <span className={`summary-install-state summary-install-state--${installDetail.status}`}>
+                  {installDetail.status === 'running'
+                    ? '进行中'
+                    : installDetail.status === 'success'
+                      ? '成功'
+                      : installDetail.status === 'warning'
+                        ? '需确认'
+                        : '失败'}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="summary-install-close-btn"
+                onClick={() => setInstallDetail((prev) => (prev ? { ...prev, open: false } : null))}
+                disabled={installDetail.status === 'running'}
+              >
+                关闭
+              </button>
+            </div>
+            <div className="summary-install-console-meta">
+              <span>{installDetail.productName}</span>
+              <span className="muted">ID: {installDetail.productId}</span>
+            </div>
+            <p className="summary-install-console-summary">{installDetail.summary}</p>
+            <pre className="summary-install-console-log">
+              {installDetail.detailLog || (installDetail.status === 'running' ? '等待安装脚本输出…' : '无日志输出')}
+            </pre>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

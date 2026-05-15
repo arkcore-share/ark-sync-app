@@ -1,5 +1,6 @@
 import { execFileSync, spawn, spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { app } from 'electron'
 import { THIRD_PARTY_SCAN_CATALOG } from '../shared/thirdPartyCatalog.js'
@@ -176,6 +177,72 @@ function collectSpawn(
   })
 }
 
+function shEscapeSingleQuoted(v: string): string {
+  return `'${v.replace(/'/g, `'\\''`)}'`
+}
+
+function psSingleQuoted(v: string): string {
+  return `'${v.replace(/'/g, "''")}'`
+}
+
+function commandExists(cmd: string): boolean {
+  return spawnSync('sh', ['-c', `command -v ${cmd}`], {
+    encoding: 'utf8',
+    timeout: 6000
+  }).status === 0
+}
+
+async function runInstallInWindowsPowerShell(scriptPath: string): Promise<ThirdPartyInstallResult> {
+  const tempDir = mkdtempSync(join(tmpdir(), 'ark-sync-install-'))
+  const logPath = join(tempDir, 'install.log')
+  const psCmd =
+    `$ErrorActionPreference = 'Continue'; ` +
+    `$log = ${psSingleQuoted(logPath)}; ` +
+    `& ${psSingleQuoted(scriptPath)} *>&1 | Tee-Object -FilePath $log; ` +
+    `$code = $LASTEXITCODE; if ($null -eq $code) { $code = 0 }; ` +
+    `Write-Host ''; Write-Host ('安装脚本结束，退出码: ' + $code); ` +
+    `Read-Host '按回车关闭 PowerShell 窗口'; exit $code`
+  const result = await collectSpawn(
+    'powershell.exe',
+    ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-NoExit', '-Command', psCmd],
+    { windowsHide: false }
+  )
+  const log = existsSync(logPath) ? readFileSync(logPath, 'utf8') : result.log
+  return { ok: result.ok, error: result.error, log: log.trimEnd(), exitCode: result.exitCode }
+}
+
+async function runInstallInLinuxTerminal(scriptPath: string): Promise<ThirdPartyInstallResult> {
+  const tempDir = mkdtempSync(join(tmpdir(), 'ark-sync-install-'))
+  const logPath = join(tempDir, 'install.log')
+  const runnerPath = join(tempDir, 'run-install.sh')
+  const runner = `#!/usr/bin/env bash
+set -o pipefail
+bash ${shEscapeSingleQuoted(scriptPath)} 2>&1 | tee ${shEscapeSingleQuoted(logPath)}
+code=\${PIPESTATUS[0]}
+echo
+echo "安装脚本结束，退出码: \${code}"
+read -r -p "按回车关闭终端窗口..."
+exit "\${code}"
+`
+  writeFileSync(runnerPath, runner, 'utf8')
+  chmodSync(runnerPath, 0o755)
+
+  const terms = [
+    { cmd: 'x-terminal-emulator', args: ['-e', 'bash', runnerPath] },
+    { cmd: 'gnome-terminal', args: ['--', 'bash', runnerPath] },
+    { cmd: 'konsole', args: ['-e', 'bash', runnerPath] },
+    { cmd: 'xfce4-terminal', args: ['-e', `bash ${shEscapeSingleQuoted(runnerPath)}`] },
+    { cmd: 'xterm', args: ['-e', 'bash', runnerPath] }
+  ]
+  const found = terms.find((t) => commandExists(t.cmd))
+  if (!found) {
+    return collectSpawn('bash', [scriptPath], { shell: false })
+  }
+  const result = await collectSpawn(found.cmd, found.args, { shell: false })
+  const log = existsSync(logPath) ? readFileSync(logPath, 'utf8') : result.log
+  return { ok: result.ok, error: result.error, log: log.trimEnd(), exitCode: result.exitCode }
+}
+
 /** 运行 `scripts/third-party/<id>.ps1` 或 `.sh`（产品 id 须在白名单内） */
 export async function runThirdPartyInstallScript(productId: string): Promise<ThirdPartyInstallResult> {
   if (!ALLOWED_IDS.has(productId)) {
@@ -212,20 +279,10 @@ export async function runThirdPartyInstallScript(productId: string): Promise<Thi
   }
 
   if (process.platform === 'win32') {
-    // PS 5.1：无 BOM 的 UTF-8 脚本会按系统 ANSI 误解析；捕获输出时与 UTF-8 解码对齐，减少乱码
-    const q = scriptPath.replace(/'/g, "''")
-    return collectSpawn(
-      'powershell.exe',
-      [
-        '-NoProfile',
-        '-ExecutionPolicy',
-        'Bypass',
-        '-Command',
-        `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; & '${q}'`
-      ],
-      { windowsHide: true }
-    )
+    return runInstallInWindowsPowerShell(scriptPath)
   }
-
+  if (process.platform === 'linux') {
+    return runInstallInLinuxTerminal(scriptPath)
+  }
   return collectSpawn('bash', [scriptPath], { shell: false })
 }
