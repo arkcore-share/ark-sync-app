@@ -638,6 +638,46 @@ function ensureDir(abs: string, dryRun: boolean): void {
   mkdirSync(abs, { recursive: true })
 }
 
+function ensureSyncTmpIgnoreRules(syncTmpRoot: string, dryRun: boolean): void {
+  if (dryRun) {
+    return
+  }
+  try {
+    mkdirSync(syncTmpRoot, { recursive: true })
+    const stignorePath = join(syncTmpRoot, '.stignore')
+    const requiredRules = ['/_agent_sync_runs', '/_agent_sync_runs/**']
+    const lines = existsSync(stignorePath) ? readFileSync(stignorePath, 'utf8').split(/\r?\n/) : []
+    const normalized = new Set(lines.map((l) => l.trim()).filter(Boolean))
+    let changed = false
+    for (const rule of requiredRules) {
+      if (!normalized.has(rule)) {
+        lines.push(rule)
+        changed = true
+      }
+    }
+    if (!changed) {
+      return
+    }
+    const unique: string[] = []
+    const seen = new Set<string>()
+    for (const line of lines) {
+      const t = line.trim()
+      if (!t) {
+        unique.push(line)
+        continue
+      }
+      if (seen.has(t)) {
+        continue
+      }
+      seen.add(t)
+      unique.push(line)
+    }
+    writeFileSync(stignorePath, `${unique.join('\n')}\n`, 'utf8')
+  } catch {
+    /* ignore */
+  }
+}
+
 function snapshotTarget(backupRoot: string, side: 'local' | 'relay', absPath: string): string {
   return join(backupRoot, side, ...absPathToBackupSegments(absPath))
 }
@@ -1028,6 +1068,7 @@ export function scanSyncRelayContent(): AgentConfigSyncScanResult {
 export function syncAgentConfigs(options?: SyncOptions): AgentConfigSyncResult {
   const dryRun = options?.dryRun === true
   const scan = scanSyncRelayContent()
+  ensureSyncTmpIgnoreRules(scan.syncTmpRoot, dryRun)
   const effectiveRelayRoot = scan.relayRoot ?? scan.syncTmpRoot
   if (!scan.relayRoot && !dryRun) {
     mkdirSync(scan.syncTmpRoot, { recursive: true })

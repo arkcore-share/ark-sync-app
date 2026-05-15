@@ -35,6 +35,8 @@
 1. Windows（`HOME = ~`，`relayRoot = ~\.sync_tmp`）
 - `~\.claude\commands\weather.md` -> `~\.sync_tmp\.claude\commands\weather.md`
 - `~\.openclaw\skills\demo\SKILL.md` -> `~\.sync_tmp\.openclaw\skills\demo\SKILL.md`
+- `~\.agents\skills\my-skill\SKILL.md` -> `~\.sync_tmp\.agents\skills\my-skill\SKILL.md`
+- `~\.openclaw\workspace\AGENTS.md` -> `~\.sync_tmp\.openclaw\workspace\AGENTS.md`
 - `~\AppData\Local\hermes\skills\agent\SKILL.md` -> `~\.sync_tmp\hermes\skills\agent\SKILL.md`
 - `~\AppData\Local\hermes\db\memory.db` -> `~\.sync_tmp\hermes\db\memory.db`
 - `~\AppData\Local\hermes\config.yaml` -> `~\.sync_tmp\hermes\config.yaml`
@@ -43,12 +45,16 @@
 2. Linux（`HOME = ~`，`relayRoot = ~/.sync_tmp`）
 - `~/.claude/commands/weather.md` -> `~/.sync_tmp/.claude/commands/weather.md`
 - `~/.openclaw/skills/demo/SKILL.md` -> `~/.sync_tmp/.openclaw/skills/demo/SKILL.md`
+- `~/.agents/skills/my-skill/SKILL.md` -> `~/.sync_tmp/.agents/skills/my-skill/SKILL.md`
+- `~/.openclaw/workspace/AGENTS.md` -> `~/.sync_tmp/.openclaw/workspace/AGENTS.md`
 - `~/.hermes/skills/agent/SKILL.md` -> `~/.sync_tmp/.hermes/skills/agent/SKILL.md`
 - Hermes 兼容候选：`~/.sync_tmp/hermes/skills/agent/SKILL.md`
 
 3. macOS（`HOME = ~`，`relayRoot = ~/.sync_tmp`）
 - `~/.claude/commands/weather.md` -> `~/.sync_tmp/.claude/commands/weather.md`
 - `~/.openclaw/skills/demo/SKILL.md` -> `~/.sync_tmp/.openclaw/skills/demo/SKILL.md`
+- `~/.agents/skills/my-skill/SKILL.md` -> `~/.sync_tmp/.agents/skills/my-skill/SKILL.md`
+- `~/.openclaw/workspace/AGENTS.md` -> `~/.sync_tmp/.openclaw/workspace/AGENTS.md`
 - `~/.hermes/skills/agent/SKILL.md` -> `~/.sync_tmp/.hermes/skills/agent/SKILL.md`
 - Hermes 兼容候选：`~/.sync_tmp/hermes/skills/agent/SKILL.md`
 
@@ -149,17 +155,20 @@
 
 - Skill（技能）
 - `~/.openclaw/skills/local-file-search.md` -> `~/.sync_tmp/.openclaw/skills/local-file-search.md`
-- `~/.openclaw/skills/search-folder` -> `~/.sync_tmp/.openclaw/skills/search-folder`
+- `~/.agents/skills/weather/SKILL.md` -> `~/.sync_tmp/.agents/skills/weather/SKILL.md`
+- `~/.openclaw/workspace/.agents/skills/wuhan/SKILL.md` -> `~/.sync_tmp/.openclaw/workspace/.agents/skills/wuhan/SKILL.md`
 
 - Memory（记忆 / 数据）
-- `~/.openclaw/logs/config-audit.jsonl` -> `~/.sync_tmp/.openclaw/logs/config-audit.jsonl`
-- `~/.openclaw/logs/config-health.json` -> `~/.sync_tmp/.openclaw/logs/config-health.json`
+- `~/.openclaw/agents/default/sessions/session.jsonl` -> `~/.sync_tmp/.openclaw/agents/default/sessions/session.jsonl`
+- `~/.openclaw/workspace/MEMORY.md` -> `~/.sync_tmp/.openclaw/workspace/MEMORY.md`
+- `~/.openclaw/workspace/memory/profile.md` -> `~/.sync_tmp/.openclaw/workspace/memory/profile.md`
 
 - Files（配置文件）
-- `~/.openclaw/config.yaml` -> `~/.sync_tmp/.openclaw/config.yaml`
-- `~/.openclaw/logs/config-audit.jsonl` -> `~/.sync_tmp/.openclaw/logs/config-audit.jsonl`
-- `~/.openclaw/logs/config-health.json` -> `~/.sync_tmp/.openclaw/logs/config-health.json`
-- `~/.openclaw/settings.json` -> `~/.sync_tmp/.openclaw/settings.json`
+- `~/.openclaw/openclaw.json` -> `~/.sync_tmp/.openclaw/openclaw.json`
+- `~/.openclaw/gateway.env` -> `~/.sync_tmp/.openclaw/gateway.env`
+- `~/.openclaw/workspace/AGENTS.md` -> `~/.sync_tmp/.openclaw/workspace/AGENTS.md`
+- `~/.openclaw/workspace/SOUL.md` -> `~/.sync_tmp/.openclaw/workspace/SOUL.md`
+- `~/.openclaw/workspace/IDENTITY.md` -> `~/.sync_tmp/.openclaw/workspace/IDENTITY.md`
 
 ## 3. 同步总策略
 
@@ -262,6 +271,7 @@
 - `node_modules/**`
 - `tmp/**`
 - `*.lock`
+- `~/.sync_tmp/_agent_sync_runs/**`（通过 `~/.sync_tmp/.stignore` 固定忽略，不向对端设备同步）
 
 ### 8.2 优先纳入的配置文件
 
@@ -276,9 +286,11 @@
 
 #### OpenClaw
 
-- `~/.openclaw/settings.json`
-- `~/.openclaw/logs/config-audit.jsonl`
-- `~/.openclaw/logs/config-health.json`
+- `~/.openclaw/openclaw.json`
+- `~/.openclaw/gateway.env`
+- `~/.openclaw/workspace/AGENTS.md`
+- `~/.openclaw/workspace/SOUL.md`
+- `~/.openclaw/workspace/IDENTITY.md`
 
 #### Hermes
 

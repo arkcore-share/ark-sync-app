@@ -4,7 +4,11 @@
 
 export type DataRootCandidate =
   | { kind: 'home'; segments: string[] }
-  | { kind: 'env'; envVar: 'LOCALAPPDATA' | 'APPDATA'; segments: string[] }
+  | {
+      kind: 'env'
+      envVar: 'LOCALAPPDATA' | 'APPDATA' | 'OPENCLAW_STATE_DIR' | 'OPENCLAW_CONFIG_PATH'
+      segments: string[]
+    }
 
 export type ArtifactPathRule = {
   base: 'home' | 'dataRoot'
