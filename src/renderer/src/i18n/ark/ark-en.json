@@ -2,7 +2,7 @@
   "Ark.AppTitle": "Ark Sync",
   "Ark.NavSummary": "Summary",
   "Ark.NavAgents": "Agents",
-  "Ark.NavAgentsDetection": "Scan details",
+  "Ark.NavAgentsDetection": "SKILL Security",
   "Ark.AgentsSubnavList": "Agent list",
   "Ark.AgentsDetectionTitle": "Skill scan details",
   "Ark.AgentsDetectionEmpty": "No risky skills right now. Run Security scan on the Overview if you edited files.",

@@ -11,7 +11,6 @@ import AboutPage from './pages/AboutPage'
 import AdvancedPage from './pages/AdvancedPage'
 import LogsPage from './pages/LogsPage'
 import SettingsPage from './pages/SettingsPage'
-import AgentsLayout from './components/AgentsLayout'
 import AgentsPage from './pages/AgentsPage'
 import AgentsDetectionDetailPage from './pages/AgentsDetectionDetailPage'
 import SummaryPage from './pages/SummaryPage'
@@ -54,10 +53,8 @@ function Shell(): React.ReactElement {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<SummaryPage />} />
-        <Route path="agents" element={<AgentsLayout />}>
-          <Route index element={<AgentsPage />} />
-          <Route path="detection" element={<AgentsDetectionDetailPage />} />
-        </Route>
+        <Route path="agents" element={<AgentsPage />} />
+        <Route path="agents/detection" element={<AgentsDetectionDetailPage />} />
         <Route path="local" element={<DashboardPage />} />
         <Route path="folders" element={<FoldersPage />} />
         <Route path="devices" element={<DevicesPage />} />

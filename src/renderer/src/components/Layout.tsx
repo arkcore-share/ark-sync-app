@@ -68,6 +68,9 @@ export default function Layout(): React.ReactElement {
         <NavLink to="/agents" end className={linkClass}>
           {t('Ark.NavAgents')}
         </NavLink>
+        <NavLink to="/agents/detection" className={linkClass}>
+          {t('Ark.NavAgentsDetection')}
+        </NavLink>
         <NavLink to="/local" className={linkClass}>
           {t('Ark.NavLocalDevice')}
         </NavLink>

@@ -236,7 +236,7 @@ function collectMemoryGeneric(root: string, labelPrefix?: string): AgentArtifact
   }
   const sessions = join(root, 'sessions')
   if (existsSync(sessions)) {
-    out.push(...listDirLimited(sessions, 24, sessionsDepth))
+    out.push(...listDirLimited(sessions, 10000, sessionsDepth))
   }
   for (const f of ['memory.db', 'state.db', 'sessions.db', 'honcho.db']) {
     const p = join(root, f)

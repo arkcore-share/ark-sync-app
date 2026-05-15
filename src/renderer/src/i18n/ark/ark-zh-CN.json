@@ -2,7 +2,7 @@
   "Ark.AppTitle": "Ark Sync",
   "Ark.NavSummary": "总览",
   "Ark.NavAgents": "智能体",
-  "Ark.NavAgentsDetection": "检测详情",
+  "Ark.NavAgentsDetection": "SKILL安全",
   "Ark.AgentsSubnavList": "智能体列表",
   "Ark.AgentsDetectionTitle": "Skill 检测详情",
   "Ark.AgentsDetectionEmpty": "当前没有需要处理的 Skill 问题。若刚编辑过文件，可在总览执行「安全检测」刷新。",
