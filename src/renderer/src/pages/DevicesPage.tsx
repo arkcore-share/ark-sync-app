@@ -7,6 +7,7 @@ import type {
   DeviceConfiguration,
   DeviceStatisticsEntry,
   FolderConfiguration,
+  FolderSummary,
   SystemConfig
 } from '../api/types'
 import type { SyncthingClient } from '../api/client'
@@ -25,7 +26,9 @@ import {
 import {
   aggregateDeviceCompletion,
   compressionLabelCn,
+  foldersSharedWithDevice,
   formatDateTimeYmdHms,
+  mergeDeviceDisplayCompletion,
   rdConnType,
   rdConnTypeLabelCn,
   sharedFolderLabels,
@@ -35,7 +38,10 @@ import {
 
 /** 与官方 deviceStatus：_total === 100 为最新，否则为同步中 */
 function deviceNeedsSync(comp: DeviceCompletionAggregate | undefined): boolean {
-  return comp !== undefined && comp.completion !== 100
+  if (!comp || comp.loaded === false) {
+    return false
+  }
+  return comp.completion !== 100 || comp.needBytes > 0 || comp.needItems > 0
 }
 
 function remoteDeviceHeadStatus(
@@ -49,10 +55,10 @@ function remoteDeviceHeadStatus(
   if (!conn?.connected) {
     return { label: '已断开连接', kind: 'disconnected' }
   }
-  if (!comp) {
+  if (!comp || comp.loaded === false) {
     return { label: '—', kind: 'warn' }
   }
-  if (comp.completion === 100) {
+  if (comp.completion === 100 && comp.needBytes === 0 && comp.needItems === 0) {
     return { label: '最新', kind: 'ok' }
   }
   return {
@@ -142,8 +148,46 @@ export default function DevicesPage(): React.ReactElement {
       setDeviceStats(stats || {})
 
       const remotes = (config.devices || []).filter((d) => !sameDeviceId(d.deviceID, st.myID.trim()))
-      const compMap = await loadRemoteDeviceCompletions(client, remotes, config.folders || [])
-      setCompletionByDevice(compMap)
+      const allFolders = config.folders || []
+      const [remoteCompMap, statusEntries] = await Promise.all([
+        loadRemoteDeviceCompletions(client, remotes, allFolders),
+        Promise.all(
+          allFolders.map(async (f) => {
+            try {
+              const s = await client.folderStatus(f.id)
+              return [f.id, s] as const
+            } catch {
+              return [f.id, undefined] as const
+            }
+          })
+        )
+      ])
+      const folderStatusById: Record<string, FolderSummary> = {}
+      for (const [id, s] of statusEntries) {
+        if (s) {
+          folderStatusById[id] = s
+        }
+      }
+      const merged: Record<string, DeviceCompletionAggregate> = {}
+      for (const d of remotes) {
+        const shared = foldersSharedWithDevice(d.deviceID, allFolders)
+        const localStatuses = shared
+          .map((f) => folderStatusById[f.id])
+          .filter((s): s is FolderSummary => s !== undefined)
+        const remote =
+          remoteCompMap[d.deviceID] ?? {
+            completion: 100,
+            needBytes: 0,
+            needItems: 0,
+            loaded: false
+          }
+        merged[d.deviceID] = mergeDeviceDisplayCompletion(
+          remote,
+          localStatuses,
+          shared.length
+        )
+      }
+      setCompletionByDevice(merged)
 
       const now = Date.now()
       const prev = prevRef.current
@@ -321,7 +365,7 @@ export default function DevicesPage(): React.ReactElement {
                             </span>
                           </span>
                         </div>
-                        {deviceNeedsSync(comp) && (
+                        {deviceNeedsSync(comp) && comp && (
                           <div className="kv-row">
                             <span className="kv-label">未同步的项目</span>
                             <span className="kv-value kv-value-em">

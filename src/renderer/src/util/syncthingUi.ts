@@ -308,6 +308,8 @@ export type DeviceCompletionAggregate = {
   completion: number
   needBytes: number
   needItems: number
+  /** 是否至少成功拉取到一个共享文件夹的 completion */
+  loaded?: boolean
 }
 
 export function aggregateDeviceCompletion(
@@ -323,15 +325,88 @@ export function aggregateDeviceCompletion(
     items += s.needItems ?? 0
     deletes += s.needDeletes ?? 0
   }
+  const loaded = slices.length > 0
   if (total === 0) {
-    return { completion: 100, needBytes: 0, needItems: 0 }
+    return { completion: 100, needBytes: 0, needItems: 0, loaded }
   }
   let completion = Math.floor(100 * (1 - needed / total))
   const needItems = items + deletes
   if (needed === 0 && needItems > 0) {
     completion = 95
   }
-  return { completion, needBytes: needed, needItems }
+  return { completion, needBytes: needed, needItems, loaded }
+}
+
+/** 本机共享文件夹的待同步量（/db/status），用于本机正在拉取数据时的展示 */
+export function aggregateLocalFolderSyncNeed(
+  statuses: FolderSummary[]
+): DeviceCompletionAggregate {
+  let globalBytes = 0
+  let needBytes = 0
+  let needItems = 0
+  for (const s of statuses) {
+    globalBytes += s.globalBytes ?? 0
+    needBytes += s.needBytes ?? 0
+    needItems +=
+      s.needTotalItems ?? (s.needFiles ?? 0) + (s.needDirectories ?? 0)
+  }
+  if (needItems === 0 && needBytes === 0) {
+    return { completion: 100, needBytes: 0, needItems: 0, loaded: true }
+  }
+  let completion: number
+  if ((needBytes === 0 && needItems > 0) || globalBytes === 0) {
+    completion = 95
+  } else {
+    completion = Math.floor(100 * (1 - needBytes / globalBytes))
+  }
+  return { completion, needBytes, needItems, loaded: true }
+}
+
+function folderHasLocalSyncActivity(status: FolderSummary): boolean {
+  const st = status.state ?? ''
+  if (st === 'syncing' || st === 'scanning' || st.startsWith('sync')) {
+    return true
+  }
+  if ((status.needBytes ?? 0) > 0) {
+    return true
+  }
+  const items =
+    status.needTotalItems ??
+    (status.needFiles ?? 0) + (status.needDirectories ?? 0)
+  return items > 0
+}
+
+/**
+ * 合并「远程设备完成度」与「本机文件夹同步状态」。
+ * 官方 remote 卡片语义是「对端还差多少」；本机正在下载时 remote 可能已是 100%，
+ * 此时用本机 folder status 展示同步中（与用户在下载端看到的活动一致）。
+ */
+export function mergeDeviceDisplayCompletion(
+  remote: DeviceCompletionAggregate,
+  localStatuses: FolderSummary[],
+  sharedFolderCount: number
+): DeviceCompletionAggregate {
+  const remoteInSync =
+    remote.loaded !== false &&
+    remote.completion === 100 &&
+    remote.needBytes === 0 &&
+    remote.needItems === 0
+
+  const localActive = localStatuses.some(folderHasLocalSyncActivity)
+
+  if (!remoteInSync) {
+    return remote
+  }
+
+  if (localActive) {
+    return aggregateLocalFolderSyncNeed(localStatuses)
+  }
+
+  if (remote.loaded === false && sharedFolderCount > 0) {
+    return { completion: 100, needBytes: 0, needItems: 0, loaded: false }
+  }
+
+  return remote
 }
 
 export function foldersSharedWithDevice(
