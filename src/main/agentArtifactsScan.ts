@@ -33,6 +33,35 @@ function resolveCandidatePath(home: string, c: DataRootCandidate): string | null
   return join(base, ...c.segments)
 }
 
+function currentPlatformRuleKey(): 'windows' | 'linux' | 'macos' {
+  if (process.platform === 'win32') {
+    return 'windows'
+  }
+  if (process.platform === 'darwin') {
+    return 'macos'
+  }
+  return 'linux'
+}
+
+function resolveRuleForCurrentPlatform(rule: AgentArtifactScanRule): AgentArtifactScanRule {
+  const key = currentPlatformRuleKey()
+  const p = rule.platformRules?.[key]
+  if (!p) {
+    return rule
+  }
+  return {
+    ...rule,
+    dataRootCandidates: p.dataRootCandidates ?? rule.dataRootCandidates,
+    dataPresentIfAny: p.dataPresentIfAny ?? rule.dataPresentIfAny,
+    skills: p.skills ?? rule.skills,
+    memory: p.memory ?? rule.memory,
+    files: p.files ?? rule.files,
+    extraRootsForGenericClawMerge: p.extraRootsForGenericClawMerge ?? rule.extraRootsForGenericClawMerge,
+    appendGenericUnderDataRoot: p.appendGenericUnderDataRoot ?? rule.appendGenericUnderDataRoot,
+    genericSkillsCollect: p.genericSkillsCollect ?? rule.genericSkillsCollect
+  }
+}
+
 function primaryDataRootForRule(home: string, rule: AgentArtifactScanRule): string | null {
   for (const c of rule.dataRootCandidates) {
     const p = resolveCandidatePath(home, c)
@@ -100,7 +129,7 @@ function applyPathRule(
   r: ArtifactPathRule,
   out: AgentArtifactEntry[]
 ): void {
-  const base = r.base === 'home' ? home : dataRoot
+  const base = r.base === 'home' ? home : r.base === 'dataRoot' ? dataRoot : r.envVar ? process.env[r.envVar] ?? null : null
   if (!base) {
     return
   }
@@ -385,7 +414,8 @@ export function listAgentArtifactsDetails(opts?: { force?: boolean }): AgentArti
       }
     }
 
-    const collected = collectByRule(home, rule)
+    const platformRule = resolveRuleForCurrentPlatform(rule)
+    const collected = collectByRule(home, platformRule)
 
     return {
       id: c.id,
@@ -446,7 +476,7 @@ export function collectSkillSecurityScanSeeds(home: string): { dirs: string[]; f
     if (!rule) {
       continue
     }
-    const col = collectByRule(home, rule)
+    const col = collectByRule(home, resolveRuleForCurrentPlatform(rule))
     for (const e of col.skills) {
       if (e.kind === 'dir') {
         addDir(e.path)

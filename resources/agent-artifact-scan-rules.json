@@ -123,29 +123,80 @@
     ],
     "dataPresentIfAny": [
       { "kind": "env", "envVar": "OPENCLAW_STATE_DIR", "segments": [] },
-      { "kind": "home", "segments": [".openclaw"] },
-      { "kind": "home", "segments": [".agents", "skills"] }
+      { "kind": "home", "segments": [".openclaw"] }
     ],
     "skills": [
-      { "base": "dataRoot", "segments": ["skills"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skills" },
-      { "base": "home", "segments": [".agents", "skills"], "enumerate": true, "maxEntries": 120, "enumerateLabelPrefix": ".agents/skills" },
-      { "base": "dataRoot", "segments": ["workspace", ".agents", "skills"], "enumerate": true, "maxEntries": 120, "enumerateLabelPrefix": "workspace/.agents/skills" },
-      { "base": "dataRoot", "segments": ["workspace", "skills"], "enumerate": true, "maxEntries": 120, "enumerateLabelPrefix": "workspace/skills" }
+      { "base": "dataRoot", "segments": ["skills"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skills" }
     ],
     "memory": [
-      { "base": "dataRoot", "segments": ["agents"], "enumerate": true, "maxEntries": 64, "enumerateLabelPrefix": "agents" },
-      { "base": "dataRoot", "segments": ["workspace", "MEMORY.md"] },
-      { "base": "dataRoot", "segments": ["workspace", "USER.md"] },
-      { "base": "dataRoot", "segments": ["workspace", "memory"], "enumerate": true, "maxEntries": 80, "enumerateLabelPrefix": "workspace/memory" },
-      { "base": "dataRoot", "segments": ["workspace", ".notes"], "enumerate": true, "maxEntries": 80, "enumerateLabelPrefix": "workspace/.notes" }
+      { "base": "dataRoot", "segments": ["agents"], "enumerate": true, "maxEntries": 64, "enumerateLabelPrefix": "agents" }
     ],
     "files": [
       { "base": "dataRoot", "segments": ["openclaw.json"] },
-      { "base": "dataRoot", "segments": ["gateway.env"] },
-      { "base": "dataRoot", "segments": ["workspace", "AGENTS.md"] },
-      { "base": "dataRoot", "segments": ["workspace", "SOUL.md"] },
-      { "base": "dataRoot", "segments": ["workspace", "IDENTITY.md"] }
-    ]
+      { "base": "env", "envVar": "OPENCLAW_CONFIG_PATH", "segments": [] }
+    ],
+    "platformRules": {
+      "windows": {
+        "dataRootCandidates": [
+          { "kind": "env", "envVar": "OPENCLAW_STATE_DIR", "segments": [] },
+          { "kind": "home", "segments": [".openclaw"] }
+        ],
+        "dataPresentIfAny": [
+          { "kind": "env", "envVar": "OPENCLAW_STATE_DIR", "segments": [] },
+          { "kind": "home", "segments": [".openclaw"] }
+        ],
+        "skills": [
+          { "base": "dataRoot", "segments": ["skills"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skills" }
+        ],
+        "memory": [
+          { "base": "dataRoot", "segments": ["agents"], "enumerate": true, "maxEntries": 64, "enumerateLabelPrefix": "agents" }
+        ],
+        "files": [
+          { "base": "dataRoot", "segments": ["openclaw.json"] },
+          { "base": "env", "envVar": "OPENCLAW_CONFIG_PATH", "segments": [] }
+        ]
+      },
+      "linux": {
+        "dataRootCandidates": [
+          { "kind": "env", "envVar": "OPENCLAW_STATE_DIR", "segments": [] },
+          { "kind": "home", "segments": [".openclaw"] }
+        ],
+        "dataPresentIfAny": [
+          { "kind": "env", "envVar": "OPENCLAW_STATE_DIR", "segments": [] },
+          { "kind": "home", "segments": [".openclaw"] }
+        ],
+        "skills": [
+          { "base": "dataRoot", "segments": ["skills"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skills" }
+        ],
+        "memory": [
+          { "base": "dataRoot", "segments": ["agents"], "enumerate": true, "maxEntries": 64, "enumerateLabelPrefix": "agents" }
+        ],
+        "files": [
+          { "base": "dataRoot", "segments": ["openclaw.json"] },
+          { "base": "env", "envVar": "OPENCLAW_CONFIG_PATH", "segments": [] }
+        ]
+      },
+      "macos": {
+        "dataRootCandidates": [
+          { "kind": "env", "envVar": "OPENCLAW_STATE_DIR", "segments": [] },
+          { "kind": "home", "segments": [".openclaw"] }
+        ],
+        "dataPresentIfAny": [
+          { "kind": "env", "envVar": "OPENCLAW_STATE_DIR", "segments": [] },
+          { "kind": "home", "segments": [".openclaw"] }
+        ],
+        "skills": [
+          { "base": "dataRoot", "segments": ["skills"], "enumerate": true, "maxEntries": 100, "enumerateLabelPrefix": "skills" }
+        ],
+        "memory": [
+          { "base": "dataRoot", "segments": ["agents"], "enumerate": true, "maxEntries": 64, "enumerateLabelPrefix": "agents" }
+        ],
+        "files": [
+          { "base": "dataRoot", "segments": ["openclaw.json"] },
+          { "base": "env", "envVar": "OPENCLAW_CONFIG_PATH", "segments": [] }
+        ]
+      }
+    }
   },
   "qclaw": {
     "id": "qclaw",

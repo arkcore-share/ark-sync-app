@@ -11,7 +11,8 @@ export type DataRootCandidate =
     }
 
 export type ArtifactPathRule = {
-  base: 'home' | 'dataRoot'
+  base: 'home' | 'dataRoot' | 'env'
+  envVar?: 'LOCALAPPDATA' | 'APPDATA' | 'OPENCLAW_STATE_DIR' | 'OPENCLAW_CONFIG_PATH'
   segments: string[]
   enumerate?: boolean
   maxEntries?: number
@@ -32,4 +33,36 @@ export type AgentArtifactScanRule = {
    * 默认 `enumerate` 列出 `skills/` 下每一项；`folder` 只展示 `skills`（或 `skill`）目录本身一条。
    */
   genericSkillsCollect?: 'enumerate' | 'folder'
+  platformRules?: {
+    windows?: {
+      dataRootCandidates?: DataRootCandidate[]
+      dataPresentIfAny?: DataRootCandidate[]
+      skills?: ArtifactPathRule[]
+      memory?: ArtifactPathRule[]
+      files?: ArtifactPathRule[]
+      extraRootsForGenericClawMerge?: DataRootCandidate[]
+      appendGenericUnderDataRoot?: boolean
+      genericSkillsCollect?: 'enumerate' | 'folder'
+    }
+    linux?: {
+      dataRootCandidates?: DataRootCandidate[]
+      dataPresentIfAny?: DataRootCandidate[]
+      skills?: ArtifactPathRule[]
+      memory?: ArtifactPathRule[]
+      files?: ArtifactPathRule[]
+      extraRootsForGenericClawMerge?: DataRootCandidate[]
+      appendGenericUnderDataRoot?: boolean
+      genericSkillsCollect?: 'enumerate' | 'folder'
+    }
+    macos?: {
+      dataRootCandidates?: DataRootCandidate[]
+      dataPresentIfAny?: DataRootCandidate[]
+      skills?: ArtifactPathRule[]
+      memory?: ArtifactPathRule[]
+      files?: ArtifactPathRule[]
+      extraRootsForGenericClawMerge?: DataRootCandidate[]
+      appendGenericUnderDataRoot?: boolean
+      genericSkillsCollect?: 'enumerate' | 'folder'
+    }
+  }
 }

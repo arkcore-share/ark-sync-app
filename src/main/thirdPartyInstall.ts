@@ -257,16 +257,21 @@ function commandExists(cmd: string): boolean {
 async function runInstallInWindowsPowerShell(scriptPath: string): Promise<ThirdPartyInstallResult> {
   const tempDir = mkdtempSync(join(tmpdir(), 'ark-sync-install-'))
   const logPath = join(tempDir, 'install.log')
-  const psCmd =
+  const workerCmd =
     `$ErrorActionPreference = 'Continue'; ` +
     `$log = ${psSingleQuoted(logPath)}; ` +
     `& ${psSingleQuoted(scriptPath)} *>&1 | Tee-Object -FilePath $log; ` +
     `$code = $LASTEXITCODE; if ($null -eq $code) { $code = 0 }; ` +
     `Write-Host ''; Write-Host ('安装脚本结束，退出码: ' + $code); ` +
     `exit $code`
+  const launcherCmd =
+    `$p = Start-Process -FilePath 'powershell.exe' ` +
+    `-ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-Command',${psSingleQuoted(workerCmd)}) ` +
+    `-PassThru -Wait; ` +
+    `exit $p.ExitCode`
   const result = await collectSpawn(
-    'cmd.exe',
-    ['/d', '/c', 'powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', psCmd],
+    'powershell.exe',
+    ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', launcherCmd],
     { windowsHide: false }
   )
   const log = existsSync(logPath) ? readInstallLogFile(logPath) : result.log
