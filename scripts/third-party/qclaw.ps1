@@ -1,4 +1,1 @@
-﻿$ErrorActionPreference = 'Stop'
-Write-Host "[qclaw] npm install -g qclaw"
-npm install -g qclaw
-exit $LASTEXITCODE
+﻿& (Join-Path $PSScriptRoot '_npm-install.ps1') -Label 'qclaw' -Package 'qclaw'

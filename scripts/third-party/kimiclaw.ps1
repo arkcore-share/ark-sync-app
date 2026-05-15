@@ -1,4 +1,1 @@
-﻿$ErrorActionPreference = 'Stop'
-Write-Host "[kimiclaw] npm install -g kimiclaw"
-npm install -g kimiclaw
-exit $LASTEXITCODE
+﻿& (Join-Path $PSScriptRoot '_npm-install.ps1') -Label 'kimiclaw' -Package 'kimiclaw'

@@ -2,6 +2,7 @@ import { execFileSync, spawn, spawnSync } from 'node:child_process'
 import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { homedir } from 'node:os'
 import { app } from 'electron'
 import { THIRD_PARTY_SCAN_CATALOG } from '../shared/thirdPartyCatalog.js'
 import type { ThirdPartyInstallResult } from '../shared/thirdPartyInstallTypes.js'
@@ -9,29 +10,90 @@ import { scanThirdPartyProducts } from './thirdPartyScan.js'
 
 const ALLOWED_IDS = new Set(THIRD_PARTY_SCAN_CATALOG.map((c) => c.id))
 
+/** Windows 常见 Node/npm 目录，Electron 子进程 PATH 不完整时补全。 */
+function windowsNodePathExtras(): string[] {
+  const extras: string[] = []
+  const pf = process.env['ProgramFiles']
+  if (pf) {
+    extras.push(join(pf, 'nodejs'))
+  }
+  const pf86 = process.env['ProgramFiles(x86)']
+  if (pf86) {
+    extras.push(join(pf86, 'nodejs'))
+  }
+  const appData = process.env['APPDATA']
+  if (appData) {
+    extras.push(join(appData, 'npm'))
+  }
+  const localAppData = process.env['LOCALAPPDATA']
+  if (localAppData) {
+    extras.push(join(localAppData, 'npm'))
+  }
+  const home = homedir()
+  if (home) {
+    extras.push(join(home, 'scoop', 'shims'))
+    extras.push(join(home, 'scoop', 'apps', 'nodejs', 'current'))
+  }
+  return extras
+}
+
+function mergePathSegments(...segments: string[]): string {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const segment of segments) {
+    for (const part of segment.split(';')) {
+      const p = part.trim()
+      if (!p) continue
+      const key = p.toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push(p)
+    }
+  }
+  return out.join(';')
+}
+
 /** Electron 从快捷方式启动时子进程 PATH 常不完整，合并注册表中的 Machine/User PATH（Windows）。 */
 function spawnEnvWithWindowsPath(): NodeJS.ProcessEnv {
   const env = { ...process.env }
   if (process.platform !== 'win32') {
     return env
   }
+  let machine = ''
+  let user = ''
   try {
-    const machine = execFileSync(
+    machine = execFileSync(
       'powershell.exe',
       ['-NoProfile', '-Command', "[Environment]::GetEnvironmentVariable('Path','Machine')"],
       { encoding: 'utf8', windowsHide: true, timeout: 8000 }
     ).trim()
-    const user = execFileSync(
+    user = execFileSync(
       'powershell.exe',
       ['-NoProfile', '-Command', "[Environment]::GetEnvironmentVariable('Path','User')"],
       { encoding: 'utf8', windowsHide: true, timeout: 8000 }
     ).trim()
-    const cur = env.Path ?? ''
-    env.Path = [machine, user, cur].filter(Boolean).join(';')
   } catch {
     /* 保持原 PATH */
   }
+  env.Path = mergePathSegments(
+    windowsNodePathExtras().join(';'),
+    machine,
+    user,
+    env.Path ?? ''
+  )
   return env
+}
+
+/** Windows PowerShell Tee-Object 默认 UTF-16 LE；按 BOM 解码安装日志。 */
+function readInstallLogFile(logPath: string): string {
+  const buf = readFileSync(logPath)
+  if (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xfe) {
+    return buf.subarray(2).toString('utf16le')
+  }
+  if (buf.length >= 2 && buf[0] === 0xfe && buf[1] === 0xff) {
+    return buf.subarray(2).swap16().toString('utf16le')
+  }
+  return buf.toString('utf8')
 }
 
 /** 多数安装脚本依赖 npm；Hermes Agent 走官方 install.ps1/install.sh，不强制预装 npm。 */
@@ -201,13 +263,13 @@ async function runInstallInWindowsPowerShell(scriptPath: string): Promise<ThirdP
     `& ${psSingleQuoted(scriptPath)} *>&1 | Tee-Object -FilePath $log; ` +
     `$code = $LASTEXITCODE; if ($null -eq $code) { $code = 0 }; ` +
     `Write-Host ''; Write-Host ('安装脚本结束，退出码: ' + $code); ` +
-    `Read-Host '按回车关闭 PowerShell 窗口'; exit $code`
+    `exit $code`
   const result = await collectSpawn(
-    'powershell.exe',
-    ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-NoExit', '-Command', psCmd],
+    'cmd.exe',
+    ['/d', '/c', 'powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', psCmd],
     { windowsHide: false }
   )
-  const log = existsSync(logPath) ? readFileSync(logPath, 'utf8') : result.log
+  const log = existsSync(logPath) ? readInstallLogFile(logPath) : result.log
   return { ok: result.ok, error: result.error, log: log.trimEnd(), exitCode: result.exitCode }
 }
 
@@ -239,7 +301,7 @@ exit "\${code}"
     return collectSpawn('bash', [scriptPath], { shell: false })
   }
   const result = await collectSpawn(found.cmd, found.args, { shell: false })
-  const log = existsSync(logPath) ? readFileSync(logPath, 'utf8') : result.log
+  const log = existsSync(logPath) ? readInstallLogFile(logPath) : result.log
   return { ok: result.ok, error: result.error, log: log.trimEnd(), exitCode: result.exitCode }
 }
 

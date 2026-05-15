@@ -1,4 +1,1 @@
-﻿$ErrorActionPreference = 'Stop'
-Write-Host "[lobster-ai] npm install -g lobster-ai"
-npm install -g lobster-ai
-exit $LASTEXITCODE
+﻿& (Join-Path $PSScriptRoot '_npm-install.ps1') -Label 'lobster-ai' -Package 'lobster-ai'

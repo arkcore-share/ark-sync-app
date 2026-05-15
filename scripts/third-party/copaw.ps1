@@ -1,4 +1,1 @@
-﻿$ErrorActionPreference = 'Stop'
-Write-Host "[copaw] npm install -g copaw"
-npm install -g copaw
-exit $LASTEXITCODE
+﻿& (Join-Path $PSScriptRoot '_npm-install.ps1') -Label 'copaw' -Package 'copaw'

@@ -198,13 +198,88 @@ function resolveRelayPath(candidates: string[]): string {
     return existing[0]
   }
   if (existing.length >= 2) {
+    if (process.platform === 'win32') {
+      const plain = existing.find((p) => basename(p).toLowerCase() === 'hermes')
+      return plain ?? existing[0]
+    }
     const hidden = existing.find((p) => basename(p) === '.hermes')
     return hidden ?? existing[0]
   }
   return candidates[0]
 }
 
+function normalizePathForCompare(absPath: string): string {
+  const normalized = resolve(absPath).replace(/\\/g, '/')
+  if (process.platform === 'win32') {
+    return normalized.toLowerCase()
+  }
+  return normalized
+}
+
+function underPath(absPath: string, rootPath: string): string | null {
+  const absNorm = normalizePathForCompare(absPath)
+  const rootNorm = normalizePathForCompare(rootPath)
+  if (absNorm === rootNorm) {
+    return ''
+  }
+  if (absNorm.startsWith(`${rootNorm}/`)) {
+    return absNorm.slice(rootNorm.length + 1)
+  }
+  return null
+}
+
+function buildWindowsRelayCandidates(relayRoot: string, localPath: string): string[] {
+  const home = homedir()
+  const appData = process.env.APPDATA
+  const localAppData = process.env.LOCALAPPDATA
+  const out: string[] = []
+
+  const hermesHomeRest = underPath(localPath, join(home, '.hermes'))
+  if (hermesHomeRest != null) {
+    out.push(join(relayRoot, 'hermes', ...hermesHomeRest.split('/').filter(Boolean)))
+    out.push(join(relayRoot, '.hermes', ...hermesHomeRest.split('/').filter(Boolean)))
+  }
+
+  if (localAppData) {
+    const hermesLocalRest = underPath(localPath, join(localAppData, 'hermes'))
+    if (hermesLocalRest != null) {
+      out.push(join(relayRoot, 'hermes', ...hermesLocalRest.split('/').filter(Boolean)))
+      out.push(join(relayRoot, '.hermes', ...hermesLocalRest.split('/').filter(Boolean)))
+    }
+  }
+
+  if (appData) {
+    const claudeAppDataRest = underPath(localPath, join(appData, 'Claude'))
+    if (claudeAppDataRest != null) {
+      out.push(join(relayRoot, '.claude', ...claudeAppDataRest.split('/').filter(Boolean)))
+    }
+  }
+
+  const homeRest = underPath(localPath, home)
+  if (homeRest != null) {
+    const relParts = homeRest.split('/').filter(Boolean)
+    out.push(join(relayRoot, ...relParts))
+    if (homeRest === '.hermes' || homeRest.startsWith('.hermes/')) {
+      const rest = homeRest.slice('.hermes'.length).replace(/^\/+/, '')
+      const restParts = rest ? rest.split('/').filter(Boolean) : []
+      out.push(join(relayRoot, 'hermes', ...restParts))
+    } else if (homeRest === 'hermes' || homeRest.startsWith('hermes/')) {
+      const rest = homeRest.slice('hermes'.length).replace(/^\/+/, '')
+      const restParts = rest ? rest.split('/').filter(Boolean) : []
+      out.push(join(relayRoot, '.hermes', ...restParts))
+    }
+  }
+
+  if (out.length === 0) {
+    out.push(join(relayRoot, ...absPathToBackupSegments(localPath)))
+  }
+  return [...new Set(out)]
+}
+
 function buildRelayCandidatesForLocalPath(relayRoot: string, localPath: string): string[] {
+  if (process.platform === 'win32') {
+    return buildWindowsRelayCandidates(relayRoot, localPath)
+  }
   const home = homedir()
   const out: string[] = []
   const localNorm = resolve(localPath).replace(/\\/g, '/')

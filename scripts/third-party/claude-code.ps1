@@ -1,4 +1,1 @@
-﻿$ErrorActionPreference = 'Stop'
-Write-Host "[claude-code] npm install -g @anthropic-ai/claude-code"
-npm install -g @anthropic-ai/claude-code
-exit $LASTEXITCODE
+﻿& (Join-Path $PSScriptRoot '_npm-install.ps1') -Label 'claude-code' -Package '@anthropic-ai/claude-code'

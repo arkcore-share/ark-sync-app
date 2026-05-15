@@ -3,12 +3,10 @@
   "claude-code": {
     "id": "claude-code",
     "dataRootCandidates": [
-      { "kind": "home", "segments": [".claude"] },
-      { "kind": "env", "envVar": "APPDATA", "segments": ["Claude"] }
+      { "kind": "home", "segments": [".claude"] }
     ],
     "dataPresentIfAny": [
       { "kind": "home", "segments": [".claude"] },
-      { "kind": "env", "envVar": "APPDATA", "segments": ["Claude"] },
       { "kind": "home", "segments": [".claude.json"] }
     ],
     "skills": [

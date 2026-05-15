@@ -1,4 +1,1 @@
-﻿$ErrorActionPreference = 'Stop'
-Write-Host "[maxclaw] npm install -g maxclaw"
-npm install -g maxclaw
-exit $LASTEXITCODE
+﻿& (Join-Path $PSScriptRoot '_npm-install.ps1') -Label 'maxclaw' -Package 'maxclaw'

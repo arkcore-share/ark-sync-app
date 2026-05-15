@@ -1,4 +1,1 @@
-﻿$ErrorActionPreference = 'Stop'
-Write-Host "[molili-claw] npm install -g moliliclaw"
-npm install -g moliliclaw
-exit $LASTEXITCODE
+﻿& (Join-Path $PSScriptRoot '_npm-install.ps1') -Label 'molili-claw' -Package 'moliliclaw'
