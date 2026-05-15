@@ -198,10 +198,8 @@ function resolveRelayPath(candidates: string[]): string {
     return existing[0]
   }
   if (existing.length >= 2) {
-    if (process.platform === 'win32') {
-      const plain = existing.find((p) => basename(p).toLowerCase() === 'hermes')
-      return plain ?? existing[0]
-    }
+    // Hermes relay canonical name is ".hermes" on every platform.
+    // Keep "hermes" as a read-only fallback for historical sync roots.
     const hidden = existing.find((p) => basename(p) === '.hermes')
     return hidden ?? existing[0]
   }
@@ -236,15 +234,15 @@ function buildWindowsRelayCandidates(relayRoot: string, localPath: string): stri
 
   const hermesHomeRest = underPath(localPath, join(home, '.hermes'))
   if (hermesHomeRest != null) {
-    out.push(join(relayRoot, 'hermes', ...hermesHomeRest.split('/').filter(Boolean)))
     out.push(join(relayRoot, '.hermes', ...hermesHomeRest.split('/').filter(Boolean)))
+    out.push(join(relayRoot, 'hermes', ...hermesHomeRest.split('/').filter(Boolean)))
   }
 
   if (localAppData) {
     const hermesLocalRest = underPath(localPath, join(localAppData, 'hermes'))
     if (hermesLocalRest != null) {
-      out.push(join(relayRoot, 'hermes', ...hermesLocalRest.split('/').filter(Boolean)))
       out.push(join(relayRoot, '.hermes', ...hermesLocalRest.split('/').filter(Boolean)))
+      out.push(join(relayRoot, 'hermes', ...hermesLocalRest.split('/').filter(Boolean)))
     }
   }
 
@@ -262,11 +260,13 @@ function buildWindowsRelayCandidates(relayRoot: string, localPath: string): stri
     if (homeRest === '.hermes' || homeRest.startsWith('.hermes/')) {
       const rest = homeRest.slice('.hermes'.length).replace(/^\/+/, '')
       const restParts = rest ? rest.split('/').filter(Boolean) : []
+      out.push(join(relayRoot, '.hermes', ...restParts))
       out.push(join(relayRoot, 'hermes', ...restParts))
     } else if (homeRest === 'hermes' || homeRest.startsWith('hermes/')) {
       const rest = homeRest.slice('hermes'.length).replace(/^\/+/, '')
       const restParts = rest ? rest.split('/').filter(Boolean) : []
       out.push(join(relayRoot, '.hermes', ...restParts))
+      out.push(join(relayRoot, 'hermes', ...restParts))
     }
   }
 
@@ -293,6 +293,7 @@ function buildRelayCandidatesForLocalPath(relayRoot: string, localPath: string):
     } else if (rel === 'hermes' || rel.startsWith('hermes/')) {
       const rest = rel.slice('hermes'.length)
       out.push(join(relayRoot, `.hermes${rest}`))
+      out.push(join(relayRoot, `hermes${rest}`))
     }
   } else {
     out.push(join(relayRoot, ...absPathToBackupSegments(localPath)))
@@ -645,7 +646,16 @@ function ensureSyncTmpIgnoreRules(syncTmpRoot: string, dryRun: boolean): void {
   try {
     mkdirSync(syncTmpRoot, { recursive: true })
     const stignorePath = join(syncTmpRoot, '.stignore')
-    const requiredRules = ['/_agent_sync_runs', '/_agent_sync_runs/**']
+    const requiredRules = [
+      '/_agent_sync_runs',
+      '/_agent_sync_runs/**',
+      // Defensive excludes for sync byproducts (if they ever appear outside run history).
+      '/sync-report.json',
+      '/conflicts-manifest.json',
+      '/operations.log',
+      '/snapshot-manifest.json',
+      '**/*.conflict-*'
+    ]
     const lines = existsSync(stignorePath) ? readFileSync(stignorePath, 'utf8').split(/\r?\n/) : []
     const normalized = new Set(lines.map((l) => l.trim()).filter(Boolean))
     let changed = false

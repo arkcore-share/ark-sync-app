@@ -17,7 +17,7 @@
 2. 对每个“已安装产品”，收集其 `skills`、`memory`、`files` 三类条目。
 3. 将每个本地绝对路径映射到 `~/.sync_tmp` 下的对应相对路径：
   - 规则：`relayPath = join(relayRoot, relative(HOME, localPath))`
-4. 对少数历史兼容路径保留候选映射（例如 Hermes 在中转侧同时兼容 `~/.sync_tmp/.hermes` 与 `~/.sync_tmp/hermes`）。
+4. 对少数历史兼容路径保留候选映射（例如 Hermes 在中转侧 canonical 为 `~/.sync_tmp/.hermes`，兼容读取历史 `~/.sync_tmp/hermes`）。
 5. 去重后按“文件/目录”类型进入双向同步流程。
 
 补充：中转根自动探测会识别以下 Claude 痕迹：`.claude`、`.claude.json`、`.clauderc`（以及其他产品目录）。
@@ -37,10 +37,10 @@
 - `~\.openclaw\skills\demo\SKILL.md` -> `~\.sync_tmp\.openclaw\skills\demo\SKILL.md`
 - `~\.agents\skills\my-skill\SKILL.md` -> `~\.sync_tmp\.agents\skills\my-skill\SKILL.md`
 - `~\.openclaw\workspace\AGENTS.md` -> `~\.sync_tmp\.openclaw\workspace\AGENTS.md`
-- `~\AppData\Local\hermes\skills\agent\SKILL.md` -> `~\.sync_tmp\hermes\skills\agent\SKILL.md`
-- `~\AppData\Local\hermes\db\memory.db` -> `~\.sync_tmp\hermes\db\memory.db`
-- `~\AppData\Local\hermes\config.yaml` -> `~\.sync_tmp\hermes\config.yaml`
-- Hermes 兼容候选：若中转侧历史目录是 `hermes` 或 `.hermes`，则可同时候选对应路径
+- `~\AppData\Local\hermes\skills\agent\SKILL.md` -> `~\.sync_tmp\.hermes\skills\agent\SKILL.md`
+- `~\AppData\Local\hermes\db\memory.db` -> `~\.sync_tmp\.hermes\db\memory.db`
+- `~\AppData\Local\hermes\config.yaml` -> `~\.sync_tmp\.hermes\config.yaml`
+- Hermes 兼容候选：若中转侧历史目录是 `hermes`，可回读；初始化/新建统一使用 `.hermes`
 
 2. Linux（`HOME = ~`，`relayRoot = ~/.sync_tmp`）
 - `~/.claude/commands/weather.md` -> `~/.sync_tmp/.claude/commands/weather.md`
@@ -48,7 +48,7 @@
 - `~/.agents/skills/my-skill/SKILL.md` -> `~/.sync_tmp/.agents/skills/my-skill/SKILL.md`
 - `~/.openclaw/workspace/AGENTS.md` -> `~/.sync_tmp/.openclaw/workspace/AGENTS.md`
 - `~/.hermes/skills/agent/SKILL.md` -> `~/.sync_tmp/.hermes/skills/agent/SKILL.md`
-- Hermes 兼容候选：`~/.sync_tmp/hermes/skills/agent/SKILL.md`
+- Hermes 兼容候选：`~/.sync_tmp/hermes/skills/agent/SKILL.md`（仅历史回读；初始化/新建统一使用 `.hermes`）
 
 3. macOS（`HOME = ~`，`relayRoot = ~/.sync_tmp`）
 - `~/.claude/commands/weather.md` -> `~/.sync_tmp/.claude/commands/weather.md`
@@ -56,7 +56,7 @@
 - `~/.agents/skills/my-skill/SKILL.md` -> `~/.sync_tmp/.agents/skills/my-skill/SKILL.md`
 - `~/.openclaw/workspace/AGENTS.md` -> `~/.sync_tmp/.openclaw/workspace/AGENTS.md`
 - `~/.hermes/skills/agent/SKILL.md` -> `~/.sync_tmp/.hermes/skills/agent/SKILL.md`
-- Hermes 兼容候选：`~/.sync_tmp/hermes/skills/agent/SKILL.md`
+- Hermes 兼容候选：`~/.sync_tmp/hermes/skills/agent/SKILL.md`（仅历史回读；初始化/新建统一使用 `.hermes`）
 
 ### 2.2 Linux 当前机器实际映射清单（`HOME=~`）
 
@@ -322,7 +322,7 @@
 1. 双向补齐  
 2. 冲突保全  
 3. 回滚快照  
-4. Hermes 自动识别 `hermes` / `.hermes` 两种中转目录名
+4. Hermes 中转目录 canonical 固定为 `.hermes`，同时兼容读取历史 `hermes`
 
 ### 11.1 核心配置结构（TypeScript 示例）
 
@@ -392,7 +392,7 @@ function resolveSyncPath(candidates: string[]): string {
 ```text
 1) 基于 rules + 已安装产品构建 mappings（skills/memory/files）
 2) for each mapping:
-  a) 解析 sync 实际路径（支持兼容候选，如 hermes/.hermes）
+  a) 解析 sync 实际路径（优先 `.hermes`，兼容回读历史 `hermes`）
   b) 做本地与中转快照
   c) 扫描两侧文件索引（相对路径）
   d) A有B无 -> 复制到B
@@ -450,6 +450,6 @@ node dist/main/agent-config-sync-cli.js --sync-base "$HOME/.sync_tmp/root" --mod
 ### 11.7 最小验收标准
 
 1. 重复执行幂等（无变更时不再产生新改动）  
-2. Hermes 在 `hermes` / `.hermes` 两种中转目录下都能正确同步  
+2. Hermes 以 `.hermes` 为唯一新建目录，历史 `hermes` 可回读且可持续收敛到 `.hermes`  
 3. 冲突时不丢数据（至少保留冲突副本）  
 4. 任一步失败可回滚到同步前快照

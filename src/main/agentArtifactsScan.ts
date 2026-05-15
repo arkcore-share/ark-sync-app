@@ -10,6 +10,12 @@ import { scanThirdPartyProducts } from './thirdPartyScan.js'
 
 function isIgnoredArtifactName(name: string): boolean {
   const n = name.toLowerCase()
+  if (n === '_agent_sync_runs') {
+    return true
+  }
+  if (n === 'sync-report.json' || n === 'conflicts-manifest.json' || n === 'operations.log' || n === 'snapshot-manifest.json') {
+    return true
+  }
   if (n.includes('.conflict-')) {
     return true
   }
@@ -20,6 +26,15 @@ function isIgnoredArtifactName(name: string): boolean {
     return true
   }
   return false
+}
+
+function isIgnoredArtifactPath(absPath: string): boolean {
+  const p = absPath.replace(/\\/g, '/').toLowerCase()
+  if (p.includes('/_agent_sync_runs/')) {
+    return true
+  }
+  const base = basename(absPath).toLowerCase()
+  return isIgnoredArtifactName(base)
 }
 
 function resolveCandidatePath(home: string, c: DataRootCandidate): string | null {
@@ -84,6 +99,9 @@ function pushAbsIfExists(out: AgentArtifactEntry[], absPath: string, label: stri
   if (!existsSync(absPath)) {
     return
   }
+  if (isIgnoredArtifactPath(absPath)) {
+    return
+  }
   try {
     const st = statSync(absPath)
     out.push({
@@ -112,6 +130,9 @@ function listDirLimited(dir: string, max: number, depthLabel = ''): AgentArtifac
     .sort((a, b) => a.localeCompare(b))
   for (const n of sorted.slice(0, max)) {
     const p = join(dir, n)
+    if (isIgnoredArtifactPath(p)) {
+      continue
+    }
     try {
       const st = statSync(p)
       const label = depthLabel ? `${depthLabel}/${n}` : n
