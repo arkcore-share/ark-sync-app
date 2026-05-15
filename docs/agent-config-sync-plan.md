@@ -296,6 +296,7 @@
 
 - Linux/macOS：`~/.hermes/config.yaml` / `config.yml` / `config.toml`、`~/.hermes/SOUL.md`、`~/.hermes/.env`
 - Windows：`%LOCALAPPDATA%\hermes\config.yaml` / `config.yml` / `config.toml`、`%LOCALAPPDATA%\hermes\SOUL.md`、`%LOCALAPPDATA%\hermes\.env`
+- 说明：`SOUL.md` 归类为 Files（配置文件），参与双向同步与冲突保护，不按临时日志/缓存处理。
 
 ## 9. 幂等性要求
 
