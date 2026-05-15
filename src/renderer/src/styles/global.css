@@ -1498,6 +1498,15 @@ button.connect-welcome-btn.primary:active:not(:disabled) {
   color: var(--warning);
 }
 
+.folder-card-state.syncing {
+  color: var(--accent);
+}
+
+.folder-card-body .kv-value.kv-value-em {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .folder-card-body {
   padding: 0.5rem 1rem 0.75rem;
 }

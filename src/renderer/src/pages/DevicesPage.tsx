@@ -7,6 +7,7 @@ import type {
   DeviceConfiguration,
   DeviceStatisticsEntry,
   FolderConfiguration,
+  FolderSummary,
   SystemConfig
 } from '../api/types'
 import { ConnectionSignal } from '../components/ConnectionSignal'
@@ -32,30 +33,68 @@ import {
 type DeviceCompletion = {
   completion: number
   needItems?: number
+  needBytes?: number
 }
 
-function aggregateSyncStatusLabel(comp: DeviceCompletion | undefined): string {
+function deviceNeedsSync(comp: DeviceCompletion | undefined): boolean {
   if (!comp) {
-    return '—'
+    return false
   }
-  const need = comp.needItems ?? 0
-  if (comp.completion >= 99.95 && need === 0) {
-    return '最新'
+  const needItems = comp.needItems ?? 0
+  const needBytes = comp.needBytes ?? 0
+  return comp.completion < 99.95 || needItems > 0 || needBytes > 0
+}
+
+function folderSharedWithDevice(folder: FolderConfiguration, deviceId: string): boolean {
+  return (folder.devices ?? []).some((x) => sameDeviceId(x.deviceID, deviceId))
+}
+
+/** 共享文件夹是否在同步/扫描，或当前与该设备有传输 */
+function isDeviceActivelySyncing(
+  deviceId: string,
+  folders: FolderConfiguration[],
+  folderStatusById: Record<string, FolderSummary>,
+  bps: { in: number; out: number }
+): boolean {
+  if (bps.in > 0 || bps.out > 0) {
+    return true
   }
-  return `不同步 (${Math.round(comp.completion)}%)`
+  for (const f of folders) {
+    if (!folderSharedWithDevice(f, deviceId)) {
+      continue
+    }
+    const st = folderStatusById[f.id]?.state ?? ''
+    if (st === 'syncing' || st === 'scanning' || st.startsWith('sync')) {
+      return true
+    }
+  }
+  return false
 }
 
 function remoteDeviceHeadStatus(
   dev: DeviceConfiguration,
-  conn: ConnectionEntry | undefined
-): { label: string; kind: 'ok' | 'warn' | 'paused' | 'disconnected' } {
+  conn: ConnectionEntry | undefined,
+  comp: DeviceCompletion | undefined,
+  activelySyncing: boolean
+): { label: string; kind: 'ok' | 'warn' | 'paused' | 'disconnected' | 'syncing' } {
   if (dev.paused) {
     return { label: '已暂停', kind: 'paused' }
   }
-  if (conn?.connected) {
+  if (!conn?.connected) {
+    return { label: '已断开连接', kind: 'disconnected' }
+  }
+  if (!deviceNeedsSync(comp)) {
     return { label: '最新', kind: 'ok' }
   }
-  return { label: '已断开连接', kind: 'disconnected' }
+  const pct = Math.round(comp?.completion ?? 0)
+  const needBytes = comp?.needBytes ?? 0
+  if (activelySyncing) {
+    return {
+      label: `同步中 (${pct}%, ${formatBytes(needBytes)})`,
+      kind: 'syncing'
+    }
+  }
+  return { label: `不同步 (${pct}%)`, kind: 'warn' }
 }
 
 export default function DevicesPage(): React.ReactElement {
@@ -64,6 +103,7 @@ export default function DevicesPage(): React.ReactElement {
   const [conn, setConn] = useState<Record<string, ConnectionEntry> | null>(null)
   const [deviceStats, setDeviceStats] = useState<Record<string, DeviceStatisticsEntry>>({})
   const [completionByDevice, setCompletionByDevice] = useState<Record<string, DeviceCompletion>>({})
+  const [folderStatusById, setFolderStatusById] = useState<Record<string, FolderSummary>>({})
   const [myId, setMyId] = useState('')
   const [err, setErr] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState(false)
@@ -112,6 +152,24 @@ export default function DevicesPage(): React.ReactElement {
       }
       setCompletionByDevice(compMap)
 
+      const statusEntries = await Promise.all(
+        (config.folders || []).map(async (f) => {
+          try {
+            const s = await client.folderStatus(f.id)
+            return [f.id, s] as const
+          } catch {
+            return [f.id, undefined] as const
+          }
+        })
+      )
+      const statusMap: Record<string, FolderSummary> = {}
+      for (const [id, s] of statusEntries) {
+        if (s) {
+          statusMap[id] = s
+        }
+      }
+      setFolderStatusById(statusMap)
+
       const now = Date.now()
       const prev = prevRef.current
       const dt = prev && now > prev.t ? (now - prev.t) / 1000 : 0
@@ -139,7 +197,7 @@ export default function DevicesPage(): React.ReactElement {
     }
   }, [client])
 
-  usePoll(load, 10_000, !!client)
+  usePoll(load, 3_000, !!client)
 
   useEffect(() => {
     void load()
@@ -218,8 +276,15 @@ export default function DevicesPage(): React.ReactElement {
       <div className="folder-card-list">
         {devices.map((d) => {
           const c = getConnectionEntryForDevice(conn, d.deviceID)
-          const st = remoteDeviceHeadStatus(d, c)
           const bps = getValueByDeviceId(bpsMap, d.deviceID) || { in: 0, out: 0 }
+          const comp = getValueByDeviceId(completionByDevice, d.deviceID)
+          const activelySyncing = isDeviceActivelySyncing(
+            d.deviceID,
+            folders,
+            folderStatusById,
+            bps
+          )
+          const st = remoteDeviceHeadStatus(d, c, comp, activelySyncing)
           const sec = getValueByDeviceId(deviceStats, d.deviceID)
           const lastSeen =
             sec?.lastSeen && new Date(sec.lastSeen).getTime() > 0
@@ -230,17 +295,17 @@ export default function DevicesPage(): React.ReactElement {
             c?.connected && c.type
               ? `${c.type}${c.crypto ? ` ${c.crypto}` : ''}`.trim()
               : undefined
-          const comp = getValueByDeviceId(completionByDevice, d.deviceID)
-          const syncLabel = aggregateSyncStatusLabel(comp)
           const expanded = cardOpen[d.deviceID] ?? true
           const foldersText = sharedFolderLabels(d.deviceID, folders)
 
           const headClass =
             st.kind === 'ok'
               ? 'folder-card-state ok'
-              : st.kind === 'disconnected'
-                ? 'folder-card-state disconnected'
-                : 'folder-card-state warn'
+              : st.kind === 'syncing'
+                ? 'folder-card-state syncing'
+                : st.kind === 'disconnected'
+                  ? 'folder-card-state disconnected'
+                  : 'folder-card-state warn'
 
           const rt = rdConnType(c)
           const headIcon =
@@ -287,18 +352,20 @@ export default function DevicesPage(): React.ReactElement {
                             </span>
                           </span>
                         </div>
+                        {deviceNeedsSync(comp) && (
+                          <div className="kv-row">
+                            <span className="kv-label">未同步的项目</span>
+                            <span className="kv-value kv-value-em">
+                              {comp?.needItems ?? 0} 条目, ~{formatBytes(comp?.needBytes ?? 0)}
+                            </span>
+                          </div>
+                        )}
                       </>
                     )}
                     {!c?.connected && lastSeen && (
                       <div className="kv-row">
                         <span className="kv-label">最后可见</span>
                         <span className="kv-value">{lastSeen}</span>
-                      </div>
-                    )}
-                    {!c?.connected && (
-                      <div className="kv-row">
-                        <span className="kv-label">同步状态</span>
-                        <span className="kv-value">{syncLabel}</span>
                       </div>
                     )}
                     <div className="kv-row">
