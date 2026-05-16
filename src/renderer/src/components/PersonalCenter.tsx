@@ -35,6 +35,12 @@ const HELP_MENU_GROUPS: HelpMenuItem[][] = [
   [{ kind: 'about', tkey: 'About', glyph: '♥' }]
 ]
 
+const ARK_I18N_READY_LANGS = new Set(['zh-CN', 'zh-TW', 'zh-HK', 'en', 'es', 'fr', 'ja'])
+
+function normalizeLangCode(code: string): string {
+  return code.toLowerCase().replace(/_/g, '-')
+}
+
 export default function PersonalCenter(): React.ReactElement {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
@@ -55,11 +61,20 @@ export default function PersonalCenter(): React.ReactElement {
   const [helpFlyoutPos, setHelpFlyoutPos] = useState<{ top: number; left: number } | null>(null)
   const [langFlyoutPos, setLangFlyoutPos] = useState<{ top: number; left: number } | null>(null)
   const [serviceFlyoutPos, setServiceFlyoutPos] = useState<{ top: number; left: number } | null>(null)
+  const [langMoreOpen, setLangMoreOpen] = useState(false)
+
+  const languageOptions = LOCALE_PICKER_OPTIONS.map((option) => ({
+    ...option,
+    ready: ARK_I18N_READY_LANGS.has(option.code)
+  }))
+  const readyLanguageOptions = languageOptions.filter((item) => item.ready)
+  const pendingLanguageOptions = languageOptions.filter((item) => !item.ready)
 
   const close = useCallback(() => {
     setOpen(false)
     setHelpMenuOpen(false)
     setLangMenuOpen(false)
+    setLangMoreOpen(false)
     setServiceOpen(false)
   }, [])
 
@@ -223,6 +238,7 @@ export default function PersonalCenter(): React.ReactElement {
   useLayoutEffect(() => {
     if (!langMenuOpen) {
       setLangFlyoutPos(null)
+      setLangMoreOpen(false)
       return
     }
     updateLangFlyoutPosition()
@@ -634,20 +650,18 @@ export default function PersonalCenter(): React.ReactElement {
                 onMouseDown={(e) => e.stopPropagation()}
               >
                 <div className="popover-lang-flyout-columns">
-                  {LOCALE_PICKER_OPTIONS.map(({ code, label }) => (
+                  {readyLanguageOptions.map(({ code, label }) => (
                     <button
                       key={code}
                       type="button"
                       role="option"
                       aria-selected={
-                        (i18n.resolvedLanguage ?? i18n.language)
-                          .toLowerCase()
-                          .replace(/_/g, '-') === code.toLowerCase().replace(/_/g, '-')
+                        normalizeLangCode(i18n.resolvedLanguage ?? i18n.language) ===
+                        normalizeLangCode(code)
                       }
                       className={`popover-lang-option${
-                        (i18n.resolvedLanguage ?? i18n.language)
-                          .toLowerCase()
-                          .replace(/_/g, '-') === code.toLowerCase().replace(/_/g, '-')
+                        normalizeLangCode(i18n.resolvedLanguage ?? i18n.language) ===
+                        normalizeLangCode(code)
                           ? ' active'
                           : ''
                       }`}
@@ -662,6 +676,44 @@ export default function PersonalCenter(): React.ReactElement {
                     </button>
                   ))}
                 </div>
+                {pendingLanguageOptions.length > 0 ? (
+                  <div className="popover-lang-collapsed">
+                    <button
+                      type="button"
+                      className="popover-lang-collapse-trigger"
+                      aria-expanded={langMoreOpen}
+                      onClick={() => setLangMoreOpen((v) => !v)}
+                    >
+                      {langMoreOpen
+                        ? t('Ark.LanguageMoreCollapse', { defaultValue: '收起未完成语言' })
+                        : t('Ark.LanguageMoreExpand', {
+                            defaultValue: `更多语言（${pendingLanguageOptions.length}）`
+                          })}
+                    </button>
+                    {langMoreOpen ? (
+                      <div className="popover-lang-flyout-columns popover-lang-flyout-columns--collapsed">
+                        {pendingLanguageOptions.map(({ code, label }) => (
+                          <button
+                            key={code}
+                            type="button"
+                            role="option"
+                            className="popover-lang-option popover-lang-option--disabled"
+                            disabled
+                            aria-disabled
+                            title={t('Ark.LanguageNotReadyTip', {
+                              defaultValue: '该语言页面内容尚未完成国际化'
+                            })}
+                          >
+                            {label}
+                            <span className="popover-lang-option-note">
+                              {t('Ark.LanguageNotReady', { defaultValue: '未完成' })}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>,
               getPortalContainer()
             )}

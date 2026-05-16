@@ -32,6 +32,8 @@ let mainWindow: BrowserWindow | null = null
 let appTray: Tray | null = null
 /** 为 true 时允许窗口真正关闭（退出应用） */
 let isAppQuitting = false
+/** 托盘菜单当前语言（用于主进程内本地化） */
+let trayLocale = 'zh-CN'
 
 function runningInWsl(): boolean {
   if (process.platform !== 'linux') {
@@ -425,6 +427,33 @@ function sendTrayCommand(cmd: TrayCommand): void {
   w.webContents.send('app:tray-command', cmd)
 }
 
+function refreshTrayMenu(): void {
+  if (!appTray) {
+    return
+  }
+  const menu = buildTrayContextMenu({
+    getMainWindow: () => mainWindow,
+    showMain: showOrRestoreMainWindow,
+    sendCommand: traySendCommand,
+    openExternal: openExternalUrlMain,
+    quitApp: performAppQuit,
+    locale: trayLocale
+  })
+  appTray.setContextMenu(menu)
+}
+
+function setTrayLocaleOnly(code: string): void {
+  trayLocale = code
+  refreshTrayMenu()
+}
+
+function traySendCommand(cmd: TrayCommand): void {
+  if (cmd.type === 'set-locale') {
+    setTrayLocaleOnly(cmd.code)
+  }
+  sendTrayCommand(cmd)
+}
+
 function performAppQuit(): void {
   setImmediate(() => {
     isAppQuitting = true
@@ -497,18 +526,11 @@ function ensureTray(): void {
   }
   const tray = new Tray(icon)
   tray.setToolTip('Ark Sync')
-  const menu = buildTrayContextMenu({
-    getMainWindow: () => mainWindow,
-    showMain: showOrRestoreMainWindow,
-    sendCommand: sendTrayCommand,
-    openExternal: openExternalUrlMain,
-    quitApp: performAppQuit
-  })
-  tray.setContextMenu(menu)
+  appTray = tray
+  refreshTrayMenu()
   tray.on('click', () => {
     showOrRestoreMainWindow()
   })
-  appTray = tray
 }
 
 function createWindow(): void {
@@ -634,6 +656,7 @@ function createWindow(): void {
 app.whenReady().then(async () => {
   /** 必须为 system，否则无法随 Windows 设置 → 个性化 → 颜色 / 明暗 切换 */
   nativeTheme.themeSource = 'system'
+  trayLocale = app.getLocale() || trayLocale
 
   await startBundledSyncthingIfPresent()
 
@@ -722,6 +745,13 @@ app.whenReady().then(async () => {
   })
   ipcMain.handle('app:quit', () => {
     performAppQuit()
+  })
+  ipcMain.handle('app:setTrayLocale', (_e, code: unknown) => {
+    if (typeof code !== 'string' || !code.trim()) {
+      return false
+    }
+    setTrayLocaleOnly(code.trim())
+    return true
   })
 
   ipcMain.handle('syncthing:rest', async (_e, p: RestIpcPayload) => {

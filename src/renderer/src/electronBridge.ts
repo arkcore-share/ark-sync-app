@@ -125,6 +125,17 @@ export async function quitElectronApp(): Promise<boolean> {
   return false
 }
 
+export async function setTrayLocale(code: string): Promise<boolean> {
+  if (!isElectronApp() || !window.syncWeb?.setTrayLocale) {
+    return false
+  }
+  try {
+    return await window.syncWeb.setTrayLocale(code)
+  } catch {
+    return false
+  }
+}
+
 /** 主进程扫描本机是否安装常见 AI / Claw 系工具（仅 Electron）。 */
 export async function scanThirdPartyTools(): Promise<ThirdPartyScanResult | null> {
   if (!isElectronApp() || !window.syncWeb?.scanThirdParty) {

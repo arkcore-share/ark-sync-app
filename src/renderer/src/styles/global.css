@@ -529,6 +529,46 @@ button.popover-lang-option {
   color: #fff;
 }
 
+.popover-lang-collapsed {
+  margin-top: 0.5rem;
+  padding-top: 0.45rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+button.popover-lang-collapse-trigger {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.34rem 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.78);
+  font-family: inherit;
+  font-size: 0.79rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.popover-lang-collapse-trigger:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.popover-lang-flyout-columns--collapsed {
+  margin-top: 0.42rem;
+}
+
+button.popover-lang-option--disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
+.popover-lang-option-note {
+  float: right;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.52);
+}
+
 /* 基础样式；定位由 --portal + inline top/left（挂到 body，避免被侧栏 overflow 裁切） */
 .popover-help-flyout {
   min-width: 252px;

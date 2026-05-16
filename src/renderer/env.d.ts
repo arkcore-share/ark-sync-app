@@ -76,6 +76,7 @@ declare global {
       syncthingGetAsset: (p: SyncthingAssetIpc) => Promise<SyncthingAssetResult>
       restartApp?: () => Promise<void>
       quitApp?: () => Promise<void>
+      setTrayLocale?: (code: string) => Promise<boolean>
       onTrayCommand?: (listener: (cmd: import('../shared/trayCommand.js').TrayCommand) => void) => () => void
       scanThirdParty?: () => Promise<import('../shared/thirdPartyScanTypes.js').ThirdPartyScanResult>
       listAgentArtifacts?: (opts?: {

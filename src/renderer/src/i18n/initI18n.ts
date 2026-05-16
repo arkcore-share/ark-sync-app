@@ -1,5 +1,6 @@
-import i18n from 'i18next'
+﻿import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
+import { setTrayLocale } from '../electronBridge'
 import {
   SYN_LANG_STORAGE_KEY,
   isValidSyncthingLang,
@@ -25,26 +26,29 @@ async function loadSyncthing(lng: string): Promise<Record<string, string>> {
 }
 
 async function loadArk(lng: string): Promise<Record<string, string>> {
-  const paths: string[] = [`./ark/ark-${lng}.json`]
-  /* 繁体等无独立 ark 文件时，用简体 Ark 覆盖英文，避免侧栏/个人中心中英混杂 */
-  if (lng.startsWith('zh-') && lng !== 'zh-CN') {
-    paths.push('./ark/ark-zh-CN.json')
+  let merged: Record<string, string> = {}
+  const en = arkLoaders['./ark/ark-en.json']
+  if (en) {
+    merged = { ...merged, ...(await en()).default }
   }
-  paths.push('./ark/ark-en.json')
-  for (const p of paths) {
-    const load = arkLoaders[p]
-    if (load) {
-      return (await load()).default
+  if (lng.startsWith('zh-') && lng !== 'zh-CN') {
+    const zh = arkLoaders['./ark/ark-zh-CN.json']
+    if (zh) {
+      merged = { ...merged, ...(await zh()).default }
     }
   }
-  return {}
+  const local = arkLoaders[`./ark/ark-${lng}.json`]
+  if (local) {
+    merged = { ...merged, ...(await local()).default }
+  }
+  return merged
 }
 
 export async function ensureLanguageLoaded(lng: string): Promise<void> {
   const syn = await loadSyncthing(lng)
   const ark = await loadArk(lng)
   const merged = mergeBundles(syn, ark)
-  /* 每次切换都重建 bundle：避免仅 hasResourceBundle 短路导致旧合并或与 i18next 内部状态不一致 */
+  /* 姣忔鍒囨崲閮介噸寤?bundle锛氶伩鍏嶄粎 hasResourceBundle 鐭矾瀵艰嚧鏃у悎骞舵垨涓?i18next 鍐呴儴鐘舵€佷笉涓€鑷?*/
   if (i18n.hasResourceBundle(lng, 'translation')) {
     i18n.removeResourceBundle(lng, 'translation')
   }
@@ -95,6 +99,7 @@ export function initI18n(): Promise<void> {
       }
       await i18n.changeLanguage(lng)
       document.documentElement.lang = lng
+      void setTrayLocale(lng)
     })()
   }
   return initPromise
@@ -110,6 +115,7 @@ export async function applySyncthingLocale(lng: string, persist: boolean): Promi
   }
   await i18n.changeLanguage(lng)
   document.documentElement.lang = lng
+  void setTrayLocale(lng)
   if (persist) {
     try {
       localStorage.setItem(SYN_LANG_STORAGE_KEY, lng)
@@ -120,3 +126,6 @@ export async function applySyncthingLocale(lng: string, persist: boolean): Promi
 }
 
 export { i18n }
+
+
+

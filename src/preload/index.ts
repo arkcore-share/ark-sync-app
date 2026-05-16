@@ -47,6 +47,7 @@ contextBridge.exposeInMainWorld('syncWeb', {
     ipcRenderer.invoke('syncthing:getAsset', p),
   restartApp: (): Promise<void> => ipcRenderer.invoke('app:restart'),
   quitApp: (): Promise<void> => ipcRenderer.invoke('app:quit'),
+  setTrayLocale: (code: string): Promise<boolean> => ipcRenderer.invoke('app:setTrayLocale', code),
   onTrayCommand: (listener: (cmd: TrayCommand) => void): (() => void) => {
     const handler = (_e: unknown, cmd: TrayCommand): void => {
       listener(cmd)

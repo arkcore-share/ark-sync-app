@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useId, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useId, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { THIRD_PARTY_SCAN_CATALOG } from '../../../shared/thirdPartyCatalog'
 import type { ThirdPartyScanResult, ThirdPartyScanRow } from '../../../shared/thirdPartyScanTypes'
@@ -20,7 +21,7 @@ import {
 import cosmicBgUrl from '../assets/summary-cosmic-bg.svg'
 import hudCoreTechUrl from '../assets/summary-hud-core-tech.svg'
 
-/** 智能体/环境扫描结果：浏览器/Electron 渲染进程 localStorage（非独立磁盘文件） */
+/** 智能体/环境扫描结果缓存（渲染进程 localStorage） */
 const SCAN_CACHE_KEY = 'ark-sync-summary-third-party-scan-v1'
 
 function delay(ms: number): Promise<void> {
@@ -142,6 +143,7 @@ function SummaryThirdPartyResultRow({
   installingId: string | null
   onInstall: (productId: string) => void
 }): React.ReactElement {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   return (
     <div
@@ -165,10 +167,10 @@ function SummaryThirdPartyResultRow({
             type="button"
             className="summary-install-btn summary-install-btn--ok"
             disabled
-            title={row.via ?? '已安装'}
+            title={row.via ?? t('Ark.SummaryInstalled')}
             onClick={(e) => e.stopPropagation()}
           >
-            已安装
+            {t('Ark.SummaryInstalled')}
           </button>
         ) : (
           <button
@@ -180,7 +182,7 @@ function SummaryThirdPartyResultRow({
               onInstall(row.id)
             }}
           >
-            {installingId === row.id ? '安装中…' : '一键安装'}
+            {installingId === row.id ? t('Ark.SummaryInstalling') : t('Ark.SummaryOneClickInstall')}
           </button>
         )}
       </div>
@@ -201,6 +203,7 @@ type InstallDetailState = {
 }
 
 export default function SummaryPage(): React.ReactElement {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const ringGradId = useId().replace(/:/g, '')
   const ringGradSecId = useId().replace(/:/g, '')
@@ -266,7 +269,7 @@ export default function SummaryPage(): React.ReactElement {
     setProgress(6)
     setBrowserOnly(!isElectronApp())
 
-    // 较慢的进度条，便于辨认「正在扫描」；最短展示时间避免一闪而过
+    // 稍慢进度条便于识别“正在扫描”，并设置最短展示时间避免一闪而过
     const progTimer = window.setInterval(() => {
       setProgress((p) => (p >= 82 ? p : p + 3))
     }, 360)
@@ -307,7 +310,7 @@ export default function SummaryPage(): React.ReactElement {
     return null
   }, [])
 
-  /** 进入总览后 30 秒静默触发一次环境扫描（不阻塞 UI，避免首屏抖动） */
+  /** 进入总览后 30 秒静默触发一次环境扫描（不阻塞 UI） */
   useEffect(() => {
     if (!isElectronApp()) {
       return
@@ -321,7 +324,7 @@ export default function SummaryPage(): React.ReactElement {
   const handleOneClickInstall = useCallback(
     async (productId: string) => {
       if (!isElectronApp()) {
-        window.alert('一键安装仅支持在 Ark Sync 桌面客户端中使用。')
+        window.alert(t('Ark.SummaryOneClickInstallDesktopOnly'))
         return
       }
       const productName = THIRD_PARTY_SCAN_CATALOG.find((x) => x.id === productId)?.name ?? productId
@@ -331,7 +334,7 @@ export default function SummaryPage(): React.ReactElement {
         productId,
         productName,
         status: 'running',
-        summary: `正在执行 ${productName} 安装脚本，请稍候…`,
+        summary: t('Ark.SummaryInstallRunning', { productName }),
         detailLog: ''
       })
       try {
@@ -343,7 +346,7 @@ export default function SummaryPage(): React.ReactElement {
               : {
                   ...prev,
                   status: 'error',
-                  summary: '无法调用安装流程，请稍后重试。',
+                  summary: t('Ark.SummaryInstallInvokeFailed'),
                   detailLog: ''
                 }
           )
@@ -359,7 +362,7 @@ export default function SummaryPage(): React.ReactElement {
                 : {
                     ...prev,
                     status: 'warning',
-                    summary: '安装脚本已执行，但无法刷新检测结果，请稍后手动执行「智能体侦测」。',
+                    summary: t('Ark.SummaryInstallNeedManualRescan'),
                     detailLog: r.log ? r.log.slice(-4000) : ''
                   }
             )
@@ -373,7 +376,10 @@ export default function SummaryPage(): React.ReactElement {
                 : {
                     ...prev,
                     status: 'success',
-                    summary: `安装完成：已检测到「${row.name}」（${row.via ?? '已就绪'}）。`,
+                    summary: t('Ark.SummaryInstallSuccessDetected', {
+                      name: row.name,
+                      via: row.via ?? t('Ark.SummaryReady')
+                    }),
                     detailLog: r.log ? r.log.slice(-4000) : ''
                   }
             )
@@ -384,8 +390,7 @@ export default function SummaryPage(): React.ReactElement {
                 : {
                     ...prev,
                     status: 'warning',
-                    summary:
-                      '安装命令已结束，但刷新后仍未检测到工具。请检查日志并确认 PATH/安装目录配置后再扫描。',
+                    summary: t('Ark.SummaryInstallFinishedButNotDetected'),
                     detailLog: r.log ? r.log.slice(-4000) : ''
                   }
             )
@@ -397,7 +402,7 @@ export default function SummaryPage(): React.ReactElement {
               : {
                   ...prev,
                   status: 'error',
-                  summary: r.error ?? '安装失败',
+                  summary: r.error ?? t('Ark.SummaryInstallFailed'),
                   detailLog: r.log ? r.log.slice(-4000) : ''
                 }
           )
@@ -409,7 +414,7 @@ export default function SummaryPage(): React.ReactElement {
             : {
                 ...prev,
                 status: 'error',
-                summary: e instanceof Error ? e.message : '安装过程出错',
+                summary: e instanceof Error ? e.message : t('Ark.SummaryInstallProcessError'),
                 detailLog: ''
               }
         )
@@ -491,7 +496,7 @@ export default function SummaryPage(): React.ReactElement {
   return (
     <div className="summary-page">
       <div className="summary-page-header">
-        <h1 className="summary-page-title">总览</h1>
+        <h1 className="summary-page-title">{t('Ark.NavSummary')}</h1>
       </div>
 
       <div className="summary-scan-card">
@@ -512,13 +517,13 @@ export default function SummaryPage(): React.ReactElement {
                 />
                 <div>
                   <div className="summary-toolbar-title">
-                    智能体侦测
+                    {t('Ark.SummaryAgentDetect')}
                     {activeScan === 'env' ? (
-                      <span className="summary-toolbar-sub muted">，正在拉取本机 PATH、安装目录与 npm 全局清单…</span>
+                      <span className="summary-toolbar-sub muted">，{t('Ark.SummaryDetectRunning')}</span>
                     ) : activeScan === 'security' ? (
-                      <span className="summary-toolbar-sub muted">，正在同步 gitleaks 规则并扫描 SKILL.md…</span>
+                      <span className="summary-toolbar-sub muted">，{t('Ark.SummarySkillRunning')}</span>
                     ) : !result ? (
-                      <span className="summary-toolbar-sub muted">，启动时不会自动扫描，使用右侧按钮开始。</span>
+                      <span className="summary-toolbar-sub muted">，{t('Ark.SummaryNoAutoScanHint')}</span>
                     ) : null}
                   </div>
                 </div>
@@ -530,7 +535,7 @@ export default function SummaryPage(): React.ReactElement {
                   onClick={() => void runScan()}
                   disabled={isBusy}
                 >
-                  {result ? '智能体侦测' : '开始智能体侦测'}
+                  {result ? t('Ark.SummaryAgentDetect') : t('Ark.SummaryAgentDetectStart')}
                 </button>
                 <button
                   type="button"
@@ -538,7 +543,7 @@ export default function SummaryPage(): React.ReactElement {
                   onClick={() => void runSecurityScan()}
                   disabled={isBusy}
                 >
-                  SKILL扫描
+                  {t('Ark.SummarySkillScan')}
                 </button>
               </div>
             </header>
@@ -654,19 +659,19 @@ export default function SummaryPage(): React.ReactElement {
                         </span>
                       )
                     ) : result && secResult ? (
-                      <span className="summary-hud-ok-dual" title="环境与 Skills 均已有结果">
+                      <span className="summary-hud-ok-dual" title={t('Ark.SummaryHudEnvAndSkillReady')}>
                         <span className="summary-hud-ok-bit">✓</span>
                       </span>
                     ) : result ? (
-                      <span className="summary-hud-ok" title="环境扫描已有缓存">
+                      <span className="summary-hud-ok" title={t('Ark.SummaryHudEnvReady')}>
                         ✓
                       </span>
                     ) : secResult ? (
-                      <span className="summary-hud-shield" title="Skills 安全已有缓存">
+                      <span className="summary-hud-shield" title={t('Ark.SummaryHudSkillReady')}>
                         ⧉
                       </span>
                     ) : (
-                      <span className="summary-hud-standby" title="待机">
+                      <span className="summary-hud-standby" title={t('Ark.SummaryHudStandby')}>
                         <span className="summary-hud-cursor">█</span>
                       </span>
                     )}
@@ -677,26 +682,30 @@ export default function SummaryPage(): React.ReactElement {
               <div className="summary-scan-meta-col summary-scan-meta-col--split summary-scan-meta-col--wide">
                 <div className="summary-meta-times-col">
                   <div className="summary-meta-block">
-                    <div className="summary-meta-label muted">智能体侦测 · 上次时间</div>
+                    <div className="summary-meta-label muted">{t('Ark.SummaryAgentDetectLastTime')}</div>
                     <div className="summary-meta-time" aria-live="polite">
                       {result ? formatScannedAt(result.scannedAt) : '—'}
                     </div>
                     {result != null && result.durationMs > 0 ? (
-                      <div className="summary-meta-duration muted">耗时 {result.durationMs} ms</div>
+                      <div className="summary-meta-duration muted">
+                        {t('Ark.SummaryDurationMs', { ms: result.durationMs })}
+                      </div>
                     ) : null}
                   </div>
                   <div className="summary-meta-block summary-meta-block--sec-time">
-                    <div className="summary-meta-label muted">Skills 安全 · 上次时间</div>
+                    <div className="summary-meta-label muted">{t('Ark.SummarySkillScanLastTime')}</div>
                     <div className="summary-meta-time" aria-live="polite">
                       {secResult ? formatScannedAt(secResult.scannedAt) : '—'}
                     </div>
                     {secResult != null && secResult.durationMs > 0 ? (
-                      <div className="summary-meta-duration muted">耗时 {secResult.durationMs} ms</div>
+                      <div className="summary-meta-duration muted">
+                        {t('Ark.SummaryDurationMs', { ms: secResult.durationMs })}
+                      </div>
                     ) : null}
                     <div className="summary-meta-skillscan muted">
                       {secResult != null
-                        ? `已扫描${secResult.skillFiles}个SKILL`
-                        : '未扫描'}
+                        ? t('Ark.SummarySkillScannedCount', { count: secResult.skillFiles })
+                        : t('Ark.SummaryNotScanned')}
                     </div>
                   </div>
                 </div>
@@ -705,11 +714,14 @@ export default function SummaryPage(): React.ReactElement {
                     className="summary-meta-risk-header muted"
                     title={
                       securityRulesPaths
-                        ? `规则库目录：${securityRulesPaths.dir}\ngitleaks.toml：${securityRulesPaths.gitleaks}`
+                        ? t('Ark.SummaryRulesPaths', {
+                            dir: securityRulesPaths.dir,
+                            gitleaks: securityRulesPaths.gitleaks
+                          })
                         : undefined
                     }
                   >
-                    <span className="summary-meta-label">Skills 安全</span>
+                    <span className="summary-meta-label">{t('Ark.SummarySkillSecurity')}</span>
                     {rulesSyncStatus != null &&
                     (rulesSyncStatus.isDownloading || rulesSyncStatus.isFreshToday) ? (
                       <span className="summary-meta-risk-header-rules" aria-live="polite">
@@ -717,55 +729,55 @@ export default function SummaryPage(): React.ReactElement {
                           ·
                         </span>
                         {rulesSyncStatus.isDownloading ? (
-                          '规则库下载中...'
+                          t('Ark.SummaryRulesDownloading')
                         ) : (
                           <>
-                            规则库
-                            <span className="summary-rules-lib-em">最新</span>
+                            {t('Ark.SummaryRulesLib')}
+                            <span className="summary-rules-lib-em">{t('Ark.SummaryRulesLatest')}</span>
                           </>
                         )}
                       </span>
                     ) : null}
                   </div>
-                  <div className="summary-sec-risk-stack" role="status" aria-label="Skills 安全风险统计">
+                  <div className="summary-sec-risk-stack" role="status" aria-label={t('Ark.SummarySkillRiskStats')}>
                     <button
                       type="button"
                       className="summary-sec-risk-line summary-sec-risk-line--high summary-sec-risk-line--btn"
                       disabled={secResult == null || isBusy}
-                      title="打开检测详情（按高危筛选）"
+                      title={t('Ark.SummaryRiskFilterHigh')}
                       onClick={() => goSkillsByRisk('high')}
                     >
-                      <span className="summary-sec-risk-label">高危</span>
+                      <span className="summary-sec-risk-label">{t('Ark.SkillSecHigh')}</span>
                       <span className="summary-sec-risk-num">{secResult != null ? secResult.high : '—'}</span>
                     </button>
                     <button
                       type="button"
                       className="summary-sec-risk-line summary-sec-risk-line--med summary-sec-risk-line--btn"
                       disabled={secResult == null || isBusy}
-                      title="打开检测详情（按中危筛选）"
+                      title={t('Ark.SummaryRiskFilterMedium')}
                       onClick={() => goSkillsByRisk('medium')}
                     >
-                      <span className="summary-sec-risk-label">中危</span>
+                      <span className="summary-sec-risk-label">{t('Ark.SkillSecMedium')}</span>
                       <span className="summary-sec-risk-num">{secResult != null ? secResult.medium : '—'}</span>
                     </button>
                     <button
                       type="button"
                       className="summary-sec-risk-line summary-sec-risk-line--low summary-sec-risk-line--btn"
                       disabled={secResult == null || isBusy}
-                      title="打开检测详情（按低危筛选）"
+                      title={t('Ark.SummaryRiskFilterLow')}
                       onClick={() => goSkillsByRisk('low')}
                     >
-                      <span className="summary-sec-risk-label">低危</span>
+                      <span className="summary-sec-risk-label">{t('Ark.SkillSecLow')}</span>
                       <span className="summary-sec-risk-num">{secResult != null ? secResult.low : '—'}</span>
                     </button>
                     <button
                       type="button"
                       className="summary-sec-risk-line summary-sec-risk-line--ok summary-sec-risk-line--btn"
                       disabled={secResult == null || isBusy}
-                      title="检测详情不列出健康项；点此将提示说明"
+                      title={t('Ark.SummaryRiskFilterOkHint')}
                       onClick={() => goSkillsByRisk('ok')}
                     >
-                      <span className="summary-sec-risk-label">健康</span>
+                      <span className="summary-sec-risk-label">{t('Ark.SkillSecOk')}</span>
                       <span className="summary-sec-risk-num">{secResult != null ? secResult.ok : '—'}</span>
                     </button>
                   </div>
@@ -779,15 +791,14 @@ export default function SummaryPage(): React.ReactElement {
       {browserOnly && (
         <div className="summary-browser-hint card">
           <p className="muted" style={{ margin: 0 }}>
-            当前为浏览器预览：无法访问本机 PATH 与目录。请使用 <strong>Ark Sync 桌面客户端</strong>{' '}
-            打开以获取真实扫描结果。
+            {t('Ark.SummaryBrowserHintPrefix')} <strong>Ark Sync</strong> {t('Ark.SummaryBrowserHintSuffix')}
           </p>
         </div>
       )}
 
       <div className="summary-results card">
         <div className="summary-results-head">
-          <span className="summary-results-title">检测结果</span>
+          <span className="summary-results-title">{t('Ark.SummaryResultsTitle')}</span>
           <span className="summary-results-badge">
             {installedCount} / {rows.length}
           </span>
@@ -795,10 +806,10 @@ export default function SummaryPage(): React.ReactElement {
         <div className="summary-results-table" role="table">
           <div className="summary-results-row summary-results-row--head" role="row">
             <div role="columnheader" className="summary-results-th-product">
-              产品
+              {t('Ark.SummaryProduct')}
             </div>
             <div role="columnheader" className="summary-results-th-status">
-              状态
+              {t('Ark.SummaryStatus')}
             </div>
           </div>
           {installedRows.map((row) => (
@@ -812,8 +823,10 @@ export default function SummaryPage(): React.ReactElement {
           {notInstalledRows.length > 0 ? (
             <details className="summary-results-uninstalled-details">
               <summary className="summary-results-uninstalled-summary">
-                <span className="summary-results-uninstalled-title">未安装</span>
-                <span className="summary-results-uninstalled-count muted">{notInstalledRows.length} 项</span>
+                <span className="summary-results-uninstalled-title">{t('Ark.SummaryNotInstalled')}</span>
+                <span className="summary-results-uninstalled-count muted">
+                  {t('Ark.SummaryItemsCount', { count: notInstalledRows.length })}
+                </span>
               </summary>
               <div className="summary-results-uninstalled-body">
                 {notInstalledRows.map((row) => (
@@ -831,19 +844,24 @@ export default function SummaryPage(): React.ReactElement {
       </div>
 
       {installDetail?.open ? (
-        <div className="summary-install-overlay" role="dialog" aria-modal="true" aria-label="安装详情">
+        <div
+          className="summary-install-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('Ark.SummaryInstallDetail')}
+        >
           <div className="summary-install-console">
             <div className="summary-install-console-head">
               <div className="summary-install-console-title">
-                <span>安装详情</span>
+                <span>{t('Ark.SummaryInstallDetail')}</span>
                 <span className={`summary-install-state summary-install-state--${installDetail.status}`}>
                   {installDetail.status === 'running'
-                    ? '进行中'
+                    ? t('Ark.SummaryInstallStateRunning')
                     : installDetail.status === 'success'
-                      ? '成功'
+                      ? t('Ark.SummaryInstallStateSuccess')
                       : installDetail.status === 'warning'
-                        ? '需确认'
-                        : '失败'}
+                        ? t('Ark.SummaryInstallStateWarning')
+                        : t('Ark.SummaryInstallStateError')}
                 </span>
               </div>
               <button
@@ -852,7 +870,7 @@ export default function SummaryPage(): React.ReactElement {
                 onClick={() => setInstallDetail((prev) => (prev ? { ...prev, open: false } : null))}
                 disabled={installDetail.status === 'running'}
               >
-                关闭
+                {t('Ark.Close')}
               </button>
             </div>
             <div className="summary-install-console-meta">
@@ -861,7 +879,10 @@ export default function SummaryPage(): React.ReactElement {
             </div>
             <p className="summary-install-console-summary">{installDetail.summary}</p>
             <pre className="summary-install-console-log">
-              {installDetail.detailLog || (installDetail.status === 'running' ? '等待安装脚本输出…' : '无日志输出')}
+              {installDetail.detailLog ||
+                (installDetail.status === 'running'
+                  ? t('Ark.SummaryInstallWaitingLog')
+                  : t('Ark.SummaryInstallNoLog'))}
             </pre>
           </div>
         </div>
@@ -869,3 +890,4 @@ export default function SummaryPage(): React.ReactElement {
     </div>
   )
 }
+
