@@ -18,7 +18,7 @@ function getPortalContainer(): HTMLElement {
 }
 
 const HELP_MENU_GROUPS: HelpMenuItem[][] = [
-  [{ kind: 'external', tkey: 'Introduction', glyph: 'ⓘ', url: 'https://docs.syncthing.net/intro/getting-started.html' }],
+  [{ kind: 'external', tkey: 'Introduction', glyph: 'ⓘ', url: 'https://github.com/arkcore-share/ark-sync-app/blob/main/README.md' }],
   [
     { kind: 'external', tkey: 'Home page', glyph: '⌂', url: 'https://syncthing.net/' },
     { kind: 'external', tkey: 'Documentation', glyph: '📖', url: 'https://docs.syncthing.net/' },
