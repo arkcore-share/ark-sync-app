@@ -429,7 +429,7 @@ export default function SettingsPage(): React.ReactElement {
 
         {err && <div className="error-banner">{err}</div>}
 
-        <nav className="settings-tabs" role="tablist" aria-label={t('Ark.SettingsTabs')}
+        <nav className="settings-tabs" role="tablist" aria-label={t('Ark.SettingsTabs')}>
           <button
             type="button"
             role="tab"

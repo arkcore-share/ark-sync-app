@@ -330,8 +330,7 @@
   "Ark.IgnoreTitle": "Ignore rules - {folderId}",
   "Ark.IgnoreHelp": "One pattern per line, same syntax as .stignore. Takes effect immediately after saving.",
   "Ark.ExpandedRules": "Expanded rules (read-only)",
-  "Ark.DeviceQrTitle": "Device QR code"
-}
+  "Ark.DeviceQrTitle": "Device QR code",
   "Ark.SettingsOctalHint": "Up to three octal digits (matches official setting).",
   "Ark.SettingsSyncListenAddress": "Sync protocol listen address",
   "Ark.SettingsInRateLimit": "Incoming rate limit (KiB/s)",
