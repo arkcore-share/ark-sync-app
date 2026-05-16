@@ -238,7 +238,6 @@ export default function AgentsPage(): React.ReactElement {
   const [skillSecRows] = useState<SkillSecurityItem[]>(() => loadSkillsSecurityFromStorage()?.skills ?? [])
   /** 主抽屉是否展开：`defaultOpen` 在异步数据就绪后不可靠，改为受控 */
   const [drawerOpen, setDrawerOpen] = useState<Record<string, boolean>>({})
-  const [isRefreshing, setIsRefreshing] = useState(false)
   const load = useCallback(async () => {
     const data = await listAgentArtifacts()
     return data ?? placeholderAgentRows()
@@ -252,16 +251,10 @@ export default function AgentsPage(): React.ReactElement {
         if (!cancelled) {
           setRows(data)
           setLoading(false)
-          setIsRefreshing(true)
           listAgentArtifacts({ force: true })
             .then((freshData) => {
               if (!cancelled && freshData) {
                 setRows(freshData)
-              }
-            })
-            .finally(() => {
-              if (!cancelled) {
-                setIsRefreshing(false)
               }
             })
         }
@@ -353,7 +346,6 @@ export default function AgentsPage(): React.ReactElement {
     <div className="agents-page">
       <header className="agents-page-header">
         <h1 className="agents-page-title">{t('Ark.AgentsTitle')}</h1>
-        {isRefreshing && <span className="agents-refresh-indicator" title={t('Ark.Loading')}>&#8635;</span>}
       </header>
 
       {isElectronApp() && skillRisk != null ? (
