@@ -1,6 +1,6 @@
 ﻿import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
-import { setTrayLocale } from '../electronBridge'
+import { getSystemLocale, setTrayLocale } from '../electronBridge'
 import {
   SYN_LANG_STORAGE_KEY,
   isValidSyncthingLang,
@@ -55,7 +55,7 @@ export async function ensureLanguageLoaded(lng: string): Promise<void> {
   i18n.addResourceBundle(lng, 'translation', merged, true, true)
 }
 
-export function resolveInitialLocale(): string {
+export async function resolveInitialLocale(): Promise<string> {
   const hashLang = readHashLangParam()
   if (hashLang && isValidSyncthingLang(hashLang)) {
     return hashLang
@@ -64,6 +64,20 @@ export function resolveInitialLocale(): string {
     const stored = localStorage.getItem(SYN_LANG_STORAGE_KEY)?.trim()
     if (stored && isValidSyncthingLang(stored)) {
       return stored
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    const sysLocale = await getSystemLocale()
+    if (sysLocale && isValidSyncthingLang(sysLocale)) {
+      return sysLocale
+    }
+    if (sysLocale.startsWith('zh')) {
+      return 'zh-CN'
+    }
+    if (sysLocale.startsWith('ja')) {
+      return 'ja'
     }
   } catch {
     /* ignore */
@@ -82,7 +96,7 @@ let initPromise: Promise<void> | null = null
 export function initI18n(): Promise<void> {
   if (!initPromise) {
     initPromise = (async () => {
-      const lng = resolveInitialLocale()
+      const lng = await resolveInitialLocale()
       await i18n.use(initReactI18next).init({
         lng: 'en',
         fallbackLng: 'en',

@@ -76,6 +76,16 @@ export async function clearConnection(): Promise<boolean> {
   return true
 }
 
+export async function getSystemLocale(): Promise<string> {
+  if (isElectronApp() && window.syncWeb?.getSystemLocale) {
+    return window.syncWeb.getSystemLocale()
+  }
+  if (typeof navigator !== 'undefined') {
+    return navigator.language || 'en'
+  }
+  return 'en'
+}
+
 /** Open folder in file manager (Electron) or no-op in browser. */
 export async function openPath(p: string): Promise<string> {
   if (isElectronApp()) {

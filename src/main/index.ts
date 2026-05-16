@@ -658,6 +658,8 @@ app.whenReady().then(async () => {
   nativeTheme.themeSource = 'system'
   trayLocale = app.getLocale() || trayLocale
 
+  ipcMain.handle('app:getSystemLocale', () => app.getLocale())
+
   await startBundledSyncthingIfPresent()
 
   // Windows / Linux：去掉窗口顶部默认菜单栏（File / Edit / View …）
