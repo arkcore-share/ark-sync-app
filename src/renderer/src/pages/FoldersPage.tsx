@@ -1,4 +1,5 @@
 ﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { LocalStateTotalStat } from '../components/ConnectionSignal'
 import AddFolderModal from '../components/folder/AddFolderModal'
@@ -200,24 +201,25 @@ function LastChangeValue({ stats }: { stats: FolderStatisticsEntry | undefined }
 }
 
 function RescanWatcherValue({ folder }: { folder: FolderConfiguration }): React.ReactElement {
+  const { t } = useTranslation()
   const interval = folder.rescanIntervalS ?? 3600
   const intervalStr = formatIntervalSeconds(interval)
-  const watch = folder.fsWatcherEnabled !== false ? '已启用' : '已禁用'
-  const enabledTip = '正在以给定的间隔进行定期扫描，并启用了更改监视'
+  const watch = folder.fsWatcherEnabled !== false ? t('Ark.FoldersWatcherEnabled') : t('Ark.FoldersWatcherDisabled')
+  const enabledTip = t('Ark.FoldersWatcherTip')
   return (
     <span className="rescan-watcher-inline">
       <span className="rw-part">
-        <FkWrap title="扫描间隔">
+        <FkWrap title={t('Ark.FoldersRescanInterval')}>
           <IcoClock />
         </FkWrap>
         {intervalStr}
       </span>
       <span className="rw-sep"> </span>
       <span className="rw-part">
-        <FkWrap title="更改监视">
+        <FkWrap title={t('Ark.FoldersFileWatch')}>
           <IcoEye />
         </FkWrap>{' '}
-        {watch === '已启用' ? (
+        {watch === t('Ark.FoldersWatcherEnabled') ? (
           <span title={enabledTip} className="rescan-watch-tip">
             {watch}
           </span>
@@ -230,9 +232,10 @@ function RescanWatcherValue({ folder }: { folder: FolderConfiguration }): React.
 }
 
 function VersioningSummaryCell({ folder }: { folder: FolderConfiguration }): React.ReactElement {
+  const { t } = useTranslation()
   const v = folder.versioning
   if (!v?.type) {
-    return <>关闭</>
+    return <>{t('Ark.FoldersVersioningOff')}</>
   }
   const p = v.params ?? {}
   const maxAge = p.maxAge ? parseInt(p.maxAge, 10) : 0
@@ -260,7 +263,7 @@ function VersioningSummaryCell({ folder }: { folder: FolderConfiguration }): Rea
               📅
             </span>
           </FkWrap>
-          <span title="最长保留时间">{formatIntervalSeconds(maxAge)}</span>
+          <span title={t('Ark.FoldersMaxAge')}>{formatIntervalSeconds(maxAge)}</span>
         </>
       )}
       {cleanS > 0 && (
@@ -271,13 +274,13 @@ function VersioningSummaryCell({ folder }: { folder: FolderConfiguration }): Rea
               ⟲
             </span>
           </FkWrap>
-          <span title="清除间隔">{formatIntervalSeconds(cleanS)}</span>
+          <span title={t('Ark.FoldersCleanInterval')}>{formatIntervalSeconds(cleanS)}</span>
         </>
       )}
       {pathStr ? (
         <>
           {' · '}
-          <FkWrap title="版本路径">
+          <FkWrap title={t('Ark.FoldersVersionPath')}>
             <IcoFolder />
           </FkWrap>
           <span>{pathStr}</span>
@@ -308,6 +311,7 @@ function FolderCard({
   onEdit: () => void
   onVersions: () => void
 }): React.ReactElement {
+  const { t } = useTranslation()
   const { folder, status, stats } = row
   const st = folderDisplayState(folder, status)
   const shared = (folder.devices || [])
@@ -318,7 +322,7 @@ function FolderCard({
       name: resolveDeviceNameFromConfig(configDevices, id)
     }))
 
-  const blockIdx = folder.blockIndexing !== false ? '是' : '否'
+  const blockIdx = folder.blockIndexing !== false ? t('Ark.Yes') : t('Ark.No')
   const gFiles = status?.globalFiles ?? 0
   const gDirs = status?.globalDirectories ?? 0
   const gBytes = Number(status?.globalBytes ?? 0)
@@ -345,42 +349,42 @@ function FolderCard({
       {expanded && (
         <>
           <div className="folder-card-body kv-list">
-            <FolderKvRow icon={<IcoInfo />} label="文件夹 ID" valueClass="kv-value-tr">
+            <FolderKvRow icon={<IcoInfo />} label={t('Ark.FoldersId')} valueClass="kv-value-tr">
               <code>{folder.id}</code>
             </FolderKvRow>
-            <FolderKvRow icon={<IcoFolderPath />} label="文件夹路径" valueClass="kv-value-tr path-val">
+            <FolderKvRow icon={<IcoFolderPath />} label={t('Ark.FoldersPath')} valueClass="kv-value-tr path-val">
               {folder.path}
             </FolderKvRow>
-            <FolderKvRow icon={<IcoGlobe />} label="全局状态" valueClass="kv-value-tr">
+            <FolderKvRow icon={<IcoGlobe />} label={t('Ark.FoldersGlobalState')} valueClass="kv-value-tr">
               {status ? (
                 <LocalStateTotalStat files={gFiles} dirs={gDirs} bytes={gBytes} formatBytes={formatBytes} />
               ) : (
                 '—'
               )}
             </FolderKvRow>
-            <FolderKvRow icon={<IcoHome />} label="本地状态" valueClass="kv-value-tr">
+            <FolderKvRow icon={<IcoHome />} label={t('Ark.FoldersLocalState')} valueClass="kv-value-tr">
               {status ? (
                 <LocalStateTotalStat files={lFiles} dirs={lDirs} bytes={lBytes} formatBytes={formatBytes} />
               ) : (
                 '—'
               )}
             </FolderKvRow>
-            <FolderKvRow icon={<IcoFolder />} label="文件夹类型" valueClass="kv-value-tr">
+            <FolderKvRow icon={<IcoFolder />} label={t('Ark.FoldersType')} valueClass="kv-value-tr">
               {folderTypeLabel(folder.type)}
             </FolderKvRow>
-            <FolderKvRow icon={<IcoList />} label="块索引" valueClass="kv-value-tr">
+            <FolderKvRow icon={<IcoList />} label={t('Ark.FoldersBlockIndex')} valueClass="kv-value-tr">
               {blockIdx}
             </FolderKvRow>
-            <FolderKvRow icon={<IcoRescan />} label="重新扫描" valueClass="kv-value-tr">
+            <FolderKvRow icon={<IcoRescan />} label={t('Ark.FoldersRescan')} valueClass="kv-value-tr">
               <RescanWatcherValue folder={folder} />
             </FolderKvRow>
-            <FolderKvRow icon={<IcoArrowsUD />} label="文件拉取顺序" valueClass="kv-value-tr">
+            <FolderKvRow icon={<IcoArrowsUD />} label={t('Ark.FoldersPullOrder')} valueClass="kv-value-tr">
               {pullOrderLabel(folder.order)}
             </FolderKvRow>
-            <FolderKvRow icon={<IcoLayers />} label="文件版本控制" valueClass="kv-value-tr">
+            <FolderKvRow icon={<IcoLayers />} label={t('Ark.FoldersVersioning')} valueClass="kv-value-tr">
               <VersioningSummaryCell folder={folder} />
             </FolderKvRow>
-            <FolderKvRow icon={<IcoShareNodes />} label="共享给" valueClass="kv-value-tr shared-with">
+            <FolderKvRow icon={<IcoShareNodes />} label={t('Ark.FoldersSharedWith')} valueClass="kv-value-tr shared-with">
               {shared.length === 0 ? (
                 <span className="muted">—</span>
               ) : (
@@ -394,10 +398,10 @@ function FolderCard({
                 ))
               )}
             </FolderKvRow>
-            <FolderKvRow icon={<IcoClock />} label="最后扫描" valueClass="kv-value-tr">
+            <FolderKvRow icon={<IcoClock />} label={t('Ark.FoldersLastScan')} valueClass="kv-value-tr">
               {formatLastScan(stats)}
             </FolderKvRow>
-            <FolderKvRow icon={<IcoSwap />} label="最后更改" valueClass="kv-value-tr">
+            <FolderKvRow icon={<IcoSwap />} label={t('Ark.FoldersLastChange')} valueClass="kv-value-tr">
               <LastChangeValue stats={stats} />
             </FolderKvRow>
           </div>
@@ -406,7 +410,7 @@ function FolderCard({
               <span className="btn-glyph" aria-hidden>
                 {folder.paused ? '▶' : '⏸'}
               </span>
-              {folder.paused ? '恢复' : '暂停'}
+              {folder.paused ? t('Ark.FoldersResume') : t('Ark.FoldersPause')}
             </button>
             <button type="button" onClick={onVersions}>
               <span className="btn-glyph" aria-hidden>
@@ -434,6 +438,7 @@ function FolderCard({
 }
 
 export default function FoldersPage(): React.ReactElement {
+  const { t } = useTranslation()
   const { client } = useConnection()
   const [cfg, setCfg] = useState<SystemConfig | null>(null)
   const [rows, setRows] = useState<Row[]>([])
@@ -568,18 +573,18 @@ export default function FoldersPage(): React.ReactElement {
 
         const r = await syncAgentConfigsWithRelay()
         if (r == null) {
-          window.alert('当前环境不支持此操作（请在 Ark Sync 桌面客户端中使用）。')
+          window.alert(t('Ark.FoldersDesktopOnly'))
           return
         }
         const errBlock =
           r.errors.length > 0
-            ? `\n\n部分路径失败（最多显示 10 条）：\n${r.errors.slice(0, 10).join('\n')}${r.errors.length > 10 ? '\n…' : ''}`
+            ? `\n\n${t('Ark.FoldersSomePathsFailed', { max: 10 })}:\n${r.errors.slice(0, 10).join('\n')}${r.errors.length > 10 ? '\n…' : ''}`
             : ''
-        const modeText = r.mode === 'synced' ? '已执行双向同步' : '未发现中转目录，已仅本地扫描'
-        const relayText = r.relayRoot ? `\n中转根目录：${r.relayRoot}` : ''
-        const runText = r.runId ? `\n运行 ID：${r.runId}` : ''
+        const modeText = r.mode === 'synced' ? t('Ark.FoldersSyncedMode') : t('Ark.FoldersLocalScanMode')
+        const relayText = r.relayRoot ? `\n${t('Ark.FoldersRelayRoot')}: ${r.relayRoot}` : ''
+        const runText = r.runId ? `\n${t('Ark.FoldersRunId')}: ${r.runId}` : ''
         window.alert(
-          `${r.ok ? '执行完成。' : '执行结束，但有部分失败。'}\n\n模式：${modeText}${relayText}${runText}\n变更：同步到本地 ${r.copiedToLocal} 项，同步到中转 ${r.copiedToRelay} 项，冲突处理 ${r.conflicts} 项，跳过 ${r.skipped} 项。${errBlock}`
+          `${r.ok ? t('Ark.FoldersComplete') : t('Ark.FoldersPartialComplete')}\n\n${t('Ark.FoldersMode')}: ${modeText}${relayText}${runText}\n${t('Ark.FoldersChanges', { copiedToLocal: r.copiedToLocal, copiedToRelay: r.copiedToRelay, conflicts: r.conflicts, skipped: r.skipped })}${errBlock}`
         )
         await load()
       } catch (e) {
@@ -591,7 +596,7 @@ export default function FoldersPage(): React.ReactElement {
   }
 
   if (!client) {
-    return <p className="muted">未连接</p>
+    return <p className="muted">{t('Ark.FoldersNotConnected')}</p>
   }
 
   const anyPaused = rows.some((r) => r.folder.paused)
@@ -599,38 +604,38 @@ export default function FoldersPage(): React.ReactElement {
   return (
     <div className="folders-page">
       <div className="row" style={{ justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0 }}>文件夹</h1>
+        <h1 style={{ margin: 0 }}>{t('Ark.NavFolders')}</h1>
         <div className="row folder-global-actions">
           <button type="button" onClick={() => (anyPaused ? resumeAll() : pauseAll())}>
             <span className="btn-glyph" aria-hidden>
               {anyPaused ? '▶' : '⏸'}
             </span>
-            {anyPaused ? '恢复全部' : '暂停全部'}
+            {anyPaused ? t('Ark.FoldersResumeAll') : t('Ark.FoldersPauseAll')}
           </button>
           <button type="button" onClick={() => void scanAll()}>
             <span className="btn-glyph" aria-hidden>
               ↻
             </span>
-            全部重新扫描
+            {t('Ark.FoldersScanAll')}
           </button>
           {isElectronApp() ? (
             <button
               type="button"
               disabled={syncingAgentConfigs}
               onClick={syncAgentConfigs}
-              title="先检查 ~/.sync_tmp，再按映射规则执行双向同步"
+              title={t('Ark.FoldersSyncTip')}
             >
               <span className="btn-glyph" aria-hidden>
                 ⧉
               </span>
-              {syncingAgentConfigs ? '正在同步…' : '从智能体扫描添加'}
+              {syncingAgentConfigs ? t('Ark.FoldersSyncing') : t('Ark.FoldersAddFromAgent')}
             </button>
           ) : null}
           <button type="button" className="primary" onClick={() => setShowAdd(true)}>
             <span className="btn-glyph" aria-hidden>
               ＋
             </span>
-            添加文件夹
+            {t('Ark.FoldersAdd')}
           </button>
         </div>
       </div>
@@ -660,7 +665,7 @@ export default function FoldersPage(): React.ReactElement {
         ))}
       </div>
 
-      {rows.length === 0 && !err && <p className="muted">暂无文件夹，点击「添加文件夹」创建。</p>}
+      {rows.length === 0 && !err && <p className="muted">{t('Ark.FoldersEmptyHint')}</p>}
 
       {showAdd && myId && (
         <AddFolderModal

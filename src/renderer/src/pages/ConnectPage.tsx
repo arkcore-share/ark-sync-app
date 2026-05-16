@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { isElectronApp } from '../electronBridge'
 import { useConnection } from '../context/ConnectionContext'
@@ -6,6 +7,7 @@ import { useConnection } from '../context/ConnectionContext'
 const DEFAULT_BASE = 'http://127.0.0.1:8384'
 
 export default function ConnectPage(): React.ReactElement {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { setConnection, error: bootError } = useConnection()
   const [busy, setBusy] = useState(false)
@@ -16,9 +18,7 @@ export default function ConnectPage(): React.ReactElement {
     setError(null)
     try {
       if (!isElectronApp()) {
-        throw new Error(
-          '「进入系统」使用本机免 API 密钥连接，仅支持桌面客户端。请使用 Ark Sync 安装版或运行 npm run dev 打开的 Electron 窗口；浏览器模式请改用带 API 密钥的高级连接方式。'
-        )
+        throw new Error(t('Ark.ConnectErrorBrowserOnly'))
       }
       await setConnection({
         baseUrl: DEFAULT_BASE,
@@ -45,22 +45,22 @@ export default function ConnectPage(): React.ReactElement {
               </div>
             </div>
             <div className="connect-welcome-copy">
-              <h1 className="connect-welcome-title">Ark Sync</h1>
-              <p className="connect-welcome-tagline">智能体安全与配置同步，从本机一键开始</p>
+              <h1 className="connect-welcome-title">{t('Ark.ConnectTitle')}</h1>
+              <p className="connect-welcome-tagline">{t('Ark.ConnectTagline')}</p>
               <ul className="connect-welcome-features">
                 <li>
                   <div className="connect-welcome-feature-body">
-                    <span className="connect-welcome-feature-name">Skill 安全检测</span>
+                    <span className="connect-welcome-feature-name">{t('Ark.ConnectFeatureSkillSecurity')}</span>
                     <span className="connect-welcome-feature-desc">
-                      对本地技能与相关文件做规则扫描，提示敏感信息与高风险操作，便于同步前自检与处置。
+                      {t('Ark.ConnectFeatureSkillSecurityDesc')}
                     </span>
                   </div>
                 </li>
                 <li>
                   <div className="connect-welcome-feature-body">
-                    <span className="connect-welcome-feature-name">Skill、Memory、Files自动迁移多台设备</span>
+                    <span className="connect-welcome-feature-name">{t('Ark.ConnectFeatureMigration')}</span>
                     <span className="connect-welcome-feature-desc">
-                      使用Ark Sync小程序扫描多台设备，自动同步Skill（技能）、Memory（记忆/数据库）、Files（配置文件）。
+                      {t('Ark.ConnectFeatureMigrationDesc')}
                     </span>
                   </div>
                 </li>
@@ -75,7 +75,7 @@ export default function ConnectPage(): React.ReactElement {
               disabled={busy}
               onClick={() => void enterSystem()}
             >
-              {busy ? '进入中…' : '进入系统'}
+              {busy ? t('Ark.ConnectEntering') : t('Ark.ConnectEnterSystem')}
             </button>
           </div>
         </div>

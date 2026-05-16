@@ -414,7 +414,7 @@ export default function SettingsPage(): React.ReactElement {
   }
 
   if (!client) {
-    return <p className="muted">未连接</p>
+    return <p className="muted">{t('Ark.SettingsNotConnected')}</p>
   }
 
   return (
@@ -424,12 +424,12 @@ export default function SettingsPage(): React.ReactElement {
           <span className="settings-shell-title-glyph" aria-hidden>
             ⚙
           </span>
-          <h1 className="settings-shell-title">设置</h1>
+          <h1 className="settings-shell-title">{t('Ark.SettingsTitle')}</h1>
         </header>
 
         {err && <div className="error-banner">{err}</div>}
 
-        <nav className="settings-tabs" role="tablist" aria-label="设置分类">
+        <nav className="settings-tabs" role="tablist" aria-label={t('Ark.SettingsTabs')}
           <button
             type="button"
             role="tab"
@@ -440,7 +440,7 @@ export default function SettingsPage(): React.ReactElement {
             <span className="settings-tab-glyph" aria-hidden>
               ⚙
             </span>
-            常规
+            {t('Ark.SettingsGeneral')}
           </button>
           <button
             type="button"
@@ -452,7 +452,7 @@ export default function SettingsPage(): React.ReactElement {
             <span className="settings-tab-glyph" aria-hidden>
               🖥
             </span>
-            GUI
+            {t('Ark.SettingsGui')}
           </button>
           <button
             type="button"
@@ -464,7 +464,7 @@ export default function SettingsPage(): React.ReactElement {
             <span className="settings-tab-glyph" aria-hidden>
               🔗
             </span>
-            连接
+            {t('Ark.SettingsConnections')}
           </button>
           <button
             type="button"
@@ -476,7 +476,7 @@ export default function SettingsPage(): React.ReactElement {
             <span className="settings-tab-glyph" aria-hidden>
               💻
             </span>
-            忽略的设备
+            {t('Ark.SettingsIgnoredDevices')}
             <span className="settings-tab-badge">{ignoredDevices.length}</span>
           </button>
           <button
@@ -489,18 +489,18 @@ export default function SettingsPage(): React.ReactElement {
             <span className="settings-tab-glyph" aria-hidden>
               📁
             </span>
-            忽略的文件夹
+            {t('Ark.SettingsIgnoredFolders')}
             <span className="settings-tab-badge">{ignoredFolderCount}</span>
           </button>
         </nav>
 
         <div className="settings-body">
-          {!draft && <p className="muted">正在加载配置…</p>}
+          {!draft && <p className="muted">{t('Ark.SettingsLoadingConfig')}</p>}
 
           {draft && tab === 'general' && (
             <div className="settings-panel">
               <div className="settings-field">
-                <label htmlFor="settings-device-name">设备名</label>
+                <label htmlFor="settings-device-name">{t('Ark.SettingsDeviceName')}</label>
                 <input
                   id="settings-device-name"
                   className="settings-input-full"
@@ -511,7 +511,7 @@ export default function SettingsPage(): React.ReactElement {
 
               <div className="settings-two-col">
                 <div className="settings-field">
-                  <label htmlFor="settings-min-disk">最低空闲磁盘空间</label>
+                  <label htmlFor="settings-min-disk">{t('Ark.SettingsMinDiskSpace')}</label>
                   <div className="settings-inline-num-unit">
                     <input
                       id="settings-min-disk"
@@ -529,18 +529,18 @@ export default function SettingsPage(): React.ReactElement {
                       <option value="TB">TB</option>
                     </select>
                   </div>
-                  <p className="field-help">此设置控制主磁盘（即索引数据库）上所需的可用空间。</p>
+                  <p className="field-help">{t('Ark.SettingsMinDiskSpaceTip')}</p>
                 </div>
                 <div className="settings-field">
-                  <label>API 密钥</label>
+                  <label>{t('Ark.SettingsApiKey')}</label>
                   <div className="settings-input-with-btn">
                     <input readOnly className="mono" value={draft.gui?.apiKey || ''} />
                     <button
                       type="button"
                       onClick={() => updateGui({ apiKey: randomApiKey() })}
-                      title="生成新密钥"
+                      title={t('Ark.SettingsGenerateNewKey')}
                     >
-                      生成
+                      {t('Ark.SettingsGenerate')}
                     </button>
                   </div>
                 </div>
@@ -548,14 +548,13 @@ export default function SettingsPage(): React.ReactElement {
 
               <div className="settings-two-col">
                 <div className="settings-field settings-ur-field">
-                  {/* 与官方一致：label 只对应「匿名使用报告」；(预览) 在 label 外，为链接样式 */}
                   <div className="settings-ur-heading">
                     {!isCandidate && upgrades !== 'candidate' ? (
                       <label className="settings-ur-title" htmlFor="settings-ur-version-select">
-                        匿名使用报告
+                        {t('Ark.SettingsUsageReport')}
                       </label>
                     ) : (
-                      <span className="settings-ur-title">匿名使用报告</span>
+                      <span className="settings-ur-title">{t('Ark.SettingsUsageReport')}</span>
                     )}
                     {' ('}
                     <button
@@ -564,7 +563,7 @@ export default function SettingsPage(): React.ReactElement {
                       disabled={urPreviewBusy}
                       onClick={() => void loadUrPreview()}
                     >
-                      预览
+                      {t('Ark.SettingsUsageReportPreview')}
                     </button>
                     {')'}
                   </div>
@@ -577,62 +576,62 @@ export default function SettingsPage(): React.ReactElement {
                     >
                       {urVersionOptions.map((n) => (
                         <option key={n} value={String(n)}>
-                          版本 {n}
+                          {t('Ark.SettingsVersion')} {n}
                         </option>
                       ))}
-                      <option value="0">未决定（将提示）</option>
-                      <option value="-1">禁用</option>
+                      <option value="0">{t('Ark.SettingsUndecided')}</option>
+                      <option value="-1">{t('Ark.SettingsDisabled')}</option>
                     </select>
                   ) : (
                     <p className="field-help settings-ur-candidate-hint">
-                      发布候选版始终启用使用报告。
+                      {t('Ark.SettingsCandidateAlwaysOn')}
                     </p>
                   )}
                 </div>
                 <div className="settings-field">
                   <label>
-                    自动升级{' '}
+                    {t('Ark.SettingsAutoUpgrade')}{' '}
                     <a href={`${DOCS_BASE}users/releases`} target="_blank" rel="noreferrer">
-                      ? 帮助
+                      ? {t('Ark.SettingsHelp')}
                     </a>
                   </label>
                   <select value={upgrades} onChange={(e) => setUpgrades(e.target.value as 'none' | 'stable' | 'candidate')}>
-                    {!isCandidate ? <option value="none">不升级</option> : null}
-                    <option value="stable">仅稳定版本</option>
-                    <option value="candidate">稳定版与发布候选版</option>
+                    {!isCandidate ? <option value="none">{t('Ark.SettingsNoUpgrade')}</option> : null}
+                    <option value="stable">{t('Ark.SettingsStableOnly')}</option>
+                    <option value="candidate">{t('Ark.SettingsStableAndCandidate')}</option>
                   </select>
                   {isCandidate ? (
-                    <p className="field-help">候选版本始终启用自动升级。</p>
+                    <p className="field-help">{t('Ark.SettingsCandidateAutoUpgrade')}</p>
                   ) : null}
                 </div>
               </div>
 
               <div className="settings-field settings-defaults-block">
-                <label>默认配置</label>
+                <label>{t('Ark.SettingsDefaults')}</label>
                 <div className="row" style={{ gap: '0.5rem', flexWrap: 'wrap' }}>
                   <button type="button" className="muted-btn" onClick={() => openDefaults('folder')}>
-                    编辑文件夹默认值
+                    {t('Ark.SettingsEditFolderDefaults')}
                   </button>
                   <button type="button" className="muted-btn" onClick={() => openDefaults('device')}>
-                    编辑设备默认值
+                    {t('Ark.SettingsEditDeviceDefaults')}
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {draft && tab === 'gui' && (
+{draft && tab === 'gui' && (
             <div className="settings-panel">
               {sys?.guiAddressOverridden ? (
                 <p className="field-help" style={{ color: 'var(--warning)' }}>
-                  GUI 监听地址已被启动参数覆盖，此处修改在覆盖生效期间可能无效。
+                  {t('Ark.SettingsGuiAddressOverridden')}
                 </p>
               ) : null}
               <div className="settings-field">
                 <label htmlFor="settings-gui-addr">
-                  GUI 监听地址{' '}
+                  {t('Ark.SettingsGuiListenAddress')}{' '}
                   <a href={`${DOCS_BASE}users/guilisten`} target="_blank" rel="noreferrer">
-                    ? 帮助
+                    ? {t('Ark.SettingsHelp')}
                   </a>
                 </label>
                 <input
@@ -644,7 +643,7 @@ export default function SettingsPage(): React.ReactElement {
               </div>
               <div className="settings-two-col">
                 <div className="settings-field">
-                  <label htmlFor="settings-gui-user">GUI 身份验证用户</label>
+                  <label htmlFor="settings-gui-user">{t('Ark.SettingsGuiAuthUser')}</label>
                   <input
                     id="settings-gui-user"
                     className="settings-input-full"
@@ -654,7 +653,7 @@ export default function SettingsPage(): React.ReactElement {
                   />
                 </div>
                 <div className="settings-field">
-                  <label htmlFor="settings-gui-pass">GUI 身份验证密码</label>
+                  <label htmlFor="settings-gui-pass">{t('Ark.SettingsGuiAuthPass')}</label>
                   <input
                     id="settings-gui-pass"
                     type="password"
@@ -662,7 +661,7 @@ export default function SettingsPage(): React.ReactElement {
                     autoComplete="new-password"
                     value={guiPasswordInput}
                     placeholder={
-                      guiPasswordConfigured ? '留空并保存将清除密码；填写则为新密码' : ''
+                      guiPasswordConfigured ? t('Ark.SettingsClearPassword') : ''
                     }
                     onChange={(e) => setGuiPasswordInput(e.target.value)}
                   />
@@ -676,7 +675,7 @@ export default function SettingsPage(): React.ReactElement {
                       checked={!!draft.gui?.useTLS}
                       onChange={(e) => updateGui({ useTLS: e.target.checked })}
                     />
-                    使用 HTTPS 连接到 GUI
+                    {t('Ark.SettingsUseHttps')}
                   </label>
                 </div>
                 <div className="settings-field checkbox">
@@ -686,28 +685,42 @@ export default function SettingsPage(): React.ReactElement {
                       checked={!!draft.options?.startBrowser}
                       onChange={(e) => updateOption('startBrowser', e.target.checked)}
                     />
-                    启动浏览器
+                    {t('Ark.SettingsStartBrowser')}
                   </label>
                 </div>
               </div>
               {isUnixGuiAddress(draft.gui?.address ?? '') ? (
                 <div className="settings-two-col">
                   <div className="settings-field">
-                    <label htmlFor="settings-gui-theme">GUI 主题</label>
+                    <label htmlFor="settings-gui-theme">{t('Ark.SettingsGuiTheme')}</label>
                     <select
                       id="settings-gui-theme"
                       value={draft.gui?.theme ?? 'default'}
                       onChange={(e) => updateGui({ theme: e.target.value })}
                     >
-                      {GUI_THEMES.map((t) => (
-                        <option key={t} value={t}>
-                          {t === 'default' ? '默认' : t}
+{GUI_THEMES.map((theme) => (
+                      <option key={theme} value={theme}>
+                        {theme === 'default' ? t('Ark.SettingsDefault') : theme}
+                      </option>
+                    ))}
+                    </select>
+                  </div>
+                  <div className="settings-field">
+                    <label htmlFor="settings-theme-dark">{t('Ark.SettingsThemeDark')}</label>
+                    <select
+                      id="settings-theme-dark"
+                      value={draft.gui?.theme ?? ''}
+                      onChange={(e) => updateGui({ theme: e.target.value })}
+                    >
+                      {GUI_THEMES.map((theme) => (
+                        <option key={theme} value={theme}>
+                          {theme === 'default' ? t('Ark.SettingsDefault') : theme}
                         </option>
                       ))}
                     </select>
                   </div>
                   <div className="settings-field">
-                    <label htmlFor="settings-unix-socket-perm">UNIX 套接字权限</label>
+                    <label htmlFor="settings-unix-socket-perm">{t('Ark.SettingsUnixSocketPerm')}</label>
                     <input
                       id="settings-unix-socket-perm"
                       className="settings-input-full mono"
@@ -715,20 +728,20 @@ export default function SettingsPage(): React.ReactElement {
                       placeholder="0660"
                       onChange={(e) => updateGui({ unixSocketPermissions: e.target.value })}
                     />
-                    <p className="field-help">最多三位八进制数字（与官方设置一致）。</p>
+                    <p className="field-help">{t('Ark.SettingsOctalHint')}</p>
                   </div>
                 </div>
               ) : (
                 <div className="settings-field">
-                  <label htmlFor="settings-gui-theme-only">GUI 主题</label>
+                  <label htmlFor="settings-gui-theme-only">{t('Ark.SettingsGuiTheme')}</label>
                   <select
                     id="settings-gui-theme-only"
                     value={draft.gui?.theme ?? 'default'}
                     onChange={(e) => updateGui({ theme: e.target.value })}
                   >
-                    {GUI_THEMES.map((t) => (
-                      <option key={t} value={t}>
-                        {t === 'default' ? '默认' : t}
+                    {GUI_THEMES.map((theme) => (
+                      <option key={theme} value={theme}>
+                        {theme === 'default' ? t('Ark.SettingsDefault') : theme}
                       </option>
                     ))}
                   </select>
@@ -741,9 +754,9 @@ export default function SettingsPage(): React.ReactElement {
             <div className="settings-panel">
               <div className="settings-field">
                 <label htmlFor="settings-listen">
-                  同步协议监听地址{' '}
+                  {t('Ark.SettingsSyncListenAddress')}{' '}
                   <a href={`${DOCS_BASE}users/config#listen-addresses`} target="_blank" rel="noreferrer">
-                    ? 帮助
+                    ? {t('Ark.SettingsHelp')}
                   </a>
                 </label>
                 <input
@@ -755,7 +768,7 @@ export default function SettingsPage(): React.ReactElement {
               </div>
               <div className="settings-two-col">
                 <div className="settings-field">
-                  <label htmlFor="settings-max-in">传入速率限制 (KiB/s)</label>
+                  <label htmlFor="settings-max-in">{t('Ark.SettingsInRateLimit')}</label>
                   <input
                     id="settings-max-in"
                     type="number"
@@ -766,7 +779,7 @@ export default function SettingsPage(): React.ReactElement {
                   />
                 </div>
                 <div className="settings-field">
-                  <label htmlFor="settings-max-out">传出速率限制 (KiB/s)</label>
+                  <label htmlFor="settings-max-out">{t('Ark.SettingsOutRateLimit')}</label>
                   <input
                     id="settings-max-out"
                     type="number"
@@ -784,7 +797,7 @@ export default function SettingsPage(): React.ReactElement {
                     checked={!!draft.options?.limitBandwidthInLan}
                     onChange={(e) => updateOption('limitBandwidthInLan', e.target.checked)}
                   />
-                  在局域网内限制带宽
+                  {t('Ark.SettingsLimitBandwidthLan')}
                 </label>
               </div>
               <div className="settings-two-col">
@@ -795,7 +808,7 @@ export default function SettingsPage(): React.ReactElement {
                       checked={draft.options?.natEnabled !== false}
                       onChange={(e) => updateOption('natEnabled', e.target.checked)}
                     />
-                    启用 NAT 穿透
+                    {t('Ark.SettingsNatEnabled')}
                   </label>
                 </div>
                 <div className="settings-field checkbox">
@@ -805,7 +818,7 @@ export default function SettingsPage(): React.ReactElement {
                       checked={draft.options?.localAnnounceEnabled !== false}
                       onChange={(e) => updateOption('localAnnounceEnabled', e.target.checked)}
                     />
-                    本地发现
+                    {t('Ark.SettingsLocalDiscovery')}
                   </label>
                 </div>
               </div>
@@ -817,7 +830,7 @@ export default function SettingsPage(): React.ReactElement {
                       checked={draft.options?.globalAnnounceEnabled !== false}
                       onChange={(e) => updateOption('globalAnnounceEnabled', e.target.checked)}
                     />
-                    全局发现
+                    {t('Ark.SettingsGlobalDiscovery')}
                   </label>
                 </div>
                 <div className="settings-field checkbox">
@@ -827,12 +840,12 @@ export default function SettingsPage(): React.ReactElement {
                       checked={draft.options?.relaysEnabled !== false}
                       onChange={(e) => updateOption('relaysEnabled', e.target.checked)}
                     />
-                    启用中继
+                    {t('Ark.SettingsRelaysEnabled')}
                   </label>
                 </div>
               </div>
               <div className="settings-field">
-                <label htmlFor="settings-global-ann">全局发现服务器</label>
+                <label htmlFor="settings-global-ann">{t('Ark.SettingsGlobalAnnounce')}</label>
                 <input
                   id="settings-global-ann"
                   className="settings-input-full mono"
@@ -847,15 +860,15 @@ export default function SettingsPage(): React.ReactElement {
           {draft && tab === 'ignoredDevices' && (
             <div className="settings-panel">
               {ignoredDevices.length === 0 ? (
-                <p className="muted">您没有忽略的设备。</p>
+                <p className="muted">{t('Ark.SettingsNoIgnoredDevices')}</p>
               ) : (
                 <div className="settings-table-wrap">
                   <table className="settings-table">
                     <thead>
                       <tr>
-                        <th>忽略时间</th>
-                        <th>设备</th>
-                        <th>地址</th>
+                        <th>{t('Ark.SettingsIgnoredTime')}</th>
+                        <th>{t('Ark.SettingsDevice')}</th>
+                        <th>{t('Ark.SettingsAddress')}</th>
                         <th />
                       </tr>
                     </thead>
@@ -867,7 +880,7 @@ export default function SettingsPage(): React.ReactElement {
                           <td className="mono">{row.address || '—'}</td>
                           <td>
                             <button type="button" className="link-btn" onClick={() => unignoreDevice(row.deviceID)}>
-                              取消忽略
+                              {t('Ark.SettingsUnignore')}
                             </button>
                           </td>
                         </tr>
@@ -882,15 +895,15 @@ export default function SettingsPage(): React.ReactElement {
           {draft && tab === 'ignoredFolders' && (
             <div className="settings-panel">
               {ignoredFolderRows.length === 0 ? (
-                <p className="muted">您没有忽略的文件夹。</p>
+                <p className="muted">{t('Ark.SettingsNoIgnoredFolders')}</p>
               ) : (
                 <div className="settings-table-wrap">
                   <table className="settings-table">
                     <thead>
                       <tr>
-                        <th>忽略时间</th>
-                        <th>文件夹</th>
-                        <th>设备</th>
+                        <th>{t('Ark.SettingsIgnoredTime')}</th>
+                        <th>{t('Ark.SettingsFolder')}</th>
+                        <th>{t('Ark.SettingsDevice')}</th>
                         <th />
                       </tr>
                     </thead>
@@ -906,7 +919,7 @@ export default function SettingsPage(): React.ReactElement {
                               className="link-btn"
                               onClick={() => unignoreFolder(r.deviceId, r.folder.id)}
                             >
-                              取消忽略
+                              {t('Ark.SettingsUnignore')}
                             </button>
                           </td>
                         </tr>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useConnection } from '../../context/ConnectionContext'
 import type { FolderConfiguration } from '../../api/types'
 import { type FolderModalTabId, generateFolderId, minDiskFreeFormToApi, type MinDiskUnit } from './folderModalConstants'
@@ -20,6 +21,7 @@ export default function AddFolderModal({
   onClose: () => void
   onSave: () => void
 }): React.ReactElement {
+  const { t } = useTranslation()
   const { client } = useConnection()
   const [tab, setTab] = useState<FolderModalTabId>('general')
   const [folderId, setFolderId] = useState(() => generateFolderId())

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import QrModal from '../components/QrModal'
 import { useConnection } from '../context/ConnectionContext'
 import { usePoll } from '../hooks/usePoll'
@@ -50,19 +51,19 @@ function remoteDeviceHeadStatus(
   comp: DeviceCompletionAggregate | undefined
 ): { label: string; kind: 'ok' | 'warn' | 'paused' | 'disconnected' | 'syncing' } {
   if (dev.paused) {
-    return { label: '已暂停', kind: 'paused' }
+    return { label: 'Paused', kind: 'paused' }
   }
   if (!conn?.connected) {
-    return { label: '已断开连接', kind: 'disconnected' }
+    return { label: 'Disconnected', kind: 'disconnected' }
   }
   if (!comp || comp.loaded === false) {
     return { label: '—', kind: 'warn' }
   }
   if (comp.completion === 100 && comp.needBytes === 0 && comp.needItems === 0) {
-    return { label: '最新', kind: 'ok' }
+    return { label: 'Up to date', kind: 'ok' }
   }
   return {
-    label: `同步中 (${comp.completion}%, ${formatBytes(comp.needBytes)})`,
+    label: `Syncing (${comp.completion}%, ${formatBytes(comp.needBytes)})`,
     kind: 'syncing'
   }
 }
@@ -111,6 +112,7 @@ async function loadRemoteDeviceCompletions(
 }
 
 export default function DevicesPage(): React.ReactElement {
+  const { t } = useTranslation()
   const { client } = useConnection()
   const [cfg, setCfg] = useState<SystemConfig | null>(null)
   const [conn, setConn] = useState<Record<string, ConnectionEntry> | null>(null)
@@ -262,31 +264,31 @@ export default function DevicesPage(): React.ReactElement {
   const folders = cfg?.folders || []
 
   if (!client) {
-    return <p className="muted">未连接</p>
+    return <p className="muted">{t('Ark.FoldersNotConnected')}</p>
   }
 
   return (
     <div className="devices-page">
       <div className="row" style={{ justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0 }}>远程设备 ({devices.length})</h1>
+        <h1 style={{ margin: 0 }}>{t('Ark.DevicesRemoteTitle', { count: devices.length })}</h1>
         <div className="row folder-global-actions">
           <button type="button" onClick={() => void pauseAllRemote()}>
             <span className="btn-glyph" aria-hidden>
               ⏸
             </span>
-            暂停全部
+            {t('Ark.FoldersPauseAll')}
           </button>
           <button type="button" onClick={() => setShowRecent(true)}>
             <span className="btn-glyph" aria-hidden>
               ⓘ
             </span>
-            最近更改
+            {t('Ark.DevicesRecentChanges')}
           </button>
           <button type="button" className="primary" onClick={() => setShowAdd(true)}>
             <span className="btn-glyph" aria-hidden>
               ＋
             </span>
-            添加远程设备
+            {t('Ark.DevicesAddRemote')}
           </button>
         </div>
       </div>
@@ -348,7 +350,7 @@ export default function DevicesPage(): React.ReactElement {
                     {c?.connected && (
                       <>
                         <div className="kv-row">
-                          <span className="kv-label">下载速率</span>
+                          <span className="kv-label">{t('Ark.DevicesDownloadRate')}</span>
                           <span className="kv-value">
                             {formatBytes(bps.in)}/s
                             <span className="muted" style={{ marginLeft: '0.35rem' }}>
@@ -357,7 +359,7 @@ export default function DevicesPage(): React.ReactElement {
                           </span>
                         </div>
                         <div className="kv-row">
-                          <span className="kv-label">上传速率</span>
+                          <span className="kv-label">{t('Ark.DevicesUploadRate')}</span>
                           <span className="kv-value">
                             {formatBytes(bps.out)}/s
                             <span className="muted" style={{ marginLeft: '0.35rem' }}>
@@ -367,7 +369,7 @@ export default function DevicesPage(): React.ReactElement {
                         </div>
                         {deviceNeedsSync(comp) && comp && (
                           <div className="kv-row">
-                            <span className="kv-label">未同步的项目</span>
+                            <span className="kv-label">{t('Ark.DevicesUnsyncedItems')}</span>
                             <span className="kv-value kv-value-em">
                               {comp.needItems} 条目, ~{formatBytes(comp.needBytes)}
                             </span>
@@ -377,12 +379,12 @@ export default function DevicesPage(): React.ReactElement {
                     )}
                     {!c?.connected && lastSeen && (
                       <div className="kv-row">
-                        <span className="kv-label">最后可见</span>
+                        <span className="kv-label">{t('Ark.DevicesLastSeen')}</span>
                         <span className="kv-value">{lastSeen}</span>
                       </div>
                     )}
                     <div className="kv-row">
-                      <span className="kv-label">地址</span>
+                      <span className="kv-label">{t('Ark.DevicesAddress')}</span>
                       <span className="kv-value path-val">
                         {c?.connected
                           ? c.address || '—'
@@ -394,27 +396,27 @@ export default function DevicesPage(): React.ReactElement {
                     {c?.connected && (
                       <>
                         <div className="kv-row">
-                          <span className="kv-label">连接类型</span>
+                          <span className="kv-label">{t('Ark.DevicesConnectionType')}</span>
                           <span className="kv-value" title={typeTitle}>
                             {rdConnTypeLabelCn(c)}
                           </span>
                         </div>
                         <div className="kv-row">
-                          <span className="kv-label">连接数</span>
+                          <span className="kv-label">{t('Ark.DevicesConnections')}</span>
                           <span className="kv-value">{connCount}</span>
                         </div>
                       </>
                     )}
                     <div className="kv-row">
-                      <span className="kv-label">压缩</span>
+                      <span className="kv-label">{t('Ark.DevicesCompression')}</span>
                       <span className="kv-value">{compressionLabelCn(d.compression)}</span>
                     </div>
                     <div className="kv-row">
-                      <span className="kv-label">自动接受</span>
-                      <span className="kv-value">{d.autoAcceptFolders ? '是' : '否'}</span>
+                      <span className="kv-label">{t('Ark.DevicesAutoAccept')}</span>
+                      <span className="kv-value">{d.autoAcceptFolders ? t('Ark.Yes') : t('Ark.No')}</span>
                     </div>
                     <div className="kv-row">
-                      <span className="kv-label">标识</span>
+                      <span className="kv-label">{t('Ark.DevicesIdentifier')}</span>
                       <span className="kv-value">
                         <button
                           type="button"
@@ -423,7 +425,7 @@ export default function DevicesPage(): React.ReactElement {
                             e.stopPropagation()
                             setQrFor(d.deviceID)
                           }}
-                          title="二维码"
+                          title={t('Ark.DevicesShowQr')}
                         >
                           {shortDeviceId(d.deviceID)}
                         </button>
@@ -431,13 +433,13 @@ export default function DevicesPage(): React.ReactElement {
                     </div>
                     {c?.connected && c.clientVersion && (
                       <div className="kv-row">
-                        <span className="kv-label">版本</span>
+                        <span className="kv-label">{t('Ark.DevicesVersion')}</span>
                         <span className="kv-value">{formatDisplaySyncthingVersion(c.clientVersion)}</span>
                       </div>
                     )}
                     {foldersText ? (
                       <div className="kv-row">
-                        <span className="kv-label">文件夹</span>
+                        <span className="kv-label">{t('Ark.Folders')}</span>
                         <span className="kv-value">{foldersText}</span>
                       </div>
                     ) : null}
@@ -454,13 +456,13 @@ export default function DevicesPage(): React.ReactElement {
                       <span className="btn-glyph" aria-hidden>
                         {d.paused ? '▶' : '⏸'}
                       </span>
-                      {d.paused ? '恢复' : '暂停'}
+                      {d.paused ? t('Ark.DevicesResume') : t('Ark.DevicesPause')}
                     </button>
                     <button type="button" onClick={() => setEditDevice(d)}>
                       <span className="btn-glyph" aria-hidden>
                         ✎
                       </span>
-                      编辑
+                      {t('Ark.Edit')}
                     </button>
                   </div>
                 </>
@@ -470,7 +472,7 @@ export default function DevicesPage(): React.ReactElement {
         })}
       </div>
 
-      {devices.length === 0 && !err && <p className="muted">暂无远程设备。</p>}
+      {devices.length === 0 && !err && <p className="muted">{t('Ark.DevicesNoRemote')}</p>}
 
       {showAdd && myId && (
         <AddDeviceModal

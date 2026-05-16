@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 export default function DeviceModalGeneralFields({
   mode,
@@ -27,12 +28,13 @@ export default function DeviceModalGeneralFields({
   nameHelp: string
   groupHelp: string
 }): React.ReactElement {
+  const { t } = useTranslation()
   const isEdit = mode === 'edit'
 
   return (
     <div className="modal-tab-panel">
       <div className="field">
-        <label>设备 ID</label>
+        <label>{t('Ark.DeviceId')}</label>
         <div className="device-id-row">
           {isEdit ? (
             <input
@@ -51,16 +53,16 @@ export default function DeviceModalGeneralFields({
             />
           )}
           <div className="device-id-actions">
-            <button type="button" className="icon-btn" title="复制到剪贴板" onClick={() => onCopyId()}>
+            <button type="button" className="icon-btn" title="Copy" onClick={() => onCopyId()}>
               ⧉
             </button>
-            <button type="button" className="icon-btn" title="邮件（占位）" disabled>
+            <button type="button" className="icon-btn" title="Email (placeholder)" disabled>
               ✉
             </button>
-            <button type="button" className="icon-btn" title="消息（占位）" disabled>
+            <button type="button" className="icon-btn" title="Message (placeholder)" disabled>
               💬
             </button>
-            <button type="button" className="icon-btn" title="二维码" onClick={() => onShowQr()}>
+            <button type="button" className="icon-btn" title={t('Ark.DevicesShowQr')} onClick={() => onShowQr()}>
               ▣
             </button>
           </div>
@@ -68,12 +70,12 @@ export default function DeviceModalGeneralFields({
         {idHelp.trim() ? <p className="field-help">{idHelp}</p> : null}
       </div>
       <div className="field">
-        <label>设备名</label>
+        <label>{t('Ark.DeviceName')}</label>
         <input className="modal-field-input-full" value={name} onChange={(e) => onName(e.target.value)} />
         <p className="field-help">{nameHelp}</p>
       </div>
       <div className="field">
-        <label>设备组</label>
+        <label>{t('Ark.DeviceGroup')}</label>
         <input className="modal-field-input-full" value={group} onChange={(e) => onGroup(e.target.value)} />
         <p className="field-help">{groupHelp}</p>
       </div>

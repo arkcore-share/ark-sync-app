@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 export default function FolderModalGeneralFields({
   label,
@@ -25,28 +26,29 @@ export default function FolderModalGeneralFields({
   pathTildeHint: string
   onCopyId?: () => void
 }): React.ReactElement {
+  const { t } = useTranslation()
   const hintPath = pathTildeHint || '/home'
 
   return (
     <div className="modal-tab-panel">
       <div className="field">
-        <label>文件夹标签</label>
+        <label>{t('Ark.FolderLabel')}</label>
         <input className="modal-field-input-full" value={label} onChange={(e) => onLabel(e.target.value)} />
-        <p className="field-help">文件夹的可选描述性标签。每个设备上可能不同。</p>
+        <p className="field-help">{t('Ark.FolderLabelHelp')}</p>
       </div>
       <div className="field">
-        <label>文件夹组</label>
+        <label>{t('Ark.FolderGroup')}</label>
         <input className="modal-field-input-full" value={group} onChange={(e) => onGroup(e.target.value)} />
-        <p className="field-help">文件夹的可选分组。各设备可设置不同分组。</p>
+        <p className="field-help">{t('Ark.FolderGroupHelp')}</p>
       </div>
       <div className="field">
-        <label>文件夹 ID</label>
+        <label>{t('Ark.FolderId')}</label>
         {idReadOnly ? (
           <div className="device-id-row">
             <input value={folderId} readOnly disabled className="device-id-input modal-field-input-full" />
             {onCopyId && (
               <div className="device-id-actions">
-                <button type="button" className="icon-btn" title="复制" onClick={() => onCopyId()}>
+                <button type="button" className="icon-btn" title="Copy" onClick={() => onCopyId()}>
                   ⧉
                 </button>
               </div>
@@ -55,10 +57,10 @@ export default function FolderModalGeneralFields({
         ) : (
           <input className="modal-field-input-full" value={folderId} onChange={(e) => onFolderId(e.target.value)} />
         )}
-        <p className="field-help">文件夹所需的标识符。所有集群设备上必须相同。</p>
+        <p className="field-help">{t('Ark.FolderIdHelp')}</p>
       </div>
       <div className="field">
-        <label>文件夹路径</label>
+        <label>{t('Ark.FolderPath')}</label>
         <input
           className="modal-field-input-full"
           value={path}
@@ -66,7 +68,7 @@ export default function FolderModalGeneralFields({
           placeholder="/home/me/Sync"
         />
         <p className="field-help">
-          本地计算机上文件夹的路径。如果不存在，会创建它。波浪线符号 (~) 可用作下列项目的缩略符 <code>{hintPath}</code>。
+          {t('Ark.FolderPathHelp', { hintPath })}
         </p>
       </div>
     </div>

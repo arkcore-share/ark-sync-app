@@ -206,7 +206,7 @@ export default function LogsPage(): React.ReactElement {
   }, [facilities])
 
   if (!client) {
-    return <p className="muted">未连接</p>
+    return <p className="muted">{t('Ark.FoldersNotConnected')}</p>
   }
 
   return (

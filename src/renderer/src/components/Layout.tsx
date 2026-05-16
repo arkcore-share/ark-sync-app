@@ -59,7 +59,7 @@ export default function Layout(): React.ReactElement {
         <div className="sidebar-top">
           <div className="sidebar-brand">
             <img src={logoUrl} alt="" className="brand-logo" decoding="async" />
-            <div className="brand-title">Ark Sync</div>
+            <div className="brand-title">{t('Ark.AppTitle')}</div>
           </div>
         </div>
         <NavLink to="/" end className={linkClass}>

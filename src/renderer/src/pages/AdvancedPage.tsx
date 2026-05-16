@@ -48,6 +48,7 @@ function FieldRow({
   docsUrl?: string
   children: React.ReactNode
 }): React.ReactElement {
+  const { t } = useTranslation()
   return (
     <div className="advanced-form-row">
       <label htmlFor={id} className="advanced-form-label">
@@ -55,7 +56,7 @@ function FieldRow({
         {docsUrl ? (
           <>
             {' '}
-            <a href={docsUrl} target="_blank" rel="noreferrer" className="advanced-form-help" title="文档">
+            <a href={docsUrl} target="_blank" rel="noreferrer" className="advanced-form-help" title={t('Ark.Docs')}>
               ?
             </a>
           </>
@@ -275,7 +276,7 @@ export default function AdvancedPage(): React.ReactElement {
   }
 
   if (!client) {
-    return <p className="muted">未连接</p>
+    return <p className="muted">{t('Ark.FoldersNotConnected')}</p>
   }
 
   return (

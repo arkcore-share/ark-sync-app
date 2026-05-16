@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { DiscoveryStatusModal, ListenerStatusModal } from '../components/dashboard/DeviceStatusModals'
 import QrModal from '../components/QrModal'
 import { useConnection } from '../context/ConnectionContext'
@@ -18,6 +19,7 @@ import {
 } from '../util/syncthingUi'
 
 export default function DashboardPage(): React.ReactElement {
+  const { t } = useTranslation()
   const { client } = useConnection()
   const [status, setStatus] = useState<SystemStatus | null>(null)
   const [longVersion, setLongVersion] = useState<string>('')
@@ -113,12 +115,12 @@ export default function DashboardPage(): React.ReactElement {
   }, [load])
 
   if (!client) {
-    return <p className="muted">未连接</p>
+    return <p className="muted">{t('Ark.FoldersNotConnected')}</p>
   }
 
   const myId = (status?.myID ?? '').trim()
   const selfName = !myId
-    ? '本机'
+    ? t('Ark.DashboardThisDevice')
     : selfDisplayName ||
       resolveDeviceNameFromConfig(coerceConfigDevicesFromResponse(config?.devices), myId)
   const shortId = myId ? myId.split('-')[0] || myId.slice(0, 7) : '—'
@@ -130,7 +132,7 @@ export default function DashboardPage(): React.ReactElement {
 
   return (
     <div>
-      <h1 style={{ marginTop: 0 }}>本机设备</h1>
+      <h1 style={{ marginTop: 0 }}>{t('Ark.DashboardThisDevice')}</h1>
       {loadErr && <div className="error-banner">{loadErr}</div>}
 
       <div className="device-panel card">
@@ -140,7 +142,7 @@ export default function DashboardPage(): React.ReactElement {
               <span className="kv-icon" aria-hidden>
                 ▣
               </span>
-              名称
+              {t('Ark.DashboardName')}
             </span>
             <span className="kv-value">{selfName}</span>
           </div>
@@ -149,7 +151,7 @@ export default function DashboardPage(): React.ReactElement {
               <span className="kv-icon" aria-hidden>
                 ↓
               </span>
-              下载速率
+              {t('Ark.DashboardDownloadRate')}
             </span>
             <span className="kv-value">
               {formatBytes(inBps)}/s
@@ -165,7 +167,7 @@ export default function DashboardPage(): React.ReactElement {
               <span className="kv-icon" aria-hidden>
                 ↑
               </span>
-              上传速率
+              {t('Ark.DashboardUploadRate')}
             </span>
             <span className="kv-value">
               {formatBytes(outBps)}/s
@@ -181,7 +183,7 @@ export default function DashboardPage(): React.ReactElement {
               <span className="kv-icon" aria-hidden>
                 ⌂
               </span>
-              本地状态 (总计)
+              {t('Ark.DashboardLocalState')}
             </span>
             <span className="kv-value">
               <LocalStateTotalStat files={localTotals.files} dirs={localTotals.dirs} bytes={localTotals.bytes} formatBytes={formatBytes} />
@@ -192,7 +194,7 @@ export default function DashboardPage(): React.ReactElement {
               <span className="kv-icon" aria-hidden>
                 ⧉
               </span>
-              监听程序
+              {t('Ark.DashboardListener')}
             </span>
             <button
               type="button"
@@ -200,7 +202,7 @@ export default function DashboardPage(): React.ReactElement {
                 lst.ok === lst.total && lst.total > 0 ? 'ok' : lst.total > 0 ? 'warn' : 'muted'
               }`}
               onClick={() => setListenerModal(true)}
-              title="查看监听程序状态"
+              title={t('Ark.DashboardListenerStatus')}
             >
               {lst.ok}/{lst.total}
             </button>
@@ -210,7 +212,7 @@ export default function DashboardPage(): React.ReactElement {
               <span className="kv-icon" aria-hidden>
                 ◉
               </span>
-              设备发现
+              {t('Ark.DashboardDiscovery')}
             </span>
             <button
               type="button"
@@ -218,7 +220,7 @@ export default function DashboardPage(): React.ReactElement {
                 disc.ok === disc.total && disc.total > 0 ? 'ok' : disc.total > 0 ? 'warn' : 'muted'
               }`}
               onClick={() => setDiscoveryModal(true)}
-              title="查看设备发现状态"
+              title={t('Ark.DashboardDiscoveryStatus')}
             >
               {disc.ok}/{disc.total}
             </button>
@@ -228,7 +230,7 @@ export default function DashboardPage(): React.ReactElement {
               <span className="kv-icon" aria-hidden>
                 ◷
               </span>
-              运行时间
+              {t('Ark.DashboardUptime')}
             </span>
             <span className="kv-value">{formatUptimeSeconds(status?.uptime)}</span>
           </div>
@@ -237,10 +239,10 @@ export default function DashboardPage(): React.ReactElement {
               <span className="kv-icon" aria-hidden>
                 ⚏
               </span>
-              标识
+              {t('Ark.DevicesIdentifier')}
             </span>
             <span className="kv-value">
-              <button type="button" className="link-btn" onClick={() => setQrDevice(myId)} title="显示二维码">
+              <button type="button" className="link-btn" onClick={() => setQrDevice(myId)} title={t('Ark.DevicesShowQr')}>
                 {shortId}
               </button>
             </span>
@@ -250,7 +252,7 @@ export default function DashboardPage(): React.ReactElement {
               <span className="kv-icon" aria-hidden>
                 ⌗
               </span>
-              版本
+              {t('Ark.DashboardVersion')}
             </span>
             <span className="kv-value version-line">{versionLine || '…'}</span>
           </div>
