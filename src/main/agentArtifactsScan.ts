@@ -1,6 +1,15 @@
-import { existsSync, readdirSync, statSync } from 'node:fs'
+import { access, readdir, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, join } from 'node:path'
+
+async function pathExists(p: string): Promise<boolean> {
+  try {
+    await access(p)
+    return true
+  } catch {
+    return false
+  }
+}
 import { loadAgentArtifactScanRules, resolveAgentArtifactScanRulesPath } from './agentArtifactScanRulesLoad.js'
 import type { AgentArtifactScanRule, ArtifactPathRule, DataRootCandidate } from '../shared/agentArtifactScanRules.types.js'
 import { THIRD_PARTY_SCAN_CATALOG } from '../shared/thirdPartyCatalog.js'
@@ -77,10 +86,10 @@ function resolveRuleForCurrentPlatform(rule: AgentArtifactScanRule): AgentArtifa
   }
 }
 
-function primaryDataRootForRule(home: string, rule: AgentArtifactScanRule): string | null {
+async function primaryDataRootForRule(home: string, rule: AgentArtifactScanRule): Promise<string | null> {
   for (const c of rule.dataRootCandidates) {
     const p = resolveCandidatePath(home, c)
-    if (p && existsSync(p)) {
+    if (p && await pathExists(p)) {
       return p
     }
   }
@@ -88,22 +97,25 @@ function primaryDataRootForRule(home: string, rule: AgentArtifactScanRule): stri
   return first ? resolveCandidatePath(home, first) : null
 }
 
-function dataPresentForRule(home: string, rule: AgentArtifactScanRule): boolean {
-  return rule.dataPresentIfAny.some((c) => {
+async function dataPresentForRule(home: string, rule: AgentArtifactScanRule): Promise<boolean> {
+  for (const c of rule.dataPresentIfAny) {
     const p = resolveCandidatePath(home, c)
-    return !!p && existsSync(p)
-  })
+    if (p && await pathExists(p)) {
+      return true
+    }
+  }
+  return false
 }
 
-function pushAbsIfExists(out: AgentArtifactEntry[], absPath: string, label: string): void {
-  if (!existsSync(absPath)) {
+async function pushAbsIfExists(out: AgentArtifactEntry[], absPath: string, label: string): Promise<void> {
+  if (!(await pathExists(absPath))) {
     return
   }
   if (isIgnoredArtifactPath(absPath)) {
     return
   }
   try {
-    const st = statSync(absPath)
+    const st = await stat(absPath)
     out.push({
       path: absPath,
       kind: st.isDirectory() ? 'dir' : 'file',
@@ -114,14 +126,14 @@ function pushAbsIfExists(out: AgentArtifactEntry[], absPath: string, label: stri
   }
 }
 
-function listDirLimited(dir: string, max: number, depthLabel = ''): AgentArtifactEntry[] {
-  if (!existsSync(dir)) {
+async function listDirLimited(dir: string, max: number, depthLabel = ''): Promise<AgentArtifactEntry[]> {
+  if (!(await pathExists(dir))) {
     return []
   }
   const out: AgentArtifactEntry[] = []
   let entries: string[]
   try {
-    entries = readdirSync(dir)
+    entries = await readdir(dir)
   } catch {
     return []
   }
@@ -134,7 +146,7 @@ function listDirLimited(dir: string, max: number, depthLabel = ''): AgentArtifac
       continue
     }
     try {
-      const st = statSync(p)
+      const st = await stat(p)
       const label = depthLabel ? `${depthLabel}/${n}` : n
       out.push({ path: p, kind: st.isDirectory() ? 'dir' : 'file', label })
     } catch {
@@ -144,44 +156,44 @@ function listDirLimited(dir: string, max: number, depthLabel = ''): AgentArtifac
   return out
 }
 
-function applyPathRule(
+async function applyPathRule(
   home: string,
   dataRoot: string | null,
   r: ArtifactPathRule,
   out: AgentArtifactEntry[]
-): void {
+): Promise<void> {
   const base = r.base === 'home' ? home : r.base === 'dataRoot' ? dataRoot : r.envVar ? process.env[r.envVar] ?? null : null
   if (!base) {
     return
   }
   const abs = join(base, ...r.segments)
-  if (!existsSync(abs)) {
+  if (!(await pathExists(abs))) {
     return
   }
   const max = Math.min(r.maxEntries ?? 10000, 10000)
   if (r.enumerate) {
     const prefix = (r.enumerateLabelPrefix ?? r.segments.filter(Boolean).join('/')) || 'dir'
-    const children = listDirLimited(abs, max, prefix)
+    const children = await listDirLimited(abs, max, prefix)
     /* 有子项时只列子项，避免首行出现与「数据目录」混淆的 skills-cursor/skills 容器目录 */
     if (children.length === 0) {
-      pushAbsIfExists(out, abs, prefix)
+      await pushAbsIfExists(out, abs, prefix)
     } else {
       out.push(...children)
     }
   } else {
     const label = r.segments.filter(Boolean).join('/') || '.'
-    pushAbsIfExists(out, abs, label)
+    await pushAbsIfExists(out, abs, label)
   }
 }
 
-function applyRuleCategory(
+async function applyRuleCategory(
   home: string,
   dataRoot: string | null,
   rules: ArtifactPathRule[],
   out: AgentArtifactEntry[]
-): void {
+): Promise<void> {
   for (const r of rules) {
-    applyPathRule(home, dataRoot, r, out)
+    await applyPathRule(home, dataRoot, r, out)
   }
 }
 
@@ -211,16 +223,16 @@ function mergeRootDisplayLabelPrefix(root: string): string {
 }
 
 /** 与旧版 OpenClaw 附加逻辑一致：skills / skill 目录（与 Cursor 等显式规则相同，使用「前缀/子项」二级标签） */
-function collectSkillsGeneric(root: string, mode: 'enumerate' | 'folder' = 'enumerate'): AgentArtifactEntry[] {
+async function collectSkillsGeneric(root: string, mode: 'enumerate' | 'folder' = 'enumerate'): Promise<AgentArtifactEntry[]> {
   const skillsDir = join(root, 'skills')
-  if (existsSync(skillsDir)) {
+  if (await pathExists(skillsDir)) {
     if (mode === 'folder') {
       return [{ path: skillsDir, kind: 'dir', label: 'skills' }]
     }
     return listDirLimited(skillsDir, 100, 'skills')
   }
   const alt = join(root, 'skill')
-  if (existsSync(alt)) {
+  if (await pathExists(alt)) {
     if (mode === 'folder') {
       return [{ path: alt, kind: 'dir', label: 'skill' }]
     }
@@ -229,7 +241,7 @@ function collectSkillsGeneric(root: string, mode: 'enumerate' | 'folder' = 'enum
   return []
 }
 
-function collectMemoryGeneric(root: string, labelPrefix?: string): AgentArtifactEntry[] {
+async function collectMemoryGeneric(root: string, labelPrefix?: string): Promise<AgentArtifactEntry[]> {
   const out: AgentArtifactEntry[] = []
   const pfx = labelPrefix ? `${labelPrefix}/` : ''
   const sessionsDepth = labelPrefix ? `${labelPrefix}/sessions` : 'sessions'
@@ -246,9 +258,9 @@ function collectMemoryGeneric(root: string, labelPrefix?: string): AgentArtifact
   ]
   for (const rel of topRel) {
     const p = join(root, rel)
-    if (existsSync(p)) {
+    if (await pathExists(p)) {
       try {
-        const st = statSync(p)
+        const st = await stat(p)
         out.push({ path: p, kind: st.isDirectory() ? 'dir' : 'file', label: `${pfx}${rel}` })
       } catch {
         /* skip */
@@ -256,14 +268,14 @@ function collectMemoryGeneric(root: string, labelPrefix?: string): AgentArtifact
     }
   }
   const sessions = join(root, 'sessions')
-  if (existsSync(sessions)) {
-    out.push(...listDirLimited(sessions, 10000, sessionsDepth))
+  if (await pathExists(sessions)) {
+    out.push(...(await listDirLimited(sessions, 10000, sessionsDepth)))
   }
   for (const f of ['memory.db', 'state.db', 'sessions.db', 'honcho.db']) {
     const p = join(root, f)
-    if (existsSync(p)) {
+    if (await pathExists(p)) {
       try {
-        const st = statSync(p)
+        const st = await stat(p)
         out.push({ path: p, kind: st.isDirectory() ? 'dir' : 'file', label: `${pfx}${f}` })
       } catch {
         /* skip */
@@ -273,7 +285,7 @@ function collectMemoryGeneric(root: string, labelPrefix?: string): AgentArtifact
   return out
 }
 
-function collectConfigGeneric(root: string, labelPrefix?: string): AgentArtifactEntry[] {
+async function collectConfigGeneric(root: string, labelPrefix?: string): Promise<AgentArtifactEntry[]> {
   const out: AgentArtifactEntry[] = []
   const pfx = labelPrefix ? `${labelPrefix}/` : ''
   const configDepth = labelPrefix ? `${labelPrefix}/config` : 'config'
@@ -288,9 +300,9 @@ function collectConfigGeneric(root: string, labelPrefix?: string): AgentArtifact
     'AGENTS.md'
   ]) {
     const p = join(root, rel)
-    if (existsSync(p)) {
+    if (await pathExists(p)) {
       try {
-        const st = statSync(p)
+        const st = await stat(p)
         out.push({ path: p, kind: st.isDirectory() ? 'dir' : 'file', label: `${pfx}${rel}` })
       } catch {
         /* skip */
@@ -298,63 +310,75 @@ function collectConfigGeneric(root: string, labelPrefix?: string): AgentArtifact
     }
   }
   const cfgDir = join(root, 'config')
-  if (existsSync(cfgDir)) {
-    out.push(...listDirLimited(cfgDir, 30, configDepth))
+  if (await pathExists(cfgDir)) {
+    out.push(...(await listDirLimited(cfgDir, 30, configDepth)))
   }
   return out
 }
 
-function mergeGenericClawUnderRoot(
+async function mergeGenericClawUnderRoot(
   root: string,
   skillsMode: 'enumerate' | 'folder' = 'enumerate'
-): {
+): Promise<{
   skills: AgentArtifactEntry[]
   memory: AgentArtifactEntry[]
   files: AgentArtifactEntry[]
-} {
-  if (!existsSync(root)) {
+}> {
+  if (!(await pathExists(root))) {
     return { skills: [], memory: [], files: [] }
   }
   const mergeLabelPrefix = mergeRootDisplayLabelPrefix(root)
-  return {
-    skills: collectSkillsGeneric(root, skillsMode),
-    memory: collectMemoryGeneric(root, mergeLabelPrefix),
-    files: collectConfigGeneric(root, mergeLabelPrefix)
-  }
+  const [skills, memory, files] = await Promise.all([
+    collectSkillsGeneric(root, skillsMode),
+    collectMemoryGeneric(root, mergeLabelPrefix),
+    collectConfigGeneric(root, mergeLabelPrefix)
+  ])
+  return { skills, memory, files }
 }
 
-function collectByRule(home: string, rule: AgentArtifactScanRule): {
+async function collectByRule(home: string, rule: AgentArtifactScanRule): Promise<{
   dataRoot: string | null
   dataRootPresent: boolean
   skills: AgentArtifactEntry[]
   memory: AgentArtifactEntry[]
   files: AgentArtifactEntry[]
-} {
-  const dataRoot = primaryDataRootForRule(home, rule)
-  const dataRootPresent = dataPresentForRule(home, rule)
+}> {
+  const [dataRoot, dataRootPresent] = await Promise.all([
+    primaryDataRootForRule(home, rule),
+    dataPresentForRule(home, rule)
+  ])
 
   const skills: AgentArtifactEntry[] = []
   const memory: AgentArtifactEntry[] = []
   const files: AgentArtifactEntry[] = []
 
-  applyRuleCategory(home, dataRoot, rule.skills, skills)
-  applyRuleCategory(home, dataRoot, rule.memory, memory)
-  applyRuleCategory(home, dataRoot, rule.files, files)
+  await Promise.all([
+    applyRuleCategory(home, dataRoot, rule.skills, skills),
+    applyRuleCategory(home, dataRoot, rule.memory, memory),
+    applyRuleCategory(home, dataRoot, rule.files, files)
+  ])
 
   const genericSkillsMode = rule.genericSkillsCollect ?? 'enumerate'
 
-  if (rule.appendGenericUnderDataRoot && dataRoot && existsSync(dataRoot)) {
-    const g = mergeGenericClawUnderRoot(dataRoot, genericSkillsMode)
+  if (rule.appendGenericUnderDataRoot && dataRoot && await pathExists(dataRoot)) {
+    const g = await mergeGenericClawUnderRoot(dataRoot, genericSkillsMode)
     skills.push(...g.skills)
     memory.push(...g.memory)
     files.push(...g.files)
   }
 
   if (rule.extraRootsForGenericClawMerge?.length) {
-    for (const c of rule.extraRootsForGenericClawMerge) {
-      const p = resolveCandidatePath(home, c)
-      if (p && existsSync(p)) {
-        const g = mergeGenericClawUnderRoot(p, genericSkillsMode)
+    const extraResults = await Promise.all(
+      rule.extraRootsForGenericClawMerge.map(async (c) => {
+        const p = resolveCandidatePath(home, c)
+        if (p && await pathExists(p)) {
+          return mergeGenericClawUnderRoot(p, genericSkillsMode)
+        }
+        return null
+      })
+    )
+    for (const g of extraResults) {
+      if (g) {
         skills.push(...g.skills)
         memory.push(...g.memory)
         files.push(...g.files)
@@ -371,13 +395,13 @@ function collectByRule(home: string, rule: AgentArtifactScanRule): {
   }
 }
 
-function listAgentArtifactsCacheKey(scan: ThirdPartyScanResult): string {
+async function listAgentArtifactsCacheKey(scan: ThirdPartyScanResult): Promise<string> {
   const parts = scan.items.map((r) => `${r.id}:${r.installed ? 1 : 0}`).join('|')
   let rulesM = 0
   try {
     const p = resolveAgentArtifactScanRulesPath()
-    if (existsSync(p)) {
-      rulesM = statSync(p).mtimeMs
+    if (await pathExists(p)) {
+      rulesM = (await stat(p)).mtimeMs
     }
   } catch {
     /* ignore */
@@ -387,13 +411,15 @@ function listAgentArtifactsCacheKey(scan: ThirdPartyScanResult): string {
 
 let listAgentArtifactsMemo: { key: string; value: AgentArtifactsDetail[] } | null = null
 
-export function listAgentArtifactsDetails(opts?: { force?: boolean }): AgentArtifactsDetail[] {
+const LIST_ARTIFACTS_CACHE_TTL_MS = 5 * 60 * 1000
+
+export async function listAgentArtifactsDetails(opts?: { force?: boolean }): Promise<AgentArtifactsDetail[]> {
   const force = opts?.force === true
   if (force) {
     listAgentArtifactsMemo = null
   }
   const scan = scanThirdPartyProducts(force ? { force: true } : undefined)
-  const memoKey = listAgentArtifactsCacheKey(scan)
+  const memoKey = await listAgentArtifactsCacheKey(scan)
   if (!force && listAgentArtifactsMemo != null && listAgentArtifactsMemo.key === memoKey) {
     return listAgentArtifactsMemo.value
   }
@@ -402,12 +428,13 @@ export function listAgentArtifactsDetails(opts?: { force?: boolean }): AgentArti
   const home = homedir()
   const rules = loadAgentArtifactScanRules()
 
-  const out: AgentArtifactsDetail[] = THIRD_PARTY_SCAN_CATALOG.map((c) => {
+  const out: AgentArtifactsDetail[] = []
+  for (const c of THIRD_PARTY_SCAN_CATALOG) {
     const row = byId.get(c.id)
     const installed = row?.installed ?? false
     const rule = rules[c.id]
     if (!rule) {
-      return {
+      out.push({
         id: c.id,
         name: c.name,
         installed,
@@ -417,12 +444,13 @@ export function listAgentArtifactsDetails(opts?: { force?: boolean }): AgentArti
         skills: [],
         memory: [],
         files: []
-      }
+      })
+      continue
     }
 
     /** 未安装时跳过目录枚举：界面只展示已检测项，避免每次打开智能体页对全部产品扫盘 */
     if (!installed) {
-      return {
+      out.push({
         id: c.id,
         name: c.name,
         installed: false,
@@ -432,13 +460,14 @@ export function listAgentArtifactsDetails(opts?: { force?: boolean }): AgentArti
         skills: [],
         memory: [],
         files: []
-      }
+      })
+      continue
     }
 
     const platformRule = resolveRuleForCurrentPlatform(rule)
-    const collected = collectByRule(home, platformRule)
+    const collected = await collectByRule(home, platformRule)
 
-    return {
+    out.push({
       id: c.id,
       name: c.name,
       installed,
@@ -448,8 +477,8 @@ export function listAgentArtifactsDetails(opts?: { force?: boolean }): AgentArti
       skills: collected.skills,
       memory: collected.memory,
       files: collected.files
-    }
-  })
+    })
+  }
 
   listAgentArtifactsMemo = { key: memoKey, value: out }
   return out
@@ -460,28 +489,35 @@ export function listAgentArtifactsDetails(opts?: { force?: boolean }): AgentArti
  * **不**依赖环境扫描「已安装」；路径在磁盘上存在即纳入。
  * 返回应递归查找 `SKILL.md` 的目录，以及规则直接指向的 `skill.md` 文件。
  */
-export function collectSkillSecurityScanSeeds(home: string): { dirs: string[]; files: string[] } {
+export async function collectSkillSecurityScanSeeds(home: string): Promise<{ dirs: string[]; files: string[] }> {
   const rules = loadAgentArtifactScanRules()
   const dirs = new Set<string>()
   const files = new Set<string>()
-  const addDir = (p: string | null | undefined): void => {
+  const addDir = async (p: string | null | undefined): Promise<void> => {
     if (!p) {
       return
     }
     try {
-      if (existsSync(p) && statSync(p).isDirectory()) {
-        dirs.add(p)
+      if (await pathExists(p)) {
+        const st = await stat(p)
+        if (st.isDirectory()) {
+          dirs.add(p)
+        }
       }
     } catch {
       /* skip */
     }
   }
-  const addSkillFile = (p: string | null | undefined): void => {
+  const addSkillFile = async (p: string | null | undefined): Promise<void> => {
     if (!p) {
       return
     }
     try {
-      if (!existsSync(p) || !statSync(p).isFile()) {
+      if (!(await pathExists(p))) {
+        return
+      }
+      const st = await stat(p)
+      if (!st.isFile()) {
         return
       }
       if (basename(p).toLowerCase() === 'skill.md') {
@@ -497,12 +533,12 @@ export function collectSkillSecurityScanSeeds(home: string): { dirs: string[]; f
     if (!rule) {
       continue
     }
-    const col = collectByRule(home, resolveRuleForCurrentPlatform(rule))
+    const col = await collectByRule(home, resolveRuleForCurrentPlatform(rule))
     for (const e of col.skills) {
       if (e.kind === 'dir') {
-        addDir(e.path)
+        await addDir(e.path)
       } else {
-        addSkillFile(e.path)
+        await addSkillFile(e.path)
       }
     }
   }

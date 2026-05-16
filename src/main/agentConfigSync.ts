@@ -301,8 +301,8 @@ function buildRelayCandidatesForLocalPath(relayRoot: string, localPath: string):
   return [...new Set(out)]
 }
 
-function buildScopedMappings(relayRoot: string): Mapping[] {
-  const details = listAgentArtifactsDetails({ force: true }).filter(
+async function buildScopedMappings(relayRoot: string): Promise<Mapping[]> {
+  const details = (await listAgentArtifactsDetails({ force: true })).filter(
     (d) => d.installed && (d.skills.length > 0 || d.memory.length > 0 || d.files.length > 0)
   )
   const all: Mapping[] = []
@@ -1075,7 +1075,7 @@ export function scanSyncRelayContent(): AgentConfigSyncScanResult {
   }
 }
 
-export function syncAgentConfigs(options?: SyncOptions): AgentConfigSyncResult {
+export async function syncAgentConfigs(options?: SyncOptions): Promise<AgentConfigSyncResult> {
   const dryRun = options?.dryRun === true
   const scan = scanSyncRelayContent()
   ensureSyncTmpIgnoreRules(scan.syncTmpRoot, dryRun)
@@ -1093,7 +1093,7 @@ export function syncAgentConfigs(options?: SyncOptions): AgentConfigSyncResult {
   }
   mkdirSync(reportDir, { recursive: true })
 
-  const mappings = buildScopedMappings(effectiveRelayRoot)
+  const mappings = await buildScopedMappings(effectiveRelayRoot)
 
   const tally: Tally = { copiedToLocal: 0, copiedToRelay: 0, conflicts: 0, skipped: 0, errors: [] }
   const operations: OperationRecord[] = []
@@ -1189,7 +1189,7 @@ export function syncAgentConfigs(options?: SyncOptions): AgentConfigSyncResult {
   return result
 }
 
-export function syncAgentConfigsWithRelay(): AgentConfigSyncResult {
+export async function syncAgentConfigsWithRelay(): Promise<AgentConfigSyncResult> {
   return syncAgentConfigs({ dryRun: false })
 }
 

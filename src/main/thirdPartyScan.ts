@@ -354,7 +354,7 @@ function scanOne(p: ProductDef): ThirdPartyScanRow {
 
 let thirdPartyScanCache: { result: ThirdPartyScanResult; at: number } | null = null
 /** 短时间内重复打开智能体页等场景复用结果，避免反复 `where` / `npm list -g` */
-const THIRD_PARTY_SCAN_CACHE_TTL_MS = 60_000
+const THIRD_PARTY_SCAN_CACHE_TTL_MS = 5 * 60 * 1000
 
 export function invalidateThirdPartyScanCache(): void {
   thirdPartyScanCache = null

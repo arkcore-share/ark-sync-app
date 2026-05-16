@@ -386,6 +386,8 @@
   "Ark.ConnectionTcpWan": "TCP WAN",
   "Ark.ConnectionTcpLan": "TCP LAN",
   "Ark.ConnectionDisconnected": "未接続",
+  "Ark.DeviceStatusDisconnected": "未接続",
+  "Ark.DeviceStatusSyncing": "同期中 ({{percent}}%, {{size}})",
   "Ark.CompressAllData": "全データ",
   "Ark.FolderSummaryFiles": "ファイル",
   "Ark.FolderSummaryDirs": "ディレクトリ",

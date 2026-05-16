@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { useTranslation } from 'react-i18next'
+import { useTranslation, type TFunction } from 'react-i18next'
 import QrModal from '../components/QrModal'
 import { useConnection } from '../context/ConnectionContext'
 import { usePoll } from '../hooks/usePoll'
@@ -46,24 +46,25 @@ function deviceNeedsSync(comp: DeviceCompletionAggregate | undefined): boolean {
 }
 
 function remoteDeviceHeadStatus(
+  t: TFunction,
   dev: DeviceConfiguration,
   conn: ConnectionEntry | undefined,
   comp: DeviceCompletionAggregate | undefined
 ): { label: string; kind: 'ok' | 'warn' | 'paused' | 'disconnected' | 'syncing' } {
   if (dev.paused) {
-    return { label: 'Paused', kind: 'paused' }
+    return { label: t('Ark.FolderStatePaused'), kind: 'paused' }
   }
   if (!conn?.connected) {
-    return { label: 'Disconnected', kind: 'disconnected' }
+    return { label: t('Ark.DeviceStatusDisconnected'), kind: 'disconnected' }
   }
   if (!comp || comp.loaded === false) {
     return { label: '—', kind: 'warn' }
   }
   if (comp.completion === 100 && comp.needBytes === 0 && comp.needItems === 0) {
-    return { label: 'Up to date', kind: 'ok' }
+    return { label: t('Ark.FolderStateUpToDate'), kind: 'ok' }
   }
   return {
-    label: `Syncing (${comp.completion}%, ${formatBytes(comp.needBytes)})`,
+    label: t('Ark.DeviceStatusSyncing', { percent: comp.completion, size: formatBytes(comp.needBytes) }),
     kind: 'syncing'
   }
 }
@@ -299,7 +300,7 @@ export default function DevicesPage(): React.ReactElement {
           const c = getConnectionEntryForDevice(conn, d.deviceID)
           const bps = getValueByDeviceId(bpsMap, d.deviceID) || { in: 0, out: 0 }
           const comp = getValueByDeviceId(completionByDevice, d.deviceID)
-          const st = remoteDeviceHeadStatus(d, c, comp)
+          const st = remoteDeviceHeadStatus(t, d, c, comp)
           const sec = getValueByDeviceId(deviceStats, d.deviceID)
           const lastSeen =
             sec?.lastSeen && new Date(sec.lastSeen).getTime() > 0

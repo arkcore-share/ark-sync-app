@@ -389,6 +389,8 @@
   "Ark.ConnectionTcpWan": "TCP WAN",
   "Ark.ConnectionTcpLan": "TCP LAN",
   "Ark.ConnectionDisconnected": "Disconnected",
+  "Ark.DeviceStatusDisconnected": "Disconnected",
+  "Ark.DeviceStatusSyncing": "Syncing ({{percent}}%, {{size}})",
   "Ark.CompressAllData": "All data",
   "Ark.FolderSummaryFiles": "files",
   "Ark.FolderSummaryDirs": "dirs",

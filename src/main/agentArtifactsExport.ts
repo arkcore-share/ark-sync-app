@@ -113,12 +113,12 @@ type Tallies = { files: number; dirs: number; skipped: number }
  * 将「智能体」页所列各已安装产品的 Skill / Memory / Files 复制到 ~/.sync_tmp，
  * 目标路径为「用户主目录/.sync_tmp」+ 与源绝对路径一致的目录层级，不改动文件名。
  */
-export function exportAgentArtifactsToSyncTmp(): AgentArtifactsSyncTmpExportResult {
+export async function exportAgentArtifactsToSyncTmp(): Promise<AgentArtifactsSyncTmpExportResult> {
   const errors: string[] = []
   const targetRoot = join(homedir(), '.sync_tmp')
   mkdirSync(targetRoot, { recursive: true })
 
-  const details = listAgentArtifactsDetails({ force: true })
+  const details = await listAgentArtifactsDetails({ force: true })
   const tallies: Tallies = { files: 0, dirs: 0, skipped: 0 }
   const seen = new Set<string>()
 

@@ -388,6 +388,8 @@
   "Ark.ConnectionTcpWan": "TCP 广域网",
   "Ark.ConnectionTcpLan": "TCP 局域网",
   "Ark.ConnectionDisconnected": "未连接",
+  "Ark.DeviceStatusDisconnected": "未连接",
+  "Ark.DeviceStatusSyncing": "同步中 ({{percent}}%, {{size}})",
   "Ark.CompressAllData": "全部数据",
   "Ark.FolderSummaryFiles": "个文件",
   "Ark.FolderSummaryDirs": "个目录",
