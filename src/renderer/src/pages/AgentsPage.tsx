@@ -29,30 +29,30 @@ function createSkillSeverityResolver(skillRows: SkillSecurityItem[]): SkillSever
     return () => null
   }
   const exact = new Map<string, SkillsSecuritySeverity>()
-  const normalizedRows = skillRows.map((r) => {
+  const prefixMap = new Map<string, SkillsSecuritySeverity[]>()
+  for (const r of skillRows) {
     const p = normSkillPath(r.path)
     exact.set(p, r.severity)
-    return { path: p, severity: r.severity }
-  })
-  const cache = new Map<string, SkillsSecuritySeverity | null>()
+    const parent = p.slice(0, p.lastIndexOf('/')) || '/'
+    const existing = prefixMap.get(parent) ?? []
+    existing.push(r.severity)
+    prefixMap.set(parent, existing)
+  }
 
   return (entry: AgentArtifactEntry): SkillsSecuritySeverity | null => {
     const ep = normSkillPath(entry.path)
-    if (cache.has(ep)) {
-      return cache.get(ep) ?? null
+    if (entry.kind === 'file' && ep.endsWith('/skill.md')) {
+      return exact.get(ep) ?? null
+    }
+    const parent = ep.slice(0, ep.lastIndexOf('/')) || '/'
+    const severities = prefixMap.get(parent)
+    if (!severities || severities.length === 0) {
+      return null
     }
     let best: SkillsSecuritySeverity | null = null
-    if (entry.kind === 'file' && ep.endsWith('/skill.md')) {
-      best = exact.get(ep) ?? null
-    } else {
-      for (const r of normalizedRows) {
-        if (!(r.path.startsWith(ep + '/') || r.path === ep)) {
-          continue
-        }
-        best = best == null ? r.severity : mergeSeverity(best, r.severity)
-      }
+    for (const s of severities) {
+      best = best == null ? s : mergeSeverity(best, s)
     }
-    cache.set(ep, best)
     return best
   }
 }
@@ -235,7 +235,7 @@ export default function AgentsPage(): React.ReactElement {
 
   const [rows, setRows] = useState<AgentArtifactsDetail[] | null>(null)
   const [loading, setLoading] = useState(true)
-  const [skillSecRows, setSkillSecRows] = useState<SkillSecurityItem[]>([])
+  const [skillSecRows] = useState<SkillSecurityItem[]>(() => loadSkillsSecurityFromStorage()?.skills ?? [])
   /** 主抽屉是否展开：`defaultOpen` 在异步数据就绪后不可靠，改为受控 */
   const [drawerOpen, setDrawerOpen] = useState<Record<string, boolean>>({})
   const load = useCallback(async () => {
@@ -254,10 +254,6 @@ export default function AgentsPage(): React.ReactElement {
   useEffect(() => {
     void load()
   }, [load])
-
-  useEffect(() => {
-    setSkillSecRows(loadSkillsSecurityFromStorage()?.skills ?? [])
-  }, [rows, loading])
 
   const resolveSkillSeverity = useMemo(() => createSkillSeverityResolver(skillSecRows), [skillSecRows])
   const hasSkillScanData = skillSecRows.length > 0
