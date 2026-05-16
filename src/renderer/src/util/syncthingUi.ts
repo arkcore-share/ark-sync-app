@@ -66,38 +66,44 @@ export function formatDateTimeYmdHms(isoOrDate: string | Date | undefined): stri
   return `${y}-${mo}-${day} ${h}:${mi}:${s}`
 }
 
-/** 人类可读间隔：秒 → 中文 */
-export function formatIntervalSeconds(sec: number): string {
+/** 人类可读间隔：秒 → 支持 i18n */
+export function formatIntervalSeconds(sec: number, t?: (key: string) => string): string {
   if (!sec || sec <= 0) {
     return '—'
   }
+  const days = t?.('Ark.TimeDays') ?? '天'
+  const hours = t?.('Ark.TimeHours') ?? '时'
+  const minutes = t?.('Ark.TimeMinutes') ?? '分'
+  const seconds = t?.('Ark.TimeSeconds') ?? '秒'
   if (sec % 86400 === 0 && sec >= 86400) {
     const d = sec / 86400
-    return `${d}天`
+    return `${d}${days}`
   }
   if (sec % 3600 === 0 && sec >= 3600) {
     const h = sec / 3600
-    return `${h}时`
+    return `${h}${hours}`
   }
   if (sec % 60 === 0 && sec >= 60) {
     const m = sec / 60
-    return `${m}分`
+    return `${m}${minutes}`
   }
-  return `${sec}秒`
+  return `${sec}${seconds}`
 }
 
-export function formatRescanAndWatcher(folder: FolderConfiguration): string {
+export function formatRescanAndWatcher(folder: FolderConfiguration, t?: (key: string) => string): string {
   const interval = folder.rescanIntervalS ?? 3600
-  const intervalStr = formatIntervalSeconds(interval)
-  const watch = folder.fsWatcherEnabled !== false ? '已启用' : '已禁用'
+  const intervalStr = formatIntervalSeconds(interval, t)
+  const watch = folder.fsWatcherEnabled !== false
+    ? (t?.('Ark.FsWatcherEnabled') ?? '已启用')
+    : (t?.('Ark.FsWatcherDisabled') ?? '已禁用')
   return `${intervalStr} · ${watch}`
 }
 
 /** 版本控制一行摘要（与官方类似：类型 + 参数） */
-export function formatVersioningSummary(folder: FolderConfiguration): string {
+export function formatVersioningSummary(folder: FolderConfiguration, t?: (key: string) => string): string {
   const v = folder.versioning
   if (!v?.type) {
-    return '关闭'
+    return t?.('Ark.VersioningOff') ?? '关闭'
   }
   const typeCn = versioningTypeLabel(v.type)
   const p = v.params ?? {}
@@ -106,12 +112,12 @@ export function formatVersioningSummary(folder: FolderConfiguration): string {
   if (v.type === 'staggered' || v.type === 'simple' || v.type === 'trashcan') {
     const maxAge = p.maxAge ? parseInt(p.maxAge, 10) : 0
     if (maxAge > 0) {
-      parts.push(formatIntervalSeconds(maxAge))
+      parts.push(formatIntervalSeconds(maxAge, t))
     }
   }
   const clean = v.cleanupIntervalS
   if (clean !== undefined && clean > 0) {
-    parts.push(formatIntervalSeconds(clean))
+    parts.push(formatIntervalSeconds(clean, t))
   }
   const vp = p.versionsPath || v.fsPath
   if (vp) {

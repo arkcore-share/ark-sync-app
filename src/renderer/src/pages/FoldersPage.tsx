@@ -203,7 +203,7 @@ function LastChangeValue({ stats }: { stats: FolderStatisticsEntry | undefined }
 function RescanWatcherValue({ folder }: { folder: FolderConfiguration }): React.ReactElement {
   const { t } = useTranslation()
   const interval = folder.rescanIntervalS ?? 3600
-  const intervalStr = formatIntervalSeconds(interval)
+  const intervalStr = formatIntervalSeconds(interval, t)
   const watch = folder.fsWatcherEnabled !== false ? t('Ark.FoldersWatcherEnabled') : t('Ark.FoldersWatcherDisabled')
   const enabledTip = t('Ark.FoldersWatcherTip')
   return (
@@ -263,7 +263,7 @@ function VersioningSummaryCell({ folder }: { folder: FolderConfiguration }): Rea
               📅
             </span>
           </FkWrap>
-          <span title={t('Ark.FoldersMaxAge')}>{formatIntervalSeconds(maxAge)}</span>
+          <span title={t('Ark.FoldersMaxAge')}>{formatIntervalSeconds(maxAge, t)}</span>
         </>
       )}
       {cleanS > 0 && (
