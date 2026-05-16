@@ -660,6 +660,14 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('app:getSystemLocale', () => app.getLocale())
 
+  ipcMain.handle('app:getSystemInfo', () => ({
+    platform: process.platform,
+    arch: process.arch,
+    electronVersion: process.versions.electron,
+    nodeVersion: process.versions.node,
+    chromeVersion: process.versions.chrome
+  }))
+
   await startBundledSyncthingIfPresent()
 
   // Windows / Linux：去掉窗口顶部默认菜单栏（File / Edit / View …）

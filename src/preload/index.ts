@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld('syncWeb', {
   restartApp: (): Promise<void> => ipcRenderer.invoke('app:restart'),
   quitApp: (): Promise<void> => ipcRenderer.invoke('app:quit'),
   getSystemLocale: (): Promise<string> => ipcRenderer.invoke('app:getSystemLocale'),
+  getSystemInfo: (): Promise<{ platform: string; arch: string; electronVersion: string; nodeVersion: string; chromeVersion: string }> => ipcRenderer.invoke('app:getSystemInfo'),
   setTrayLocale: (code: string): Promise<boolean> => ipcRenderer.invoke('app:setTrayLocale', code),
   onTrayCommand: (listener: (cmd: TrayCommand) => void): (() => void) => {
     const handler = (_e: unknown, cmd: TrayCommand): void => {

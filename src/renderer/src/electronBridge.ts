@@ -86,6 +86,21 @@ export async function getSystemLocale(): Promise<string> {
   return 'en'
 }
 
+export type SystemInfo = {
+  platform: string
+  arch: string
+  electronVersion: string
+  nodeVersion: string
+  chromeVersion: string
+}
+
+export async function getSystemInfo(): Promise<SystemInfo | null> {
+  if (isElectronApp() && window.syncWeb?.getSystemInfo) {
+    return window.syncWeb.getSystemInfo()
+  }
+  return null
+}
+
 /** Open folder in file manager (Electron) or no-op in browser. */
 export async function openPath(p: string): Promise<string> {
   if (isElectronApp()) {
