@@ -260,7 +260,7 @@ export async function scanSkillsSecurity(): Promise<SkillsSecurityResult> {
   const t0 = Date.now()
 
   const home = homedir()
-  const seeds = collectSkillSecurityScanSeeds(home)
+  const seeds = await collectSkillSecurityScanSeeds(home)
   const roots = skillSecurityScanDirs(home, seeds.dirs)
   const seen = new Set<string>()
   const paths: string[] = []
