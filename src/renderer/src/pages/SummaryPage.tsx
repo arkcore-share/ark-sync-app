@@ -17,6 +17,8 @@ import {
   loadSkillsSecurityFromStorage,
   persistSkillsSecurityToStorage
 } from '../util/skillsSecurityStorage'
+import cosmicBgUrl from '../assets/summary-cosmic-bg.svg'
+import hudCoreTechUrl from '../assets/summary-hud-core-tech.svg'
 
 /** 智能体/环境扫描结果：浏览器/Electron 渲染进程 localStorage（非独立磁盘文件） */
 const SCAN_CACHE_KEY = 'ark-sync-summary-third-party-scan-v1'
@@ -47,6 +49,45 @@ function persistScanResult(r: ThirdPartyScanResult): void {
   } catch {
     /* quota / private mode */
   }
+}
+
+function sameThirdPartyScan(a: ThirdPartyScanResult | null, b: ThirdPartyScanResult | null): boolean {
+  if (a === b) {
+    return true
+  }
+  if (a == null || b == null) {
+    return false
+  }
+  if (a.scannedAt !== b.scannedAt || a.durationMs !== b.durationMs || a.items.length !== b.items.length) {
+    return false
+  }
+  for (let i = 0; i < a.items.length; i += 1) {
+    const x = a.items[i]
+    const y = b.items[i]
+    if (x.id !== y.id || x.name !== y.name || x.installed !== y.installed || x.via !== y.via) {
+      return false
+    }
+  }
+  return true
+}
+
+function sameSkillsScan(a: SkillsSecurityResult | null, b: SkillsSecurityResult | null): boolean {
+  if (a === b) {
+    return true
+  }
+  if (a == null || b == null) {
+    return false
+  }
+  return (
+    a.high === b.high &&
+    a.medium === b.medium &&
+    a.low === b.low &&
+    a.ok === b.ok &&
+    a.skillFiles === b.skillFiles &&
+    a.gitleaksRegexRulesUsed === b.gitleaksRegexRulesUsed &&
+    a.scannedAt === b.scannedAt &&
+    a.durationMs === b.durationMs
+  )
 }
 
 
@@ -182,6 +223,22 @@ export default function SummaryPage(): React.ReactElement {
   const [installDetail, setInstallDetail] = useState<InstallDetailState | null>(null)
   const [rulesSyncStatus, setRulesSyncStatus] = useState<SecurityRulesSyncStatus | null>(null)
   const [securityRulesPaths, setSecurityRulesPaths] = useState<SecurityRulesPaths | null>(null)
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return
+    }
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const onChange = (): void => setPrefersReducedMotion(media.matches)
+    onChange()
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', onChange)
+      return () => media.removeEventListener('change', onChange)
+    }
+    media.addListener(onChange)
+    return () => media.removeListener(onChange)
+  }, [])
 
   useEffect(() => {
     if (!isElectronApp()) {
@@ -211,8 +268,8 @@ export default function SummaryPage(): React.ReactElement {
 
     // 较慢的进度条，便于辨认「正在扫描」；最短展示时间避免一闪而过
     const progTimer = window.setInterval(() => {
-      setProgress((p) => (p >= 82 ? p : p + 1))
-    }, 160)
+      setProgress((p) => (p >= 82 ? p : p + 3))
+    }, 360)
 
     const minShow = delay(3200)
 
@@ -220,8 +277,13 @@ export default function SummaryPage(): React.ReactElement {
       const ipc = await scanThirdPartyTools()
       await minShow
       const next: ThirdPartyScanResult = ipc ?? emptyResult()
-      setResult(next)
-      persistScanResult(next)
+      setResult((prev) => {
+        if (sameThirdPartyScan(prev, next)) {
+          return prev
+        }
+        persistScanResult(next)
+        return next
+      })
       setProgress(100)
       await delay(600)
     } finally {
@@ -233,19 +295,27 @@ export default function SummaryPage(): React.ReactElement {
   const refreshEnvScanOnly = useCallback(async (): Promise<ThirdPartyScanResult | null> => {
     const ipc = await scanThirdPartyTools()
     if (ipc) {
-      setResult(ipc)
-      persistScanResult(ipc)
+      setResult((prev) => {
+        if (sameThirdPartyScan(prev, ipc)) {
+          return prev
+        }
+        persistScanResult(ipc)
+        return ipc
+      })
       return ipc
     }
     return null
   }, [])
 
-  /** 总览曾持久化到 localStorage，与智能体页实时扫描不一致时会出现「已安装仍显示一键安装」；进入总览时静默对齐主进程结果 */
+  /** 进入总览后 30 秒静默触发一次环境扫描（不阻塞 UI，避免首屏抖动） */
   useEffect(() => {
     if (!isElectronApp()) {
       return
     }
-    void refreshEnvScanOnly()
+    const id = window.setTimeout(() => {
+      void refreshEnvScanOnly()
+    }, 30_000)
+    return () => window.clearTimeout(id)
   }, [refreshEnvScanOnly])
 
   const handleOneClickInstall = useCallback(
@@ -289,7 +359,7 @@ export default function SummaryPage(): React.ReactElement {
                 : {
                     ...prev,
                     status: 'warning',
-                    summary: '安装脚本已执行，但无法刷新检测结果，请稍后手动执行「智能体扫描」。',
+                    summary: '安装脚本已执行，但无法刷新检测结果，请稍后手动执行「智能体侦测」。',
                     detailLog: r.log ? r.log.slice(-4000) : ''
                   }
             )
@@ -356,8 +426,8 @@ export default function SummaryPage(): React.ReactElement {
     setBrowserOnly(!isElectronApp())
 
     const progTimer = window.setInterval(() => {
-      setProgress((p) => (p >= 88 ? p : p + 3))
-    }, 80)
+      setProgress((p) => (p >= 88 ? p : p + 4))
+    }, 320)
 
     const minShow = delay(1200)
 
@@ -365,8 +435,13 @@ export default function SummaryPage(): React.ReactElement {
       const ipc = await scanSkillsSecurity()
       await minShow
       const next: SkillsSecurityResult = ipc ?? emptySecResult()
-      setSecResult(next)
-      persistSkillsSecurityToStorage(next)
+      setSecResult((prev) => {
+        if (sameSkillsScan(prev, next)) {
+          return prev
+        }
+        persistSkillsSecurityToStorage(next)
+        return next
+      })
       setProgress(100)
     } finally {
       window.clearInterval(progTimer)
@@ -390,13 +465,6 @@ export default function SummaryPage(): React.ReactElement {
   const installedRows = useMemo(() => rows.filter((r) => r.installed), [rows])
   const notInstalledRows = useMemo(() => rows.filter((r) => !r.installed), [rows])
 
-  const lightClass =
-    visual === 'security'
-      ? 'summary-scan-light summary-scan-light--sec-fast'
-      : visual === 'env'
-        ? 'summary-scan-light summary-scan-light--env-fast'
-        : 'summary-scan-light summary-scan-light--matrix-slow'
-
   const goSkillsByRisk = useCallback(
     (sev: 'high' | 'medium' | 'low' | 'ok') => {
       navigate(`/agents/detection?skillRisk=${sev}`)
@@ -410,6 +478,15 @@ export default function SummaryPage(): React.ReactElement {
       : visual === 'env'
         ? 'summary-scan-card-inner--busy-env'
         : ''
+  const liteVisual = prefersReducedMotion || visual === 'idle'
+  const lightClass =
+    liteVisual && visual === 'idle'
+      ? 'summary-scan-light summary-scan-light--idle-lite'
+      : visual === 'security'
+        ? 'summary-scan-light summary-scan-light--sec-fast'
+        : visual === 'env'
+          ? 'summary-scan-light summary-scan-light--env-fast'
+          : 'summary-scan-light summary-scan-light--matrix-slow'
 
   return (
     <div className="summary-page">
@@ -419,11 +496,11 @@ export default function SummaryPage(): React.ReactElement {
 
       <div className="summary-scan-card">
         <div
-          className={`summary-scan-card-inner${cardBusyClass ? ` ${cardBusyClass}` : ''}`}
+          className={`summary-scan-card-inner summary-scan-card-inner--poster${cardBusyClass ? ` ${cardBusyClass}` : ''}${liteVisual ? ' summary-scan-card-inner--lite' : ''}`}
           data-scan-visual={visual}
         >
-          <div className="summary-scan-bg" aria-hidden />
-          <div className={lightClass} aria-hidden />
+          <img className="summary-scan-poster" src={cosmicBgUrl} alt="" aria-hidden />
+          {isBusy && !liteVisual ? <div className={lightClass} aria-hidden /> : null}
           <div className="summary-scan-vignette" aria-hidden />
 
           <div className="summary-scan-shell">
@@ -434,16 +511,16 @@ export default function SummaryPage(): React.ReactElement {
                   aria-hidden
                 />
                 <div>
-                  <div className="summary-toolbar-title">智能体探测</div>
-                  {activeScan === 'env' || activeScan === 'security' || !result ? (
-                    <div className="summary-toolbar-sub muted">
-                      {activeScan === 'env'
-                        ? '正在拉取本机 PATH、安装目录与 npm 全局清单…'
-                        : activeScan === 'security'
-                          ? '正在同步 gitleaks 规则并扫描 SKILL.md…'
-                          : '启动时不会自动扫描，使用下方按钮开始。'}
-                    </div>
-                  ) : null}
+                  <div className="summary-toolbar-title">
+                    智能体侦测
+                    {activeScan === 'env' ? (
+                      <span className="summary-toolbar-sub muted">，正在拉取本机 PATH、安装目录与 npm 全局清单…</span>
+                    ) : activeScan === 'security' ? (
+                      <span className="summary-toolbar-sub muted">，正在同步 gitleaks 规则并扫描 SKILL.md…</span>
+                    ) : !result ? (
+                      <span className="summary-toolbar-sub muted">，启动时不会自动扫描，使用右侧按钮开始。</span>
+                    ) : null}
+                  </div>
                 </div>
               </div>
               <div className="summary-scan-toolbar-right">
@@ -453,7 +530,7 @@ export default function SummaryPage(): React.ReactElement {
                   onClick={() => void runScan()}
                   disabled={isBusy}
                 >
-                  {result ? '智能体扫描' : '开始智能体扫描'}
+                  {result ? '智能体侦测' : '开始智能体侦测'}
                 </button>
                 <button
                   type="button"
@@ -461,7 +538,7 @@ export default function SummaryPage(): React.ReactElement {
                   onClick={() => void runSecurityScan()}
                   disabled={isBusy}
                 >
-                  安全检测
+                  SKILL扫描
                 </button>
               </div>
             </header>
@@ -473,17 +550,11 @@ export default function SummaryPage(): React.ReactElement {
                 >
                   <div className="summary-hud-radar" aria-hidden>
                     <div className="summary-hud-radar-disc">
-                      <div className="summary-hud-radar-grid" />
-                      <div className="summary-hud-radar-rings" />
-                      <div className="summary-hud-radar-sweep" />
-                      <div className="summary-hud-radar-noise" />
-                      <span className="summary-hud-radar-blip summary-hud-radar-blip--a" />
-                      <span className="summary-hud-radar-blip summary-hud-radar-blip--b" />
-                      <span className="summary-hud-radar-blip summary-hud-radar-blip--c" />
-                      <span className="summary-hud-radar-blip summary-hud-radar-blip--d" />
-                      <span className="summary-hud-radar-blip summary-hud-radar-blip--e" />
-                      <span className="summary-hud-radar-blip summary-hud-radar-blip--f" />
-                      <span className="summary-hud-radar-blip summary-hud-radar-blip--g" />
+                      <img
+                        className={`summary-hud-core-image summary-hud-core-image--${visual}`}
+                        src={hudCoreTechUrl}
+                        alt=""
+                      />
                     </div>
                   </div>
                   <span className="summary-hud-bracket summary-hud-bracket--tl" aria-hidden />
@@ -553,7 +624,7 @@ export default function SummaryPage(): React.ReactElement {
                       />
                     </g>
                     <g transform="translate(60 60)" className="summary-hud-ticks">
-                      {Array.from({ length: 12 }, (_, i) => (
+                      {Array.from({ length: liteVisual ? 8 : 12 }, (_, i) => (
                         <line
                           key={i}
                           x1="0"
@@ -563,7 +634,7 @@ export default function SummaryPage(): React.ReactElement {
                           stroke="currentColor"
                           strokeWidth="1.2"
                           opacity="0.35"
-                          transform={`rotate(${i * 30})`}
+                          transform={`rotate(${i * (360 / (liteVisual ? 8 : 12))})`}
                         />
                       ))}
                     </g>
@@ -601,17 +672,12 @@ export default function SummaryPage(): React.ReactElement {
                     )}
                   </div>
                 </div>
-                {activeScan === 'env' || activeScan === 'security' ? (
-                  <p className="summary-gauge-caption muted">
-                    {activeScan === 'env' ? '链路：智能体扫描 · 青蓝相位' : '链路：安全检测 · 赤紫威胁相位'}
-                  </p>
-                ) : null}
               </div>
 
               <div className="summary-scan-meta-col summary-scan-meta-col--split summary-scan-meta-col--wide">
                 <div className="summary-meta-times-col">
                   <div className="summary-meta-block">
-                    <div className="summary-meta-label muted">智能体扫描 · 上次时间</div>
+                    <div className="summary-meta-label muted">智能体侦测 · 上次时间</div>
                     <div className="summary-meta-time" aria-live="polite">
                       {result ? formatScannedAt(result.scannedAt) : '—'}
                     </div>

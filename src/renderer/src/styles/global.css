@@ -3488,6 +3488,26 @@ button.kv-value-click.muted {
   min-height: 260px;
 }
 
+.summary-scan-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.72;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.summary-scan-card-inner--poster {
+  background: #070d18;
+}
+
+.summary-scan-card-inner--poster .summary-scan-bg {
+  display: none;
+}
+
 .summary-scan-bg {
   position: absolute;
   inset: 0;
@@ -3566,6 +3586,17 @@ button.kv-value-click.muted {
   animation-duration: 3.25s;
 }
 
+.summary-scan-light--idle-lite {
+  background: radial-gradient(
+    ellipse 80% 65% at 50% 50%,
+    rgba(16, 185, 129, 0.08) 0%,
+    rgba(6, 182, 212, 0.04) 40%,
+    transparent 85%
+  );
+  opacity: 0.3;
+  animation: none;
+}
+
 @keyframes summary-light-rotate {
   from {
     transform: rotate(0deg);
@@ -3590,6 +3621,51 @@ button.kv-value-click.muted {
   to {
     background-position: 24px 24px, 24px 24px;
   }
+}
+
+.summary-scan-card-inner--lite .summary-scan-bg {
+  animation-duration: 52s;
+  opacity: 0.08;
+}
+
+.summary-scan-card-inner--lite .summary-hud-radar,
+.summary-scan-card-inner--lite .summary-hud-radar-sweep,
+.summary-scan-card-inner--lite .summary-hud-orbit--a,
+.summary-scan-card-inner--lite .summary-hud-orbit--b,
+.summary-scan-card-inner--lite .summary-hud-ticks {
+  animation: none !important;
+}
+
+.summary-scan-card-inner--poster .summary-hud-radar-noise,
+.summary-scan-card-inner--poster .summary-hud-radar-blip {
+  display: none;
+}
+
+.summary-scan-card-inner--poster .summary-hud-radar,
+.summary-scan-card-inner--poster .summary-hud-radar-sweep,
+.summary-scan-card-inner--poster .summary-hud-orbit--a,
+.summary-scan-card-inner--poster .summary-hud-orbit--b,
+.summary-scan-card-inner--poster .summary-hud-ticks {
+  animation-duration: 14s !important;
+}
+
+.summary-scan-card-inner--poster .summary-scan-light--env-fast,
+.summary-scan-card-inner--poster .summary-scan-light--sec-fast {
+  opacity: 0.28;
+  animation-duration: 12s;
+}
+
+.summary-scan-card-inner--poster.summary-scan-card-inner--busy-env .summary-hud-radar,
+.summary-scan-card-inner--poster.summary-scan-card-inner--busy-env .summary-hud-radar-sweep,
+.summary-scan-card-inner--poster.summary-scan-card-inner--busy-env .summary-hud-orbit--a,
+.summary-scan-card-inner--poster.summary-scan-card-inner--busy-env .summary-hud-orbit--b,
+.summary-scan-card-inner--poster.summary-scan-card-inner--busy-env .summary-hud-ticks,
+.summary-scan-card-inner--poster.summary-scan-card-inner--busy-sec .summary-hud-radar,
+.summary-scan-card-inner--poster.summary-scan-card-inner--busy-sec .summary-hud-radar-sweep,
+.summary-scan-card-inner--poster.summary-scan-card-inner--busy-sec .summary-hud-orbit--a,
+.summary-scan-card-inner--poster.summary-scan-card-inner--busy-sec .summary-hud-orbit--b,
+.summary-scan-card-inner--poster.summary-scan-card-inner--busy-sec .summary-hud-ticks {
+  animation: none !important;
 }
 
 .summary-scan-shell {
@@ -3978,6 +4054,45 @@ button.summary-sec-risk-line--btn:not(:disabled):hover {
     inset 0 0 36px rgba(80, 110, 120, 0.1),
     inset 0 -10px 20px rgba(18, 52, 62, 0.12),
     0 0 16px rgba(20, 60, 80, 0.1);
+}
+
+.summary-hud-core-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.94;
+  pointer-events: none;
+  user-select: none;
+  border-radius: 50%;
+  transition:
+    filter 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.summary-hud-core-image--idle {
+  filter: saturate(0.9) brightness(0.95);
+  box-shadow:
+    inset 0 0 28px rgba(70, 120, 160, 0.14),
+    0 0 22px rgba(40, 90, 140, 0.2);
+}
+
+.summary-hud-core-image--env {
+  filter: saturate(1.14) brightness(1.03);
+  box-shadow:
+    inset 0 0 30px rgba(64, 183, 255, 0.2),
+    inset 0 -8px 18px rgba(24, 88, 136, 0.22),
+    0 0 24px rgba(56, 150, 220, 0.26);
+}
+
+.summary-hud-core-image--security {
+  filter: hue-rotate(-42deg) saturate(1.08) brightness(1);
+  box-shadow:
+    inset 0 0 30px rgba(232, 136, 84, 0.22),
+    inset 0 -8px 18px rgba(126, 60, 38, 0.24),
+    0 0 24px rgba(180, 90, 55, 0.22);
 }
 
 .summary-hud--security .summary-hud-radar-disc {

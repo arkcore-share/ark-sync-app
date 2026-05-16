@@ -8,7 +8,7 @@ const GITLEAKS_TOML_URL =
   'https://raw.githubusercontent.com/gitleaks/gitleaks/master/config/gitleaks.toml'
 
 /** 启动后延迟再拉取，避免抢首屏与主线程（毫秒） */
-const BACKGROUND_SYNC_DELAY_MS = 4_000
+const BACKGROUND_SYNC_DELAY_MS = 15_000
 
 const META_FILE = 'sync-meta.json'
 

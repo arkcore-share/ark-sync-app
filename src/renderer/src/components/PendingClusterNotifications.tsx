@@ -44,14 +44,45 @@ function flattenPendingFolders(
   return out
 }
 
+function pendingDevicesSignature(raw: Record<string, PendingClusterDeviceEntry>): string {
+  return Object.entries(raw)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([id, p]) => `${id}|${p.time ?? ''}|${p.name ?? ''}|${p.address ?? ''}`)
+    .join('\n')
+}
+
+function pendingFoldersSignature(raw: Record<string, PendingClusterFolderEntry>): string {
+  return flattenPendingFolders(raw)
+    .sort((a, b) => {
+      if (a.folderId !== b.folderId) {
+        return a.folderId.localeCompare(b.folderId)
+      }
+      return a.deviceId.localeCompare(b.deviceId)
+    })
+    .map(({ folderId, deviceId, offer }) => {
+      return `${folderId}|${deviceId}|${offer.time ?? ''}|${offer.label ?? ''}|${offer.receiveEncrypted ? 1 : 0}`
+    })
+    .join('\n')
+}
+
+function configSignature(cfg: SystemConfig): string {
+  const folderPart = cfg.folders
+    .map((f) => `${f.id}|${f.label ?? ''}|${f.devices.map((d) => d.deviceID).sort().join(',')}`)
+    .sort()
+    .join('\n')
+  const devicePart = cfg.devices
+    .map((d) => `${d.deviceID}|${d.name ?? ''}`)
+    .sort()
+    .join('\n')
+  return `${folderPart}\n---\n${devicePart}`
+}
+
 export default function PendingClusterNotifications(): React.ReactElement | null {
   const { client } = useConnection()
   const navigate = useNavigate()
   const [pendingDevices, setPendingDevices] = useState<Record<string, PendingClusterDeviceEntry>>({})
   const [pendingFolders, setPendingFolders] = useState<Record<string, PendingClusterFolderEntry>>({})
   const [config, setConfig] = useState<SystemConfig | null>(null)
-  const [deviceCountdown, setDeviceCountdown] = useState<Record<string, number>>({})
-  const [folderCountdown, setFolderCountdown] = useState<Record<string, number>>({})
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const [noticeErr, setNoticeErr] = useState<string | null>(null)
 
@@ -61,8 +92,11 @@ export default function PendingClusterNotifications(): React.ReactElement | null
   const pendingFoldersRef = useRef(pendingFolders)
   pendingFoldersRef.current = pendingFolders
 
-  const deviceIntervalsRef = useRef<Record<string, ReturnType<typeof setInterval>>>({})
-  const folderIntervalsRef = useRef<Record<string, ReturnType<typeof setInterval>>>({})
+  const deviceIntervalsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  const folderIntervalsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  const pendingDevicesSigRef = useRef<string>('')
+  const pendingFoldersSigRef = useRef<string>('')
+  const configSigRef = useRef<string>('')
 
   const loadCluster = useCallback(async () => {
     if (!client) {
@@ -74,52 +108,60 @@ export default function PendingClusterNotifications(): React.ReactElement | null
         client.pendingFolders(),
         client.getConfig()
       ])
-      setPendingDevices(pd)
-      setPendingFolders(pf)
-      setConfig(cfg)
+      const pdSig = pendingDevicesSignature(pd)
+      if (pendingDevicesSigRef.current !== pdSig) {
+        pendingDevicesSigRef.current = pdSig
+        setPendingDevices(pd)
+      }
+      const pfSig = pendingFoldersSignature(pf)
+      if (pendingFoldersSigRef.current !== pfSig) {
+        pendingFoldersSigRef.current = pfSig
+        setPendingFolders(pf)
+      }
+      const cfgSig = configSignature(cfg)
+      if (configSigRef.current !== cfgSig) {
+        configSigRef.current = cfgSig
+        setConfig(cfg)
+      }
       setNoticeErr(null)
     } catch (e) {
       setNoticeErr(e instanceof Error ? e.message : String(e))
     }
   }, [client])
 
-  usePoll(loadCluster, 5000, !!client)
+  usePoll(loadCluster, 10000, !!client)
 
   useEffect(() => {
     void loadCluster()
   }, [loadCluster])
 
+  useEffect(() => {
+    if (client) {
+      return
+    }
+    pendingDevicesSigRef.current = ''
+    pendingFoldersSigRef.current = ''
+    configSigRef.current = ''
+    setPendingDevices({})
+    setPendingFolders({})
+    setConfig(null)
+  }, [client])
+
   const cancelDeviceTimer = useCallback((deviceId: string) => {
     const t = deviceIntervalsRef.current[deviceId]
     if (t !== undefined) {
-      window.clearInterval(t)
+      window.clearTimeout(t)
       delete deviceIntervalsRef.current[deviceId]
     }
-    setDeviceCountdown((c) => {
-      if (!(deviceId in c)) {
-        return c
-      }
-      const n = { ...c }
-      delete n[deviceId]
-      return n
-    })
   }, [])
 
   const cancelFolderTimer = useCallback((folderId: string, deviceId: string) => {
     const key = folderTimerKey(folderId, deviceId)
     const t = folderIntervalsRef.current[key]
     if (t !== undefined) {
-      window.clearInterval(t)
+      window.clearTimeout(t)
       delete folderIntervalsRef.current[key]
     }
-    setFolderCountdown((c) => {
-      if (!(key in c)) {
-        return c
-      }
-      const n = { ...c }
-      delete n[key]
-      return n
-    })
   }, [])
 
   const acceptPendingDevice = useCallback(
@@ -231,25 +273,10 @@ export default function PendingClusterNotifications(): React.ReactElement | null
       if (deviceIntervalsRef.current[deviceId]) {
         continue
       }
-      setDeviceCountdown((c) => ({ ...c, [deviceId]: AUTO_ACCEPT_SEC }))
-      deviceIntervalsRef.current[deviceId] = window.setInterval(() => {
-        setDeviceCountdown((c) => {
-          const cur = c[deviceId] ?? AUTO_ACCEPT_SEC
-          const next = cur - 1
-          if (next <= 0) {
-            const iv = deviceIntervalsRef.current[deviceId]
-            if (iv !== undefined) {
-              window.clearInterval(iv)
-              delete deviceIntervalsRef.current[deviceId]
-            }
-            void acceptPendingDevice(deviceId)
-            const copy = { ...c }
-            delete copy[deviceId]
-            return copy
-          }
-          return { ...c, [deviceId]: next }
-        })
-      }, 1000)
+      deviceIntervalsRef.current[deviceId] = window.setTimeout(() => {
+        delete deviceIntervalsRef.current[deviceId]
+        void acceptPendingDevice(deviceId)
+      }, AUTO_ACCEPT_SEC * 1000)
     }
 
     return undefined
@@ -285,25 +312,10 @@ export default function PendingClusterNotifications(): React.ReactElement | null
       if (folderIntervalsRef.current[key]) {
         continue
       }
-      setFolderCountdown((c) => ({ ...c, [key]: AUTO_ACCEPT_SEC }))
-      folderIntervalsRef.current[key] = window.setInterval(() => {
-        setFolderCountdown((c) => {
-          const cur = c[key] ?? AUTO_ACCEPT_SEC
-          const next = cur - 1
-          if (next <= 0) {
-            const iv = folderIntervalsRef.current[key]
-            if (iv !== undefined) {
-              window.clearInterval(iv)
-              delete folderIntervalsRef.current[key]
-            }
-            void autoAcceptPendingFolder(folderId, deviceId)
-            const copy = { ...c }
-            delete copy[key]
-            return copy
-          }
-          return { ...c, [key]: next }
-        })
-      }, 1000)
+      folderIntervalsRef.current[key] = window.setTimeout(() => {
+        delete folderIntervalsRef.current[key]
+        void autoAcceptPendingFolder(folderId, deviceId)
+      }, AUTO_ACCEPT_SEC * 1000)
     }
 
     return undefined
@@ -312,11 +324,11 @@ export default function PendingClusterNotifications(): React.ReactElement | null
   useEffect(() => {
     return () => {
       for (const id of Object.keys(deviceIntervalsRef.current)) {
-        window.clearInterval(deviceIntervalsRef.current[id])
+        window.clearTimeout(deviceIntervalsRef.current[id])
       }
       deviceIntervalsRef.current = {}
       for (const k of Object.keys(folderIntervalsRef.current)) {
-        window.clearInterval(folderIntervalsRef.current[k])
+        window.clearTimeout(folderIntervalsRef.current[k])
       }
       folderIntervalsRef.current = {}
     }
@@ -474,7 +486,7 @@ export default function PendingClusterNotifications(): React.ReactElement | null
       )}
 
       {Object.entries(pendingDevices).map(([deviceId, pending]) => {
-        const cd = deviceCountdown[deviceId]
+        const cd = AUTO_ACCEPT_SEC
         const title = pending.name?.trim() || deviceId.split('-')[0] || shortDeviceId(deviceId)
         const busy = busyKey?.startsWith(`dev:${deviceId}`) || busyKey?.startsWith(`dismiss-dev:${deviceId}`) || busyKey?.startsWith(`ignore-dev:${deviceId}`)
         return (
@@ -535,8 +547,7 @@ export default function PendingClusterNotifications(): React.ReactElement | null
           ? resolveDeviceNameFromConfig(config.devices, deviceId)
           : shortDeviceId(deviceId)
         const label = offer.label?.trim()
-        const fk = folderTimerKey(folderId, deviceId)
-        const folderCd = folderCountdown[fk]
+        const folderCd = AUTO_ACCEPT_SEC
         const busy =
           busyKey === `dismiss-f:${folderId}:${deviceId}` ||
           busyKey === `ignore-f:${folderId}:${deviceId}` ||

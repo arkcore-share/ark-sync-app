@@ -1,0 +1,48 @@
+<svg width="420" height="420" viewBox="0 0 420 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="voidCore" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(210 214) rotate(90) scale(186)">
+      <stop offset="0" stop-color="#173C56"/>
+      <stop offset="0.46" stop-color="#0C2843"/>
+      <stop offset="1" stop-color="#061527"/>
+    </radialGradient>
+    <linearGradient id="edgeA" x1="70" y1="64" x2="354" y2="352" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B5EBFF" stop-opacity="0.72"/>
+      <stop offset="0.3" stop-color="#44A9DA" stop-opacity="0.68"/>
+      <stop offset="1" stop-color="#123B5E" stop-opacity="0.94"/>
+    </linearGradient>
+    <linearGradient id="edgeB" x1="112" y1="96" x2="320" y2="332" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8BD8FF" stop-opacity="0.52"/>
+      <stop offset="1" stop-color="#184869" stop-opacity="0.8"/>
+    </linearGradient>
+    <radialGradient id="holoBloom" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(192 168) rotate(90) scale(148)">
+      <stop offset="0" stop-color="#BFEFFF" stop-opacity="0.2"/>
+      <stop offset="0.4" stop-color="#7ECDF4" stop-opacity="0.09"/>
+      <stop offset="1" stop-color="#7ECDF4" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="spec" x1="124" y1="118" x2="292" y2="284" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E5F8FF" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#E5F8FF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="420" height="420" rx="24" fill="#041022" fill-opacity="0.2"/>
+
+  <circle cx="210" cy="210" r="174" stroke="url(#edgeA)" stroke-width="16"/>
+  <circle cx="210" cy="210" r="163" stroke="#0A2740" stroke-opacity="0.82" stroke-width="2.2"/>
+  <circle cx="210" cy="210" r="151" stroke="url(#edgeB)" stroke-width="7.5"/>
+
+  <circle cx="210" cy="210" r="141" fill="url(#voidCore)"/>
+  <circle cx="210" cy="210" r="141" fill="url(#holoBloom)"/>
+  <ellipse cx="210" cy="146" rx="90" ry="32" fill="url(#spec)"/>
+
+  <ellipse cx="210" cy="202" rx="118" ry="58" stroke="#72BCE8" stroke-opacity="0.16" stroke-width="1.3"/>
+  <ellipse cx="210" cy="222" rx="94" ry="44" stroke="#72BCE8" stroke-opacity="0.12" stroke-width="1.1"/>
+  <ellipse cx="210" cy="236" rx="72" ry="30" stroke="#72BCE8" stroke-opacity="0.1" stroke-width="1"/>
+
+  <path d="M210 84V116" stroke="#A7DCF8" stroke-opacity="0.34" stroke-width="3"/>
+  <path d="M210 304V336" stroke="#A7DCF8" stroke-opacity="0.22" stroke-width="3"/>
+  <path d="M84 210H116" stroke="#A7DCF8" stroke-opacity="0.3" stroke-width="3"/>
+  <path d="M304 210H336" stroke="#A7DCF8" stroke-opacity="0.24" stroke-width="3"/>
+
+  <path d="M190 216L204 230L233 190" stroke="#8EF0BD" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.88"/>
+</svg>

@@ -22,24 +22,39 @@ function placeholderAgentRows(): AgentArtifactsDetail[] {
   }))
 }
 
-function severityForSkillEntry(entry: AgentArtifactEntry, skillRows: SkillSecurityItem[]): SkillsSecuritySeverity | null {
+type SkillSeverityResolver = (entry: AgentArtifactEntry) => SkillsSecuritySeverity | null
+
+function createSkillSeverityResolver(skillRows: SkillSecurityItem[]): SkillSeverityResolver {
   if (skillRows.length === 0) {
-    return null
+    return () => null
   }
-  const ep = normSkillPath(entry.path)
-  if (entry.kind === 'file' && ep.endsWith('/skill.md')) {
-    const hit = skillRows.find((r) => normSkillPath(r.path) === ep)
-    return hit?.severity ?? null
-  }
-  let best: SkillsSecuritySeverity | null = null
-  for (const r of skillRows) {
-    const sp = normSkillPath(r.path)
-    if (!(sp.startsWith(ep + '/') || sp === ep)) {
-      continue
+  const exact = new Map<string, SkillsSecuritySeverity>()
+  const normalizedRows = skillRows.map((r) => {
+    const p = normSkillPath(r.path)
+    exact.set(p, r.severity)
+    return { path: p, severity: r.severity }
+  })
+  const cache = new Map<string, SkillsSecuritySeverity | null>()
+
+  return (entry: AgentArtifactEntry): SkillsSecuritySeverity | null => {
+    const ep = normSkillPath(entry.path)
+    if (cache.has(ep)) {
+      return cache.get(ep) ?? null
     }
-    best = best == null ? r.severity : mergeSeverity(best, r.severity)
+    let best: SkillsSecuritySeverity | null = null
+    if (entry.kind === 'file' && ep.endsWith('/skill.md')) {
+      best = exact.get(ep) ?? null
+    } else {
+      for (const r of normalizedRows) {
+        if (!(r.path.startsWith(ep + '/') || r.path === ep)) {
+          continue
+        }
+        best = best == null ? r.severity : mergeSeverity(best, r.severity)
+      }
+    }
+    cache.set(ep, best)
+    return best
   }
-  return best
 }
 
 function skillSecBadgeClass(sev: SkillsSecuritySeverity | null): string {
@@ -74,7 +89,8 @@ const ArtifactList = memo(function ArtifactList({
   emptyLabel,
   onOpen,
   showSkillSecLabels,
-  skillRows,
+  hasSkillScanData,
+  resolveSkillSeverity,
   firstItemScrollRef,
   capVisibleRows
 }: {
@@ -83,13 +99,13 @@ const ArtifactList = memo(function ArtifactList({
   onOpen: (path: string, isDir: boolean) => void
   /** Hermes 等参与 SKILL.md 安全扫描的产品 */
   showSkillSecLabels: boolean
-  skillRows: SkillSecurityItem[]
+  hasSkillScanData: boolean
+  resolveSkillSeverity: SkillSeverityResolver
   firstItemScrollRef?: React.RefObject<HTMLLIElement | null>
   /** 超过此行数时在容器内滚动（用于 Skill 列表） */
   capVisibleRows?: number
 }): React.ReactElement {
   const { t } = useTranslation()
-  const hasScanData = skillRows.length > 0
   if (items.length === 0) {
     return <p className="agents-artifact-empty muted">{emptyLabel}</p>
   }
@@ -104,7 +120,7 @@ const ArtifactList = memo(function ArtifactList({
   return (
     <ul className={listClass} style={listStyle}>
       {items.map((e, idx) => {
-        const sev = showSkillSecLabels ? severityForSkillEntry(e, skillRows) : null
+        const sev = showSkillSecLabels ? resolveSkillSeverity(e) : null
         return (
           <li key={e.path} ref={idx === 0 && firstItemScrollRef ? firstItemScrollRef : undefined}>
             <button
@@ -114,7 +130,7 @@ const ArtifactList = memo(function ArtifactList({
               onClick={() => onOpen(e.path, e.kind === 'dir')}
             >
               {showSkillSecLabels ? (
-                <span className={skillSecBadgeClass(sev)}>{skillSecBadgeText(sev, t, hasScanData)}</span>
+                <span className={skillSecBadgeClass(sev)}>{skillSecBadgeText(sev, t, hasSkillScanData)}</span>
               ) : null}
               <span className={`agents-kind agents-kind--${e.kind}`}>{e.kind === 'dir' ? 'DIR' : 'FILE'}</span>
               <span className="agents-path-text">{e.label ?? e.path}</span>
@@ -243,6 +259,9 @@ export default function AgentsPage(): React.ReactElement {
     setSkillSecRows(loadSkillsSecurityFromStorage()?.skills ?? [])
   }, [rows, loading])
 
+  const resolveSkillSeverity = useMemo(() => createSkillSeverityResolver(skillSecRows), [skillSecRows])
+  const hasSkillScanData = skillSecRows.length > 0
+
   const sortedRows = useMemo(() => {
     const list = rows ?? placeholderAgentRows()
     return [...list].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', { sensitivity: 'base' }))
@@ -255,15 +274,23 @@ export default function AgentsPage(): React.ReactElement {
     if (loading || rows == null) {
       return
     }
-    setDrawerOpen(() => {
+    setDrawerOpen((prev) => {
       const next: Record<string, boolean> = {}
       for (const a of visibleRows) {
-        /** 默认全部展开；仍支持手动折叠 */
-        next[a.id] = true
+        next[a.id] = prev[a.id] ?? false
+      }
+      if (!Object.values(next).some(Boolean)) {
+        const preferredId =
+          focusAgentId != null && visibleRows.some((a) => a.id === focusAgentId)
+            ? focusAgentId
+            : visibleRows[0]?.id
+        if (preferredId) {
+          next[preferredId] = true
+        }
       }
       return next
     })
-  }, [loading, rows, visibleRows, highlightId, skillRisk])
+  }, [loading, rows, visibleRows, focusAgentId])
 
   const focusDrawerOpen = focusAgentId ? drawerOpen[focusAgentId] : false
   useEffect(() => {
@@ -339,7 +366,7 @@ export default function AgentsPage(): React.ReactElement {
               className={`agents-drawer card agents-drawer--stripe-${index % 2 === 0 ? 'a' : 'b'}${
                 agent.id === focusAgentId ? ' agents-drawer--focus' : ''
               }`}
-              open={drawerOpen[agent.id] ?? true}
+              open={drawerOpen[agent.id] ?? false}
               onToggle={(e) => {
                 const el = e.currentTarget
                 setDrawerOpen((p) => ({ ...p, [agent.id]: el.open }))
@@ -354,7 +381,7 @@ export default function AgentsPage(): React.ReactElement {
                   {(() => {
                     const isHermesSkillFilter = agent.id === 'hermes' && skillRisk != null
                     const hermesSkillsMatchingRisk = isHermesSkillFilter
-                      ? agent.skills.filter((e) => severityForSkillEntry(e, skillSecRows) === skillRisk)
+                      ? agent.skills.filter((e) => resolveSkillSeverity(e) === skillRisk)
                       : agent.skills
                     /** 筛选无匹配时仍展示全部 Skill，避免只看到空列表 */
                     const skillFilterNoMatch =
@@ -405,7 +432,8 @@ export default function AgentsPage(): React.ReactElement {
                       emptyLabel={skillsEmptyLabel}
                       onOpen={openEntry}
                       showSkillSecLabels={agent.id === 'hermes'}
-                      skillRows={skillSecRows}
+                      hasSkillScanData={hasSkillScanData}
+                      resolveSkillSeverity={resolveSkillSeverity}
                       capVisibleRows={5}
                       firstItemScrollRef={
                         expandSkills && hermesSkillsMatchingRisk.length > 0 ? skillRiskScrollRef : undefined
@@ -426,7 +454,8 @@ export default function AgentsPage(): React.ReactElement {
                       emptyLabel={t('Ark.AgentsEmptyMemory')}
                       onOpen={openEntry}
                       showSkillSecLabels={false}
-                      skillRows={skillSecRows}
+                      hasSkillScanData={hasSkillScanData}
+                      resolveSkillSeverity={resolveSkillSeverity}
                     />
                   </LazyAgentsSubdrawer>
 
@@ -443,7 +472,8 @@ export default function AgentsPage(): React.ReactElement {
                       emptyLabel={t('Ark.AgentsEmptyFiles')}
                       onOpen={openEntry}
                       showSkillSecLabels={false}
-                      skillRows={skillSecRows}
+                      hasSkillScanData={hasSkillScanData}
+                      resolveSkillSeverity={resolveSkillSeverity}
                     />
                   </LazyAgentsSubdrawer>
                       </>
