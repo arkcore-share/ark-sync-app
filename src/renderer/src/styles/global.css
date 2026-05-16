@@ -5169,7 +5169,24 @@ button.summary-sec-risk-line--btn:not(:disabled):hover {
 }
 
 .agents-page-header {
-  margin-bottom: 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.agents-refresh-indicator {
+  font-size: 1.25rem;
+  animation: agents-refresh-spin 1s linear infinite;
+  color: var(--color-muted);
+}
+
+@keyframes agents-refresh-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .agents-page-title {
@@ -5703,4 +5720,63 @@ button.summary-sec-risk-line--btn:not(:disabled):hover {
   min-width: 0;
   word-break: break-all;
   line-height: 1.35;
+}
+
+.agents-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.agents-skeleton-card {
+  padding: 1rem;
+}
+
+.agents-skeleton-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.agents-skeleton-title {
+  width: 140px;
+  height: 1.25rem;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: agents-skeleton-shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.agents-skeleton-badge {
+  width: 60px;
+  height: 1rem;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: agents-skeleton-shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.agents-skeleton-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.agents-skeleton-line {
+  height: 0.875rem;
+  width: 100%;
+  background: linear-gradient(90deg, #e8e8e8 25%, #f5f5f5 50%, #e8e8e8 75%);
+  background-size: 200% 100%;
+  animation: agents-skeleton-shimmer 1.5s infinite;
+  border-radius: 3px;
+}
+
+@keyframes agents-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }

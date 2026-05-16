@@ -238,21 +238,44 @@ export default function AgentsPage(): React.ReactElement {
   const [skillSecRows] = useState<SkillSecurityItem[]>(() => loadSkillsSecurityFromStorage()?.skills ?? [])
   /** 主抽屉是否展开：`defaultOpen` 在异步数据就绪后不可靠，改为受控 */
   const [drawerOpen, setDrawerOpen] = useState<Record<string, boolean>>({})
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const data = await listAgentArtifacts()
-      setRows(data ?? placeholderAgentRows())
-    } catch (e) {
-      console.error('[AgentsPage] listAgentArtifacts failed', e)
-      setRows(placeholderAgentRows())
-    } finally {
-      setLoading(false)
-    }
+    const data = await listAgentArtifacts()
+    return data ?? placeholderAgentRows()
   }, [])
 
   useEffect(() => {
-    void load()
+    let cancelled = false
+    setLoading(true)
+    load()
+      .then((data) => {
+        if (!cancelled) {
+          setRows(data)
+          setLoading(false)
+          setIsRefreshing(true)
+          listAgentArtifacts({ force: true })
+            .then((freshData) => {
+              if (!cancelled && freshData) {
+                setRows(freshData)
+              }
+            })
+            .finally(() => {
+              if (!cancelled) {
+                setIsRefreshing(false)
+              }
+            })
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          console.error('[AgentsPage] listAgentArtifacts failed', e)
+          setRows(placeholderAgentRows())
+          setLoading(false)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
   }, [load])
 
   const resolveSkillSeverity = useMemo(() => createSkillSeverityResolver(skillSecRows), [skillSecRows])
@@ -330,6 +353,7 @@ export default function AgentsPage(): React.ReactElement {
     <div className="agents-page">
       <header className="agents-page-header">
         <h1 className="agents-page-title">{t('Ark.AgentsTitle')}</h1>
+        {isRefreshing && <span className="agents-refresh-indicator" title={t('Ark.Loading')}>&#8635;</span>}
       </header>
 
       {isElectronApp() && skillRisk != null ? (
@@ -345,7 +369,20 @@ export default function AgentsPage(): React.ReactElement {
       ) : null}
 
       {loading && rows == null ? (
-        <p className="muted">{t('Ark.Loading')}</p>
+        <div className="agents-skeleton">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="agents-skeleton-card card">
+              <div className="agents-skeleton-header">
+                <div className="agents-skeleton-title" />
+                <div className="agents-skeleton-badge" />
+              </div>
+              <div className="agents-skeleton-body">
+                <div className="agents-skeleton-line" />
+                <div className="agents-skeleton-line" style={{ width: '70%' }} />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : visibleRows.length === 0 ? (
         <p className="muted agents-none-detected">{t('Ark.AgentsNoneDetected')}</p>
       ) : (

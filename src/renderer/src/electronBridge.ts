@@ -169,12 +169,27 @@ export async function scanThirdPartyTools(): Promise<ThirdPartyScanResult | null
   return window.syncWeb.scanThirdParty()
 }
 
+import { getAgentArtifactsFromCache, setAgentArtifactsCache } from './util/agentArtifactsCache'
+
 /** 列出各智能体数据目录下的技能、记忆相关路径与配置文件（仅 Electron）。 */
 export async function listAgentArtifacts(opts?: { force?: boolean }): Promise<AgentArtifactsDetail[] | null> {
   if (!isElectronApp() || !window.syncWeb?.listAgentArtifacts) {
     return null
   }
-  return window.syncWeb.listAgentArtifacts(opts)
+
+  const force = opts?.force === true
+  if (!force) {
+    const cached = getAgentArtifactsFromCache()
+    if (cached) {
+      return cached
+    }
+  }
+
+  const data = await window.syncWeb.listAgentArtifacts(opts)
+  if (data && !force) {
+    setAgentArtifactsCache(data)
+  }
+  return data
 }
 
 /** 将各智能体 Skill / Memory / Files 复制到 ~/.sync_tmp（路径镜像，保留原名；仅 Electron）。 */
