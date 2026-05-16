@@ -269,6 +269,7 @@
   "Ark.AboutTitle": "バージョン情報",
   "Ark.AboutCurrentInstance": "現在のインスタンス",
   "Ark.AboutDescription": "Ark Sync はファイル同期インスタンスに接続・管理するためのデスクトップ・Web クライアントです。",
+  "Ark.AboutFeatures": "主な機能：SKILL、Memory、Files のデバイス間自動移行 · SKILL セキュリティスキャン（機密情報・高リスク操作の検出） · 第三方 AI エージェントの一括インストール · リレーディレクトリ経由のマルチデバイス同期 · リアルタイムフォルダ状態監視",
   "Ark.AboutSyncEngine": "同期エンジン OSS プロジェクト",
   "Ark.AboutSystem": "システム",
   "Ark.AboutElectron": "Electron",

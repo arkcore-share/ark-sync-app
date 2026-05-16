@@ -271,6 +271,7 @@
   "Ark.AboutTitle": "关于",
   "Ark.AboutCurrentInstance": "当前实例",
   "Ark.AboutDescription": "Ark Sync 是用于连接与管理文件同步实例的桌面与 Web 客户端。底层同步能力由兼容引擎提供；本应用为独立发布的客户端界面。",
+  "Ark.AboutFeatures": "核心功能：SKILL、Memory、Files 跨设备自动迁移 · SKILL 安全扫描，检测敏感信息与高风险操作 · 一键安装第三方 AI 智能体 · 通过中转目录实现多设备同步 · 实时文件夹状态监控",
   "Ark.AboutSyncEngine": "同步引擎开源项目",
   "Ark.AboutSystem": "系统",
   "Ark.AboutElectron": "Electron",

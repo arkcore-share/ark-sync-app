@@ -260,6 +260,7 @@
   "Ark.AboutTitle": "About",
   "Ark.AboutCurrentInstance": "Current instance",
   "Ark.AboutDescription": "Ark Sync is a desktop and web client for connecting and managing file sync instances. The underlying sync capability is provided by a compatible engine; this app is a independently released client interface.",
+  "Ark.AboutFeatures": "Key features: Auto-migrate SKILL, Memory, and Files across devices · SKILL security scan to detect sensitive info and high-risk operations · One-click install of third-party AI agents · Multi-device sync via relay directory · Real-time folder status monitoring",
   "Ark.AboutSyncEngine": "Sync engine open source project",
   "Ark.AboutSystem": "System",
   "Ark.AboutElectron": "Electron",

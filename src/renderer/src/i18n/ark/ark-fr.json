@@ -269,6 +269,7 @@
   "Ark.AboutTitle": "À propos",
   "Ark.AboutCurrentInstance": "Instance actuelle",
   "Ark.AboutDescription": "Ark Sync est un client de bureau et web pour la connexion et la gestion des instances de synchronisation de fichiers.",
+  "Ark.AboutFeatures": "Fonctionnalités principales : Migration automatique de SKILL, Memory et Files entre appareils · Analyse de sécurité SKILL (détection d'informations sensibles et opérations à risque) · Installation en un clic des agents IA tiers · Synchronisation multi-appareils via répertoire relais · Surveillance en temps réel de l'état des dossiers",
   "Ark.AboutSyncEngine": "Projet open source du moteur de synchronisation",
   "Ark.AboutSystem": "Système",
   "Ark.AboutElectron": "Electron",
