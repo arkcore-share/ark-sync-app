@@ -232,7 +232,7 @@ export default function DashboardPage(): React.ReactElement {
               </span>
               {t('Ark.DashboardUptime')}
             </span>
-            <span className="kv-value">{formatUptimeSeconds(status?.uptime)}</span>
+            <span className="kv-value">{formatUptimeSeconds(status?.uptime, t)}</span>
           </div>
           <div className="kv-row">
             <span className="kv-label">

@@ -26,12 +26,12 @@ import {
 } from '../util/format'
 import {
   aggregateDeviceCompletion,
-  compressionLabelCn,
+  compressionLabel,
   foldersSharedWithDevice,
   formatDateTimeYmdHms,
   mergeDeviceDisplayCompletion,
   rdConnType,
-  rdConnTypeLabelCn,
+  rdConnTypeLabel,
   sharedFolderLabels,
   type DeviceCompletionAggregate,
   type FolderDeviceCompletionSlice
@@ -398,7 +398,7 @@ export default function DevicesPage(): React.ReactElement {
                         <div className="kv-row">
                           <span className="kv-label">{t('Ark.DevicesConnectionType')}</span>
                           <span className="kv-value" title={typeTitle}>
-                            {rdConnTypeLabelCn(c)}
+                            {rdConnTypeLabel(c, t)}
                           </span>
                         </div>
                         <div className="kv-row">
@@ -409,7 +409,7 @@ export default function DevicesPage(): React.ReactElement {
                     )}
                     <div className="kv-row">
                       <span className="kv-label">{t('Ark.DevicesCompression')}</span>
-                      <span className="kv-value">{compressionLabelCn(d.compression)}</span>
+                      <span className="kv-value">{compressionLabel(d.compression, t)}</span>
                     </div>
                     <div className="kv-row">
                       <span className="kv-label">{t('Ark.DevicesAutoAccept')}</span>

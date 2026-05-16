@@ -189,7 +189,8 @@ function FolderKvRow({
 }
 
 function LastChangeValue({ stats }: { stats: FolderStatisticsEntry | undefined }): React.ReactElement {
-  const text = formatLastChange(stats)
+  const { t } = useTranslation()
+  const text = formatLastChange(stats, t)
   if (text === '—') {
     return (
       <span className="muted last-change-dash" title={LAST_CHANGE_EMPTY_HINT}>
@@ -254,7 +255,7 @@ function VersioningSummaryCell({ folder }: { folder: FolderConfiguration }): Rea
 
   return (
     <span className="versioning-summary-cell">
-      <span>{versioningTypeLabel(v.type)}</span>
+      <span>{versioningTypeLabel(v.type, t)}</span>
       {maxAge > 0 && (
         <>
           {' · '}
@@ -274,7 +275,7 @@ function VersioningSummaryCell({ folder }: { folder: FolderConfiguration }): Rea
               ⟲
             </span>
           </FkWrap>
-          <span title={t('Ark.FoldersCleanInterval')}>{formatIntervalSeconds(cleanS)}</span>
+          <span title={t('Ark.FoldersCleanInterval')}>{formatIntervalSeconds(cleanS, t)}</span>
         </>
       )}
       {pathStr ? (
@@ -313,7 +314,7 @@ function FolderCard({
 }): React.ReactElement {
   const { t } = useTranslation()
   const { folder, status, stats } = row
-  const st = folderDisplayState(folder, status)
+  const st = folderDisplayState(folder, status, t)
   const shared = (folder.devices || [])
     .map((d) => d.deviceID)
     .filter((id) => !sameDeviceId(id, myId))
@@ -370,7 +371,7 @@ function FolderCard({
               )}
             </FolderKvRow>
             <FolderKvRow icon={<IcoFolder />} label={t('Ark.FoldersType')} valueClass="kv-value-tr">
-              {folderTypeLabel(folder.type)}
+              {folderTypeLabel(folder.type, t)}
             </FolderKvRow>
             <FolderKvRow icon={<IcoList />} label={t('Ark.FoldersBlockIndex')} valueClass="kv-value-tr">
               {blockIdx}
@@ -379,7 +380,7 @@ function FolderCard({
               <RescanWatcherValue folder={folder} />
             </FolderKvRow>
             <FolderKvRow icon={<IcoArrowsUD />} label={t('Ark.FoldersPullOrder')} valueClass="kv-value-tr">
-              {pullOrderLabel(folder.order)}
+              {pullOrderLabel(folder.order, t)}
             </FolderKvRow>
             <FolderKvRow icon={<IcoLayers />} label={t('Ark.FoldersVersioning')} valueClass="kv-value-tr">
               <VersioningSummaryCell folder={folder} />

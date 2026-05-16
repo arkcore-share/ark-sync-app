@@ -6,46 +6,74 @@ import type {
 } from '../api/types'
 import { sameDeviceId } from './format'
 
-const FOLDER_TYPE_CN: Record<string, string> = {
-  sendreceive: '发送和接收',
-  sendonly: '仅发送',
-  receiveonly: '仅接收',
-  receiveencrypted: '接收加密'
+const PULL_ORDER_KEYS: Record<string, string> = {
+  random: 'Ark.PullOrderRandom',
+  alphabetic: 'Ark.PullOrderAlphabetic',
+  smallestFirst: 'Ark.PullOrderSmallestFirst',
+  largestFirst: 'Ark.PullOrderLargestFirst',
+  oldestFirst: 'Ark.PullOrderOldestFirst',
+  newestFirst: 'Ark.PullOrderNewestFirst'
 }
 
-const PULL_ORDER_CN: Record<string, string> = {
-  random: '随机',
-  alphabetic: '按字母顺序',
-  smallestFirst: '最小优先',
-  largestFirst: '最大优先',
-  oldestFirst: '最旧优先',
-  newestFirst: '最新优先'
+const VERSIONING_TYPE_KEYS: Record<string, string> = {
+  '': 'Ark.VersioningOff',
+  simple: 'Ark.VersioningSimple',
+  trashcan: 'Ark.VersioningTrashcan',
+  staggered: 'Ark.VersioningStaggered',
+  external: 'Ark.VersioningExternal'
 }
 
-const VERSIONING_TYPE_CN: Record<string, string> = {
-  '': '关闭',
-  simple: '简易',
-  trashcan: '回收站',
-  staggered: '阶段',
-  external: '外部'
+const FOLDER_STATE_KEYS: Record<string, string> = {
+  paused: 'Ark.FolderStatePaused',
+  unknown: 'Ark.FolderStateUnknown',
+  error: 'Ark.FolderStateError',
+  outofsync: 'Ark.FolderStateUnsynced',
+  unshared: 'Ark.FolderStateUnshared',
+  uptodate: 'Ark.FolderStateUpToDate',
+  scanning: 'Ark.FolderStateScanning',
+  syncing: 'Ark.FolderStateSyncing'
 }
 
-export function folderTypeLabel(t: string): string {
-  return FOLDER_TYPE_CN[t] ?? t
+const CONN_TYPE_KEYS: Record<string, string> = {
+  relaywan: 'Ark.ConnectionRelayWan',
+  relaylan: 'Ark.ConnectionRelayLan',
+  quicwan: 'Ark.ConnectionQuicWan',
+  quiclan: 'Ark.ConnectionQuicLan',
+  tcpwan: 'Ark.ConnectionTcpWan',
+  tcplan: 'Ark.ConnectionTcpLan',
+  disconnected: 'Ark.ConnectionDisconnected'
 }
 
-export function pullOrderLabel(order?: string): string {
-  if (!order) {
-    return PULL_ORDER_CN.random
+const COMPRESS_KEYS: Record<string, string> = {
+  always: 'Ark.CompressAllData',
+  metadata: 'Ark.CompressMetadata',
+  never: 'Ark.CompressNever'
+}
+
+export function folderTypeLabel(type: string, t?: (key: string) => string): string {
+  const key = `Ark.FolderType${type.charAt(0).toUpperCase() + type.slice(1).replace(/[A-Z]/g, (m) => m.charAt(0) + m.slice(1).toLowerCase())}`
+    .replace('sendreceive', 'SendReceive')
+    .replace('sendonly', 'SendOnly')
+    .replace('receiveonly', 'ReceiveOnly')
+    .replace('receiveencrypted', 'ReceiveEncrypted')
+  const keyMap: Record<string, string> = {
+    sendreceive: 'Ark.FolderTypeSendReceive',
+    sendonly: 'Ark.FolderTypeSendOnly',
+    receiveonly: 'Ark.FolderTypeReceiveOnly',
+    receiveencrypted: 'Ark.FolderTypeReceiveEncrypted'
   }
-  return PULL_ORDER_CN[order] ?? order
+  const trKey = keyMap[type]
+  return trKey && t ? t(trKey) : type
 }
 
-export function versioningTypeLabel(t?: string): string {
-  if (!t) {
-    return '关闭'
-  }
-  return VERSIONING_TYPE_CN[t] ?? t
+export function pullOrderLabel(order?: string, t?: (key: string) => string): string {
+  const key = order ? PULL_ORDER_KEYS[order] : PULL_ORDER_KEYS.random
+  return t ? t(key) : key.replace('Ark.', '')
+}
+
+export function versioningTypeLabel(vtype?: string, t?: (key: string) => string): string {
+  const key = VERSIONING_TYPE_KEYS[vtype ?? ''] ?? 'Ark.VersioningOff'
+  return t ? t(key) : key.replace('Ark.', '')
 }
 
 /** 与官方 `yyyy-MM-dd HH:mm:ss` 一致（本地时区） */
@@ -71,10 +99,10 @@ export function formatIntervalSeconds(sec: number, t?: (key: string) => string):
   if (!sec || sec <= 0) {
     return '—'
   }
-  const days = t?.('Ark.TimeDays') ?? '天'
-  const hours = t?.('Ark.TimeHours') ?? '时'
-  const minutes = t?.('Ark.TimeMinutes') ?? '分'
-  const seconds = t?.('Ark.TimeSeconds') ?? '秒'
+  const days = t?.('Ark.TimeDays') ?? 'days'
+  const hours = t?.('Ark.TimeHours') ?? 'h'
+  const minutes = t?.('Ark.TimeMinutes') ?? 'min'
+  const seconds = t?.('Ark.TimeSeconds') ?? 'sec'
   if (sec % 86400 === 0 && sec >= 86400) {
     const d = sec / 86400
     return `${d}${days}`
@@ -94,8 +122,8 @@ export function formatRescanAndWatcher(folder: FolderConfiguration, t?: (key: st
   const interval = folder.rescanIntervalS ?? 3600
   const intervalStr = formatIntervalSeconds(interval, t)
   const watch = folder.fsWatcherEnabled !== false
-    ? (t?.('Ark.FsWatcherEnabled') ?? '已启用')
-    : (t?.('Ark.FsWatcherDisabled') ?? '已禁用')
+    ? (t?.('Ark.FsWatcherEnabled') ?? 'Enabled')
+    : (t?.('Ark.FsWatcherDisabled') ?? 'Disabled')
   return `${intervalStr} · ${watch}`
 }
 
@@ -103,11 +131,11 @@ export function formatRescanAndWatcher(folder: FolderConfiguration, t?: (key: st
 export function formatVersioningSummary(folder: FolderConfiguration, t?: (key: string) => string): string {
   const v = folder.versioning
   if (!v?.type) {
-    return t?.('Ark.VersioningOff') ?? '关闭'
+    return t?.('Ark.VersioningOff') ?? 'Off'
   }
-  const typeCn = versioningTypeLabel(v.type)
+  const typeLabel = versioningTypeLabel(v.type, t)
   const p = v.params ?? {}
-  const parts: string[] = [typeCn]
+  const parts: string[] = [typeLabel]
 
   if (v.type === 'staggered' || v.type === 'simple' || v.type === 'trashcan') {
     const maxAge = p.maxAge ? parseInt(p.maxAge, 10) : 0
@@ -130,41 +158,45 @@ export function folderSummaryLine(
   files: number,
   dirs: number,
   bytes: number,
-  formatBytes: (n: number) => string
+  formatBytes: (n: number) => string,
+  t?: (key: string) => string
 ): string {
-  return `${files} 个文件 · ${dirs} 个目录 · ${formatBytes(bytes)}`
+  const filesLabel = t?.('Ark.FolderSummaryFiles') ?? 'files'
+  const dirsLabel = t?.('Ark.FolderSummaryDirs') ?? 'dirs'
+  return `${files} ${filesLabel} · ${dirs} ${dirsLabel} · ${formatBytes(bytes)}`
 }
 
 /** 与官方 folderStatus 类似的展示用状态（简化） */
 export function folderDisplayState(
   folder: FolderConfiguration,
-  sum: FolderSummary | null
+  sum: FolderSummary | null,
+  t?: (key: string) => string
 ): { label: string; ok: boolean } {
   if (folder.paused) {
-    return { label: '已暂停', ok: false }
+    return { label: t?.('Ark.FolderStatePaused') ?? 'Paused', ok: false }
   }
   if (!sum?.state) {
-    return { label: '未知', ok: false }
+    return { label: t?.('Ark.FolderStateUnknown') ?? 'Unknown', ok: false }
   }
   const st = sum.state
   if (st === 'error' || sum.error) {
-    return { label: '错误', ok: false }
+    return { label: t?.('Ark.FolderStateError') ?? 'Error', ok: false }
   }
   if (st === 'idle') {
     const need = sum.needTotalItems ?? sum.needFiles + (sum.needDirectories || 0)
     if (need > 0) {
-      return { label: '不同步', ok: false }
+      return { label: t?.('Ark.FolderStateUnsynced') ?? 'Out of sync', ok: false }
     }
     if ((folder.devices?.length ?? 0) <= 1) {
-      return { label: '未共享', ok: false }
+      return { label: t?.('Ark.FolderStateUnshared') ?? 'Unshared', ok: false }
     }
-    return { label: '最新', ok: true }
+    return { label: t?.('Ark.FolderStateUpToDate') ?? 'Up to date', ok: true }
   }
   if (st === 'scanning') {
-    return { label: '扫描中', ok: false }
+    return { label: t?.('Ark.FolderStateScanning') ?? 'Scanning', ok: false }
   }
   if (st === 'syncing' || st.startsWith('sync')) {
-    return { label: '同步中', ok: false }
+    return { label: t?.('Ark.FolderStateSyncing') ?? 'Syncing', ok: false }
   }
   return { label: st, ok: false }
 }
@@ -199,29 +231,32 @@ function coerceLastFile(
   return { filename, deleted }
 }
 
-export function formatLastChange(stats: FolderStatisticsEntry | undefined): string {
+export function formatLastChange(stats: FolderStatisticsEntry | undefined, t?: (key: string) => string): string {
   const lf = coerceLastFile(stats?.lastFile)
   if (!lf) {
     return '—'
   }
-  const act = lf.deleted ? '已删除' : '已更新'
+  const act = lf.deleted ? (t?.('Ark.LastChangeDeleted') ?? 'Deleted') : (t?.('Ark.LastChangeUpdated') ?? 'Updated')
   return `${act} ${lf.filename}`
 }
 
-export function formatUptimeSeconds(sec: number | undefined): string {
+export function formatUptimeSeconds(sec: number | undefined, t?: (key: string) => string): string {
   if (sec === undefined || sec < 0) {
     return '—'
   }
   const h = Math.floor(sec / 3600)
   const m = Math.floor((sec % 3600) / 60)
   const s = Math.floor(sec % 60)
+  const hLabel = t?.('Ark.UptimeHours') ?? 'h'
+  const mLabel = t?.('Ark.UptimeMinutes') ?? 'm'
+  const sLabel = t?.('Ark.UptimeSeconds') ?? 's'
   if (h > 0) {
-    return `${h}时 ${m}分`
+    return `${h}${hLabel} ${m}${mLabel}`
   }
   if (m > 0) {
-    return `${m}分 ${s}秒`
+    return `${m}${mLabel} ${s}${sLabel}`
   }
-  return `${s}秒`
+  return `${s}${sLabel}`
 }
 
 export function countDiscoveryOk(discovery: Record<string, { error?: string | null }> | undefined): {
@@ -266,30 +301,21 @@ export function rdConnType(conn: ConnectionEntry | undefined): string {
   return conn.isLocal ? `${base}lan` : `${base}wan`
 }
 
-const RD_CONN_CN: Record<string, string> = {
-  relaywan: '中继广域网',
-  relaylan: '中继局域网',
-  quicwan: 'QUIC 广域网',
-  quiclan: 'QUIC 局域网',
-  tcpwan: 'TCP 广域网',
-  tcplan: 'TCP 局域网',
-  disconnected: '未连接'
-}
-
-export function rdConnTypeLabelCn(conn: ConnectionEntry | undefined): string {
+export function rdConnTypeLabel(conn: ConnectionEntry | undefined, t?: (key: string) => string): string {
   const k = rdConnType(conn)
-  return RD_CONN_CN[k] ?? (conn?.type || '—')
+  const key = CONN_TYPE_KEYS[k]
+  return key && t ? t(key) : (CONN_TYPE_KEYS[k]?.replace('Ark.', '') ?? (conn?.type || '—'))
 }
 
-export function compressionLabelCn(c?: string): string {
+export function compressionLabel(c?: string, t?: (key: string) => string): string {
   if (c === 'always') {
-    return '全部数据'
+    return t?.('Ark.CompressAllData') ?? 'All data'
   }
   if (c === 'metadata') {
-    return '仅元数据'
+    return t?.('Ark.CompressMetadata') ?? 'Metadata only'
   }
   if (c === 'never') {
-    return '关闭'
+    return t?.('Ark.CompressNever') ?? 'Never'
   }
   return c || '—'
 }
