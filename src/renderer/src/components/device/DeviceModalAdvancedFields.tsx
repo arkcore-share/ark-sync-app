@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 export default function DeviceModalAdvancedFields({
   idPrefix,
@@ -29,6 +30,7 @@ export default function DeviceModalAdvancedFields({
   maxSendKbps: number
   onMaxSendKbps: (n: number) => void
 }): React.ReactElement {
+  const { t } = useTranslation()
   const idAddr = `${idPrefix}-addresses`
   const idComp = `${idPrefix}-compression`
   const idConn = `${idPrefix}-num-connections`
@@ -42,7 +44,7 @@ export default function DeviceModalAdvancedFields({
       <div className="device-advanced-grid">
         <div className="device-advanced-col">
           <div className="field">
-            <label htmlFor={idAddr}>地址</label>
+            <label htmlFor={idAddr}>{t('Ark.SettingsAddress')}</label>
             <textarea
               id={idAddr}
               className="modal-field-input-full device-addresses-textarea"
@@ -58,16 +60,16 @@ export default function DeviceModalAdvancedFields({
         </div>
         <div className="device-advanced-col">
           <div className="field">
-            <label htmlFor={idComp}>压缩</label>
+            <label htmlFor={idComp}>{t('Ark.FolderCompression')}</label>
             <select
               id={idComp}
               className="modal-field-input-full"
               value={compression}
               onChange={(e) => onCompression(e.target.value)}
             >
-              <option value="metadata">仅元数据</option>
-              <option value="always">全部数据</option>
-              <option value="never">关闭</option>
+              <option value="metadata">{t('Ark.CompressMetadata')}</option>
+              <option value="always">{t('Ark.CompressAlways')}</option>
+              <option value="never">{t('Ark.CompressNever')}</option>
             </select>
           </div>
         </div>

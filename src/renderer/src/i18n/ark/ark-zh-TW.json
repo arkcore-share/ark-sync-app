@@ -339,5 +339,17 @@
   "Ark.IgnoreTitle":  "忽略規則 — {folderId}",
   "Ark.IgnoreHelp":  "每行一條模式，語法與 .stignore 相同。儲存後立即生效。",
   "Ark.ExpandedRules":  "展開後的規則（唯讀）",
-  "Ark.DeviceQrTitle":  "裝置 QR 碼"
+  "Ark.DeviceQrTitle":  "裝置 QR 碼",
+  "Ark.TimeDays": "天",
+  "Ark.TimeHours": "時",
+  "Ark.TimeMinutes": "分",
+  "Ark.TimeSeconds": "秒",
+  "Ark.TimeDaysAgo": "{days} 天前",
+  "Ark.FolderTypeSendReceive": "發送和接收",
+  "Ark.FolderTypeSendOnly": "僅發送",
+  "Ark.FolderTypeReceiveOnly": "僅接收",
+  "Ark.FolderTypeReceiveEncrypted": "接收加密",
+  "Ark.VersioningOff": "關閉",
+  "Ark.FsWatcherEnabled": "已啟用",
+  "Ark.FsWatcherDisabled": "已停用"
 }

@@ -339,5 +339,17 @@
   "Ark.IgnoreTitle": "Règles d'ignorement - {folderId}",
   "Ark.IgnoreHelp": "Un modèle par ligne, même syntaxe que .stignore. Prend effet immédiatement après l'enregistrement.",
   "Ark.ExpandedRules": "Règles développées (lecture seule)",
-  "Ark.DeviceQrTitle": "Code QR de l'appareil"
+  "Ark.DeviceQrTitle": "Code QR de l'appareil",
+  "Ark.TimeDays": "jours",
+  "Ark.TimeHours": "h",
+  "Ark.TimeMinutes": "min",
+  "Ark.TimeSeconds": "sec",
+  "Ark.TimeDaysAgo": "il y a {days} jours",
+  "Ark.FolderTypeSendReceive": "Envoyer et recevoir",
+  "Ark.FolderTypeSendOnly": "Envoyer uniquement",
+  "Ark.FolderTypeReceiveOnly": "Recevoir uniquement",
+  "Ark.FolderTypeReceiveEncrypted": "Recevoir chiffré",
+  "Ark.VersioningOff": "Désactivé",
+  "Ark.FsWatcherEnabled": "Activé",
+  "Ark.FsWatcherDisabled": "Désactivé"
 }

@@ -342,5 +342,17 @@
   "Ark.SettingsAddress": "Address",
   "Ark.SettingsNoIgnoredFolders": "You have no ignored folders.",
   "Ark.SettingsFolder": "Folder",
-  "Ark.SettingsMinDiskSpaceTip": "This setting controls the required free space on the main disk (the index database)."
+  "Ark.SettingsMinDiskSpaceTip": "This setting controls the required free space on the main disk (the index database).",
+  "Ark.TimeDays": "days",
+  "Ark.TimeHours": "h",
+  "Ark.TimeMinutes": "min",
+  "Ark.TimeSeconds": "sec",
+  "Ark.TimeDaysAgo": "{days} days ago",
+  "Ark.FolderTypeSendReceive": "Send & receive",
+  "Ark.FolderTypeSendOnly": "Send only",
+  "Ark.FolderTypeReceiveOnly": "Receive only",
+  "Ark.FolderTypeReceiveEncrypted": "Receive encrypted",
+  "Ark.VersioningOff": "Off",
+  "Ark.FsWatcherEnabled": "Enabled",
+  "Ark.FsWatcherDisabled": "Disabled"
 }

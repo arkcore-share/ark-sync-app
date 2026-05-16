@@ -339,5 +339,17 @@
   "Ark.IgnoreTitle": "無視ルール - {folderId}",
   "Ark.IgnoreHelp": "1行に1パターン、.stignore と同じ構文。保存後すぐに有効。",
   "Ark.ExpandedRules": "展開されたルール（読み取り専用）",
-  "Ark.DeviceQrTitle": "デバイス QR コード"
+  "Ark.DeviceQrTitle": "デバイス QR コード",
+  "Ark.TimeDays": "日",
+  "Ark.TimeHours": "時",
+  "Ark.TimeMinutes": "分",
+  "Ark.TimeSeconds": "秒",
+  "Ark.TimeDaysAgo": "{days} 日前",
+  "Ark.FolderTypeSendReceive": "送受信",
+  "Ark.FolderTypeSendOnly": "送信のみ",
+  "Ark.FolderTypeReceiveOnly": "受信のみ",
+  "Ark.FolderTypeReceiveEncrypted": "受信暗号化",
+  "Ark.VersioningOff": "オフ",
+  "Ark.FsWatcherEnabled": "有効",
+  "Ark.FsWatcherDisabled": "無効"
 }
