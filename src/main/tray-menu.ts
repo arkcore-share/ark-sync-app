@@ -197,22 +197,24 @@ function resolveTrayI18n(lng: string): TrayI18n {
   return TRAY_I18N_EN
 }
 
-const HELP_LINKS: { label: string; url: string }[][] = [
-  [{ label: T.intro, url: 'https://docs.syncthing.net/intro/getting-started.html' }],
-  [
-    { label: T.home, url: 'https://syncthing.net/' },
-    { label: T.docs, url: 'https://docs.syncthing.net/' },
-    { label: T.support, url: 'https://forum.syncthing.net/' }
-  ],
-  [
-    { label: T.changelog, url: 'https://github.com/syncthing/syncthing/releases' },
-    { label: T.stats, url: 'https://data.syncthing.net/' }
-  ],
-  [
-    { label: T.bugs, url: 'https://github.com/syncthing/syncthing/issues' },
-    { label: T.source, url: 'https://github.com/syncthing/syncthing' }
+function getHelpLinks(T: ReturnType<typeof resolveTrayI18n>): { label: string; url: string }[][] {
+  return [
+    [{ label: T.intro, url: 'https://docs.syncthing.net/intro/getting-started.html' }],
+    [
+      { label: T.home, url: 'https://syncthing.net/' },
+      { label: T.docs, url: 'https://docs.syncthing.net/' },
+      { label: T.support, url: 'https://forum.syncthing.net/' }
+    ],
+    [
+      { label: T.changelog, url: 'https://github.com/syncthing/syncthing/releases' },
+      { label: T.stats, url: 'https://data.syncthing.net/' }
+    ],
+    [
+      { label: T.bugs, url: 'https://github.com/syncthing/syncthing/issues' },
+      { label: T.source, url: 'https://github.com/syncthing/syncthing' }
+    ]
   ]
-]
+}
 
 export function buildTrayContextMenu(opts: {
   /** 取当前主窗口（避免菜单创建时快照的 BrowserWindow 已销毁） */
@@ -234,11 +236,12 @@ export function buildTrayContextMenu(opts: {
     }
 
   const helpSubmenu: Electron.MenuItemConstructorOptions[] = []
-  for (let gi = 0; gi < HELP_LINKS.length; gi++) {
+  const helpLinks = getHelpLinks(T)
+  for (let gi = 0; gi < helpLinks.length; gi++) {
     if (gi > 0) {
       helpSubmenu.push({ type: 'separator' })
     }
-    for (const item of HELP_LINKS[gi]) {
+    for (const item of helpLinks[gi]) {
       helpSubmenu.push({
         label: item.label,
         click: (): void => {
